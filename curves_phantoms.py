@@ -2,8 +2,8 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from MyFunctions.DicomImage import DicomImage #Custom Class
-import MyFunctions.pickle_functions as PF
-import MyFunctions.Extract_Images_r as Extract_r
+import MyFunctions.Pickle_Functions as PF
+import MyFunctions.Extract_Images_R as Extract_r
 import time
 ###
 import numpy as np
@@ -12,8 +12,9 @@ import matplotlib.pyplot as plt
 
 os.system('clear')
 print('Starting program...')
-path ='/Volumes/Backup_Stuff/Python/Data/'
-phantom = 'Fantome_8_1min_CIF'
+path ='/Volumes/Backup_Stuff/Python/Data_Results/'
+phantom = 'Fantome_8_1min/'
+phantom1 = '_comp_2_F_k_all'
 extension = '.pkl'
 initial = time.time()
 Fan = PF.pickle_open(path+phantom+extension)
