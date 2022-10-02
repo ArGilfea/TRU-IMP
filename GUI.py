@@ -20,14 +20,18 @@ from PyQt5.QtWidgets import *
 ###
 
 class Window(QDialog):
+    def _createStatusBar(self):
+        status = QStatusBar()
+        status.showMessage("Hey there!")
     def __init__(self):
         def on_button_clicked():
             alert = QMessageBox()
             alert.setText("Sup dude!")
             alert.exec()
+
+
         super().__init__(parent=None)
         self.setWindowTitle("QDialog")
-        label=QLabel("Hello Beubak!")
         dialogLayout = QVBoxLayout()
         formLayout = QFormLayout()
         formLayout.addRow("Name:", QLineEdit())
@@ -37,7 +41,10 @@ class Window(QDialog):
         dialogLayout.addWidget(button)
         btn = QPushButton("Close")
         btn.clicked.connect(self.close)
+        slider = QSlider(3)
+        dialogLayout.addWidget(slider)
         dialogLayout.addWidget(btn)
+        self._createStatusBar()
         self.setLayout(dialogLayout)
 
 
