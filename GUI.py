@@ -12,14 +12,10 @@ import matplotlib.pyplot as plt
 ###
 import sys
 from PyQt5.QtWidgets import *
-"""import (
-    QApplication, QLabel, QWidget,
-    QDialog, QFormLayout, QLineEdit, QVBoxLayout,
-    QDialogButtonBox
-)"""
+from functools import partial
 ###
 
-class Window(QDialog):
+class Window(QMainWindow):
     def _createStatusBar(self):
         status = QStatusBar()
         status.showMessage("Hey there!")
@@ -28,21 +24,29 @@ class Window(QDialog):
             alert = QMessageBox()
             alert.setText("Sup dude!")
             alert.exec()
-
+        def greet(name="World"):
+            if msgLabel.text():
+                msgLabel.setText("")
+            else:
+                msgLabel.setText(f"Hello, {name}!")
 
         super().__init__(parent=None)
-        self.setWindowTitle("QDialog")
+        #self.setMinimumSize(500, 400)
+        self.setWindowTitle("My GUI")
         dialogLayout = QVBoxLayout()
         formLayout = QFormLayout()
-        formLayout.addRow("Name:", QLineEdit())
+        self.name = formLayout.addRow("Name:", QLineEdit())
         dialogLayout.addLayout(formLayout)
         button = QPushButton("Click Me!")
+        button2 = QPushButton("Greetings")
         button.clicked.connect(on_button_clicked)
+        button2.clicked.connect(partial(greet,self.name))
         dialogLayout.addWidget(button)
+        msgLabel = QLabel("")
+        dialogLayout.addWidget(button2)
+        dialogLayout.addWidget(msgLabel)
         btn = QPushButton("Close")
         btn.clicked.connect(self.close)
-        slider = QSlider(3)
-        dialogLayout.addWidget(slider)
         dialogLayout.addWidget(btn)
         self._createStatusBar()
         self.setLayout(dialogLayout)
