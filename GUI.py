@@ -17,6 +17,7 @@ from functools import partial
 ###
 DISPLAY_HEIGHT = 35
 BUTTON_SIZE = 40
+ERROR_MSG = "No can do!"
 
 class Window(QMainWindow):
     def _createButtons(self):
@@ -43,8 +44,21 @@ class Window(QMainWindow):
         self.display.setReadOnly(True)
         self.generalLayout.addWidget(self.display)        
     def _createStatusBar(self):
-        status = QStatusBar()
-        status.showMessage("Hey there!")
+        self.status = QStatusBar()
+        self.status.showMessage("Hey there!")
+        self.generalLayout.addWidget(self.status)        
+    def setDisplayText(self, text):
+        """Set the display's text."""
+        self.display.setText(text)
+        self.display.setFocus()
+
+    def displayText(self):
+        """Get the display's text."""
+        return self.display.text()
+
+    def clearDisplay(self):
+        """Clear the display."""
+        self.setDisplayText("")
     def __init__(self):
         def on_button_clicked():
             alert = QMessageBox()
@@ -65,9 +79,25 @@ class Window(QMainWindow):
         self.setCentralWidget(centralWidget)
         self._createDisplay()
         self._createButtons()
+        self._createStatusBar()
 
         msgLabel = QLabel("")
 
+        self.btn = QPushButton("Click Me!")
+        self.btn.clicked.connect(greet)
+        self.generalLayout.addWidget(self.btn)     
+        self.generalLayout.addWidget(msgLabel)     
+
+        self.btn = QPushButton("Click Me Too!!")
+        self.btn.clicked.connect(on_button_clicked)
+        self.generalLayout.addWidget(self.btn)     
+def evaluateExpression(expression):
+    """Evaluate an expression (Model)."""
+    try:
+        result = str(eval(expression, {}, {}))
+    except Exception:
+        result = ERROR_MSG
+    return result
 
 os.system('clear')
 print(f"Starting program at {time.strftime('%H:%M:%S')}")
