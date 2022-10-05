@@ -17,7 +17,7 @@ from functools import partial
 ###
 DISPLAY_HEIGHT = 35
 BUTTON_SIZE = 40
-ERROR_MSG = "No can do!"
+ERROR_MSG = "No can't do!"
 
 class Window(QMainWindow):
     def _createButtons(self):
@@ -28,6 +28,7 @@ class Window(QMainWindow):
             ["4", "5", "6", "*", "("],
             ["1", "2", "3", "-", ")"],
             ["0", "00", ".", "+", "="],
+            ["Load","Save","View","",""],
         ]
 
         for row, keys in enumerate(keyBoard):
@@ -46,7 +47,22 @@ class Window(QMainWindow):
     def _createStatusBar(self):
         self.status = QStatusBar()
         self.status.showMessage("Hey there!")
-        self.generalLayout.addWidget(self.status)        
+        self.generalLayout.addWidget(self.status)      
+    def _createPopUp(self):
+        self.btn = QPushButton("Click Me Too!!")
+        self.btn.clicked.connect(self.on_button_clicked)
+        self.generalLayout.addWidget(self.btn)      
+    def _createMessage(self):
+        self.msgLabel = QLabel("")
+
+        self.btn = QPushButton("Click Me!")
+        self.btn.clicked.connect(self.greet)
+        self.generalLayout.addWidget(self.btn)     
+        self.generalLayout.addWidget(self.msgLabel)    
+    def _createExitButton(self):
+        self.exit = QPushButton("Exit")
+        self.exit.clicked.connect(self.close)
+        self.generalLayout.addWidget(self.exit)  
     def setDisplayText(self, text):
         """Set the display's text."""
         self.display.setText(text)
@@ -59,16 +75,17 @@ class Window(QMainWindow):
     def clearDisplay(self):
         """Clear the display."""
         self.setDisplayText("")
+    def on_button_clicked(self):
+        alert = QMessageBox()
+        alert.setText("Sup dude!")
+        alert.exec()
+    def greet(self,name="World"):
+        if self.msgLabel.text():
+            self.msgLabel.setText("")
+        else:
+            self.msgLabel.setText(f"Hello, {name}!")
     def __init__(self):
-        def on_button_clicked():
-            alert = QMessageBox()
-            alert.setText("Sup dude!")
-            alert.exec()
-        def greet(name="World"):
-            if msgLabel.text():
-                msgLabel.setText("")
-            else:
-                msgLabel.setText(f"Hello, {name}!")
+
 
         super().__init__(parent=None)
         self.setMinimumSize(500, 400)
@@ -80,21 +97,11 @@ class Window(QMainWindow):
         self._createDisplay()
         self._createButtons()
         self._createStatusBar()
+        self._createPopUp()
+        self._createMessage()
+        self._createExitButton() 
 
-        msgLabel = QLabel("")
-
-        self.btn = QPushButton("Click Me!")
-        self.btn.clicked.connect(greet)
-        self.generalLayout.addWidget(self.btn)     
-        self.generalLayout.addWidget(msgLabel)     
-
-        self.btn = QPushButton("Click Me Too!!")
-        self.btn.clicked.connect(on_button_clicked)
-        self.generalLayout.addWidget(self.btn)  
-
-        self.btn = QPushButton("Exit")
-        self.btn.clicked.connect(self.close)
-        self.generalLayout.addWidget(self.btn)   
+ 
 def evaluateExpression(expression):
     """Evaluate an expression (Model)."""
     try:
@@ -129,6 +136,7 @@ class PyCalc:
                 )
         self._view.buttonMap["="].clicked.connect(self._calculateResult)
         self._view.display.returnPressed.connect(self._calculateResult)
+        self._view.buttonMap["C"].clicked.connect(self._view.clearDisplay)
         self._view.buttonMap["C"].clicked.connect(self._view.clearDisplay)
 
 
