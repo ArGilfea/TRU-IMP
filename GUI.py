@@ -1,3 +1,5 @@
+from curses import ERR
+from signal import signal
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -15,8 +17,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from functools import partial
 ###
-DISPLAY_HEIGHT = 35
-BUTTON_SIZE = 40
 ERROR_MSG = "No can't do!"
 
 class Window(QMainWindow):
@@ -28,19 +28,26 @@ class Window(QMainWindow):
             ["4", "5", "6", "*", "("],
             ["1", "2", "3", "-", ")"],
             ["0", "00", ".", "+", "="],
-            ["Load","Save","View","",""],
+            ["T","Load","","View",""],
         ]
 
         for row, keys in enumerate(keyBoard):
             for col, key in enumerate(keys):
-                self.buttonMap[key] = QPushButton(key)
-                self.buttonMap[key].setFixedSize(BUTTON_SIZE, BUTTON_SIZE)
-                buttonsLayout.addWidget(self.buttonMap[key], row, col)
+                if key == "T":
+                    self.edit_box = QLineEdit()
+                    self.edit_box.setObjectName("host")
+                    self.edit_box.setText("host")
+                    self.edit_box.setFixedSize(self.BUTTON_SIZE, self.BUTTON_SIZE)
+                    buttonsLayout.addWidget(self.edit_box, row, col)
+                else:
+                    self.buttonMap[key] = QPushButton(key)
+                    self.buttonMap[key].setFixedSize(self.BUTTON_SIZE, self.BUTTON_SIZE)
+                    buttonsLayout.addWidget(self.buttonMap[key], row, col)
 
         self.generalLayout.addLayout(buttonsLayout)
     def _createDisplay(self):
         self.display = QLineEdit()
-        self.display.setFixedHeight(DISPLAY_HEIGHT)
+        self.display.setFixedHeight(self.DISPLAY_HEIGHT)
         self.display.setAlignment(Qt.AlignRight)
         self.display.setReadOnly(True)
         self.generalLayout.addWidget(self.display)        
@@ -63,6 +70,12 @@ class Window(QMainWindow):
         self.exit = QPushButton("Exit")
         self.exit.clicked.connect(self.close)
         self.generalLayout.addWidget(self.exit)  
+    def _createLoadingDock(self):
+        btn_load = QPushButton("Load")
+        source = QLineEdit()
+        btn_load.clicked.connect(partial(self.load_button,source))
+        self.generalLayout.addWidget(btn_load)  
+        self.generalLayout.addWidget(source)  
     def setDisplayText(self, text):
         """Set the display's text."""
         self.display.setText(text)
@@ -79,14 +92,19 @@ class Window(QMainWindow):
         alert = QMessageBox()
         alert.setText("Sup dude!")
         alert.exec()
-    def greet(self,name="World"):
-        if self.msgLabel.text():
-            self.msgLabel.setText("")
-        else:
-            self.msgLabel.setText(f"Hello, {name}!")
+    def load_button(self,source):
+        self.name = source.text()
+    def greet(self):
+        try:
+            if self.msgLabel.text():
+                self.msgLabel.setText("")
+            else:
+                self.msgLabel.setText(f"Hello, {self.name}!")
+        except:
+            self.msgLabel.setText(ERROR_MSG)
     def __init__(self):
-
-
+        self.BUTTON_SIZE = 40
+        self.DISPLAY_HEIGHT = 35
         super().__init__(parent=None)
         self.setMinimumSize(500, 400)
         self.setWindowTitle("My GUI")
@@ -96,11 +114,10 @@ class Window(QMainWindow):
         self.setCentralWidget(centralWidget)
         self._createDisplay()
         self._createButtons()
-        self._createStatusBar()
+        self._createLoadingDock()
         self._createPopUp()
         self._createMessage()
         self._createExitButton() 
-
  
 def evaluateExpression(expression):
     """Evaluate an expression (Model)."""
@@ -110,7 +127,7 @@ def evaluateExpression(expression):
         result = ERROR_MSG
     return result
 
-class PyCalc:
+class PySeg:
     """PyCalc's controller class."""
 
     def __init__(self, model, view):
@@ -149,5 +166,5 @@ if __name__ == "__main__":
     app = QApplication([])
     window=Window()
     window.show()
-    PyCalc(model=evaluateExpression, view=window)
+    PySeg(model=evaluateExpression, view=window)
     sys.exit(app.exec())
