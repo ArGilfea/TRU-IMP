@@ -106,8 +106,6 @@ class Window(QMainWindow):
                 self.msgLabel.setText(f"Hello, {self.name}!")
         except:
             self.msgLabel.setText(ERROR_MSG)
-        try : print(self.name)
-        except: print("No name")
     def __init__(self):
         self.BUTTON_SIZE = 40
         self.DISPLAY_HEIGHT = 35
