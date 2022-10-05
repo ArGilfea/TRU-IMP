@@ -72,10 +72,14 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(self.exit)  
     def _createLoadingDock(self):
         btn_load = QPushButton("Load")
+        btn_browse = QPushButton("Browse")
         source = QLineEdit()
+        browse = QFileDialog()
         btn_load.clicked.connect(partial(self.load_button,source))
+        #btn_browse.clicked.connect(browse)
         self.generalLayout.addWidget(btn_load)  
         self.generalLayout.addWidget(source)  
+        #self.generalLayout.addWidget(btn_browse)  
     def setDisplayText(self, text):
         """Set the display's text."""
         self.display.setText(text)
@@ -102,6 +106,8 @@ class Window(QMainWindow):
                 self.msgLabel.setText(f"Hello, {self.name}!")
         except:
             self.msgLabel.setText(ERROR_MSG)
+        try : print(self.name)
+        except: print("No name")
     def __init__(self):
         self.BUTTON_SIZE = 40
         self.DISPLAY_HEIGHT = 35
