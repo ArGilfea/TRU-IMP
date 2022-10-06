@@ -96,16 +96,10 @@ class Window(QMainWindow):
         initial = time.time()
         self.Image = PF.pickle_open(source.text())
         self.name = self.Image.version
-        self.Image.show_flats(acq=10)
         self.displayStatus("File loading", initial)
-        sc = MplCanvas(self, width=5, height=4, dpi=100)
-        sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
-        self.generalLayout.addWidget(sc)
-        sc = MplImage(self.Image.axial_flat(acq=10),self, width=5, height=4, dpi=100)
         sc = MplCanvas(self, width=5, height=4, dpi=100)
         sc.axes.pcolormesh(self.Image.axial_flat(acq=10))
         self.generalLayout.addWidget(sc)
-        plt.show()
     def greet(self):
         try:
             if self.msgLabel.text():
