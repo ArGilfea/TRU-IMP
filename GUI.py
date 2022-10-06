@@ -17,34 +17,16 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from functools import partial
 ###
+import matplotlib
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+###
 ERROR_MSG = "No can't do!"
 
 class Window(QMainWindow):
     def _createButtons(self):
-        self.buttonMap = {}
-        buttonsLayout = QGridLayout()
-        keyBoard = [
-            ["7", "8", "9", "/", "C"],
-            ["4", "5", "6", "*", "("],
-            ["1", "2", "3", "-", ")"],
-            ["0", "00", ".", "+", "="],
-            ["T","Load","","View",""],
-        ]
-
-        for row, keys in enumerate(keyBoard):
-            for col, key in enumerate(keys):
-                if key == "T":
-                    self.edit_box = QLineEdit()
-                    self.edit_box.setObjectName("host")
-                    self.edit_box.setText("host")
-                    self.edit_box.setFixedSize(self.BUTTON_SIZE, self.BUTTON_SIZE)
-                    buttonsLayout.addWidget(self.edit_box, row, col)
-                else:
-                    self.buttonMap[key] = QPushButton(key)
-                    self.buttonMap[key].setFixedSize(self.BUTTON_SIZE, self.BUTTON_SIZE)
-                    buttonsLayout.addWidget(self.buttonMap[key], row, col)
-
-        self.generalLayout.addLayout(buttonsLayout)
+        pass
     def _createDisplay(self):
         self.display = QLineEdit()
         self.display.setFixedHeight(self.DISPLAY_HEIGHT)
@@ -52,16 +34,15 @@ class Window(QMainWindow):
         self.display.setReadOnly(True)
         self.generalLayout.addWidget(self.display)        
     def _createStatusBar(self):
-        self.status = QStatusBar()
-        self.status.showMessage("Hey there!")
-        self.generalLayout.addWidget(self.status)      
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)      
+        self.statusBar.showMessage("Nothing started")
     def _createPopUp(self):
-        self.btn = QPushButton("Click Me Too!!")
-        self.btn.clicked.connect(self.on_button_clicked)
+        self.btn = QPushButton("Info")
+        self.btn.clicked.connect(self.on_button_clicked_infos)
         self.generalLayout.addWidget(self.btn)      
     def _createMessage(self):
         self.msgLabel = QLabel("")
-
         self.btn = QPushButton("Click Me!")
         self.btn.clicked.connect(self.greet)
         self.generalLayout.addWidget(self.btn)     
@@ -72,19 +53,19 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(self.exit)  
     def _createLoadingDock(self):
         btn_load = QPushButton("Load")
-        btn_browse = QPushButton("Browse")
         source = QLineEdit()
-        browse = QFileDialog()
+        source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
+        source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
         btn_load.clicked.connect(partial(self.load_button,source))
-        #btn_browse.clicked.connect(browse)
         self.generalLayout.addWidget(btn_load)  
-        self.generalLayout.addWidget(source)  
-        #self.generalLayout.addWidget(btn_browse)  
+        self.generalLayout.addWidget(source)   
     def setDisplayText(self, text):
         """Set the display's text."""
         self.display.setText(text)
         self.display.setFocus()
-
+    def displayStatus(self,action,time_i):
+        new_status = f"{action} done in {(time.time()-time_i):.2f}' s at {time.strftime('%H:%M:%S')}"
+        self.statusBar.showMessage(new_status)
     def displayText(self):
         """Get the display's text."""
         return self.display.text()
@@ -92,12 +73,39 @@ class Window(QMainWindow):
     def clearDisplay(self):
         """Clear the display."""
         self.setDisplayText("")
-    def on_button_clicked(self):
+    def show_infos_acq(self):
+        a = f"""Name: {self.Image.name}<br>
+                Description: {self.Image.Description}<br>
+                Version: {self.Image.version}<br>
+                Number of timeframes: {self.Image.nb_acq}<br>
+                Number of slices: {self.Image.nb_slice}<br>
+                Width: {self.Image.width}<br>
+                Length: {self.Image.length}<br>
+                """
+        return a
+    def on_button_clicked_infos(self):
         alert = QMessageBox()
-        alert.setText("Sup dude!")
+        #alert.setIcon(QMessageBox.Information)
+        alert.setWindowTitle("Infos")
+        try:
+            alert.setText(self.show_infos_acq())
+        except:
+            alert.setText("No file uploaded")
         alert.exec()
     def load_button(self,source):
-        self.name = source.text()
+        initial = time.time()
+        self.Image = PF.pickle_open(source.text())
+        self.name = self.Image.version
+        self.Image.show_flats(acq=10)
+        self.displayStatus("File loading", initial)
+        sc = MplCanvas(self, width=5, height=4, dpi=100)
+        sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
+        self.generalLayout.addWidget(sc)
+        sc = MplImage(self.Image.axial_flat(acq=10),self, width=5, height=4, dpi=100)
+        sc = MplCanvas(self, width=5, height=4, dpi=100)
+        sc.axes.pcolormesh(self.Image.axial_flat(acq=10))
+        self.generalLayout.addWidget(sc)
+        plt.show()
     def greet(self):
         try:
             if self.msgLabel.text():
@@ -110,17 +118,16 @@ class Window(QMainWindow):
         self.BUTTON_SIZE = 40
         self.DISPLAY_HEIGHT = 35
         super().__init__(parent=None)
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(600, 400)
         self.setWindowTitle("My GUI")
         self.generalLayout = QVBoxLayout()
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
         self.setCentralWidget(centralWidget)
-        self._createDisplay()
-        self._createButtons()
         self._createLoadingDock()
         self._createPopUp()
         self._createMessage()
+        self._createStatusBar()
         self._createExitButton() 
  
 def evaluateExpression(expression):
@@ -137,7 +144,7 @@ class PySeg:
     def __init__(self, model, view):
         self._evaluate = model
         self._view = view
-        self._connectSignalsAndSlots()
+        #self._connectSignalsAndSlots()
 
     def _calculateResult(self):
         result = self._evaluate(expression=self._view.displayText())
@@ -160,6 +167,11 @@ class PySeg:
         self._view.buttonMap["C"].clicked.connect(self._view.clearDisplay)
         self._view.buttonMap["C"].clicked.connect(self._view.clearDisplay)
 
+class MplCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
 
 os.system('clear')
 print(f"Starting program at {time.strftime('%H:%M:%S')}")

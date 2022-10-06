@@ -17,10 +17,10 @@ class DicomImage(object):
                 voxel_thickness=1,voxel_width=1,voxel_length=1,time_scale='min',
                 flat_images=False,units='',mass = 1,Dose_inj = 0,Description=''):
         #General Info
-        self.version = '3.0.0'
+        self.version = '4.0.0'
         self.voi_methods = ["Ellipsoid","Threshold","Canny Contour","Canny Filled",
                             "Filled","k Means (2)","ICM (2)"]
-        self.pharmaco_models = ["2-compartment (TBA)"]
+        self.pharmaco_models = ["2-compartment"]
         #Image Specific Info
         self.name = name
         self.Description = Description
