@@ -40,7 +40,7 @@ class Window(QMainWindow):
     def _createPopUp(self):
         self.btn = QPushButton("Info")
         self.btn.clicked.connect(self.on_button_clicked_infos)
-        self.generalLayout.addWidget(self.btn)      
+        self.generalLayout.addWidget(self.btn,0,2)      
     def _createMessage(self):
         self.msgLabel = QLabel("")
         self.btn = QPushButton("Click Me!")
@@ -50,15 +50,69 @@ class Window(QMainWindow):
     def _createExitButton(self):
         self.exit = QPushButton("Exit")
         self.exit.clicked.connect(self.close)
-        self.generalLayout.addWidget(self.exit)  
+        self.generalLayout.addWidget(self.exit,5,3)  
     def _createLoadingDock(self):
         btn_load = QPushButton("Load")
         source = QLineEdit()
         source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
         source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
         btn_load.clicked.connect(partial(self.load_button,source))
-        self.generalLayout.addWidget(btn_load)  
-        self.generalLayout.addWidget(source)   
+        self.generalLayout.addWidget(btn_load,0,1)  
+        self.generalLayout.addWidget(source,0,0)   
+    def _createImageDisplay(self):
+        sc1 = MplCanvas(self, width=5, height=4, dpi=100)
+        sc2 = MplCanvas(self, width=5, height=4, dpi=100)
+        sc3 = MplCanvas(self, width=5, height=4, dpi=100)
+        sc1.axes.pcolormesh(self.Image.axial_flat(acq=0))
+        self.generalLayout.addWidget(sc1,2,0)
+        sc2.axes.pcolormesh(self.Image.coronal_flat(acq=0))
+        self.generalLayout.addWidget(sc2,2,1)
+        sc3.axes.pcolormesh(self.Image.sagittal_flat(acq=0))
+        self.generalLayout.addWidget(sc3,2,2)
+    def _createImageDisplayBars(self):
+        whole_widget = QWidget()
+        layout = QGridLayout()
+        whole_widget.setLayout(layout)
+        self.sliderAcq = QSlider(Qt.Horizontal)
+        self.sliderAxial = QSlider(Qt.Horizontal)
+        self.sliderSagittal = QSlider(Qt.Horizontal)
+        self.sliderCoronal = QSlider(Qt.Horizontal)
+        self.sliderAcq.setMinimum(0);self.sliderAcq.setMaximum(self.Image.nb_acq)
+        self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice)
+        self.sliderSagittal.setMinimum(0);self.sliderSagittal.setMaximum(self.Image.width)
+        self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length)
+        self.sliderAcq.setTickPosition(QSlider.TicksBothSides)
+        self.sliderAxial.setTickPosition(QSlider.TicksBothSides)
+        self.sliderSagittal.setTickPosition(QSlider.TicksBothSides)
+        self.sliderCoronal.setTickPosition(QSlider.TicksBothSides)
+        self.sliderAcq.setSingleStep(1)
+        self.sliderAxial.setSingleStep(1)
+        self.sliderSagittal.setSingleStep(1)
+        self.sliderCoronal.setSingleStep(1)
+        layout.addWidget(self.sliderAcq,0,0)
+        layout.addWidget(self.sliderAxial,1,0)
+        layout.addWidget(self.sliderSagittal,2,0)
+        layout.addWidget(self.sliderCoronal,3,0)
+        self.sliderAcqValue = QLabel("")
+        self.sliderAxialValue = QLabel("")
+        self.sliderSagittalValue = QLabel("")
+        self.sliderCoronalValue = QLabel("")
+        self.sliderAcqValue = QLabel(f"{self.set_value_label(self.sliderAcq,self.sliderAcqValue)}")
+        self.sliderAxialValue = QLabel(f"{self.set_value_label(self.sliderAxial,self.sliderAxialValue)}")
+        self.sliderSagittalValue = QLabel(f"{self.set_value_label(self.sliderSagittal,self.sliderSagittalValue)}")
+        self.sliderCoronalValue = QLabel(f"{self.set_value_label(self.sliderCoronal,self.sliderCoronalValue)}")
+        self.sliderAcq.valueChanged.connect(partial(self.set_value_label,self.sliderAcq,self.sliderAcqValue))
+        self.sliderAxial.valueChanged.connect(partial(self.set_value_label,self.sliderAxial,self.sliderAxialValue))
+        self.sliderSagittal.valueChanged.connect(partial(self.set_value_label,self.sliderSagittal,self.sliderSagittalValue))
+        self.sliderCoronal.valueChanged.connect(partial(self.set_value_label,self.sliderCoronal,self.sliderCoronalValue))
+        layout.addWidget(self.sliderAcqValue,0,1)
+        layout.addWidget(self.sliderAxialValue,1,1)
+        layout.addWidget(self.sliderSagittalValue,2,1)
+        layout.addWidget(self.sliderCoronalValue,3,1)
+        self.generalLayout.addWidget(whole_widget,3,0)
+    def set_value_label(self,slider,label):
+        label.setText(f"{slider.value()}")
+        return slider.value()
     def setDisplayText(self, text):
         """Set the display's text."""
         self.display.setText(text)
@@ -74,7 +128,7 @@ class Window(QMainWindow):
         """Clear the display."""
         self.setDisplayText("")
     def show_infos_acq(self):
-        a = f"""Name: \t{self.Image.name}<br>
+        a = f"""Name: {self.Image.name}<br>
                 Description: {self.Image.Description}<br>
                 Version: {self.Image.version}<br>
                 Number of timeframes: {self.Image.nb_acq}<br>
@@ -97,9 +151,8 @@ class Window(QMainWindow):
         self.Image = PF.pickle_open(source.text())
         self.name = self.Image.version
         self.displayStatus("File loading", initial)
-        sc = MplCanvas(self, width=5, height=4, dpi=100)
-        sc.axes.pcolormesh(self.Image.axial_flat(acq=10))
-        self.generalLayout.addWidget(sc)
+        self._createImageDisplay()
+        self._createImageDisplayBars()
     def greet(self):
         try:
             if self.msgLabel.text():
@@ -114,13 +167,13 @@ class Window(QMainWindow):
         super().__init__(parent=None)
         self.setMinimumSize(600, 400)
         self.setWindowTitle("My GUI")
-        self.generalLayout = QVBoxLayout()
+        self.generalLayout = QGridLayout()
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
         self.setCentralWidget(centralWidget)
         self._createLoadingDock()
         self._createPopUp()
-        self._createMessage()
+        #self._createMessage()
         self._createStatusBar()
         self._createExitButton() 
  
