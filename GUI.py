@@ -74,7 +74,7 @@ class Window(QMainWindow):
         """Clear the display."""
         self.setDisplayText("")
     def show_infos_acq(self):
-        a = f"""Name: {self.Image.name}<br>
+        a = f"""Name: \t{self.Image.name}<br>
                 Description: {self.Image.Description}<br>
                 Version: {self.Image.version}<br>
                 Number of timeframes: {self.Image.nb_acq}<br>
