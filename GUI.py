@@ -60,15 +60,15 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(btn_load,0,1)  
         self.generalLayout.addWidget(source,0,0)   
     def _createImageDisplay(self):
-        sc1 = MplCanvas(self, width=5, height=4, dpi=100)
-        sc2 = MplCanvas(self, width=5, height=4, dpi=100)
-        sc3 = MplCanvas(self, width=5, height=4, dpi=100)
-        sc1.axes.pcolormesh(self.Image.axial_flat(acq=0))
-        self.generalLayout.addWidget(sc1,2,0)
-        sc2.axes.pcolormesh(self.Image.coronal_flat(acq=0))
-        self.generalLayout.addWidget(sc2,2,1)
-        sc3.axes.pcolormesh(self.Image.sagittal_flat(acq=0))
-        self.generalLayout.addWidget(sc3,2,2)
+        self.axial = MplCanvas(self, width=5, height=4, dpi=100)
+        self.sagittal = MplCanvas(self, width=5, height=4, dpi=100)
+        self.coronal = MplCanvas(self, width=5, height=4, dpi=100)
+        self.axial.axes.pcolormesh(self.Image.Image[0,0,:,:])
+        self.generalLayout.addWidget(self.axial,2,0)
+        self.coronal.axes.pcolormesh(self.Image.Image[0,:,0,:])
+        self.generalLayout.addWidget(self.coronal,2,1)
+        self.sagittal.axes.pcolormesh(self.Image.Image[0,:,:,0])
+        self.generalLayout.addWidget(self.sagittal,2,2)
     def _createImageDisplayBars(self):
         whole_widget = QWidget()
         layout = QGridLayout()
@@ -112,7 +112,15 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(whole_widget,3,0)
     def set_value_label(self,slider,label):
         label.setText(f"{slider.value()}")
+        values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
+        self.axial.axes.pcolormesh(self.Image.Image[values[0],values[1],:,:])
+        self.sagittal.axes.pcolormesh(self.Image.Image[values[0],:,:,values[2]])
+        self.coronal.axes.pcolormesh(self.Image.Image[values[0],:,values[2],:])
+        self.generalLayout.addWidget(self.axial,2,0)
+        self.generalLayout.addWidget(self.coronal,2,1)
+        self.generalLayout.addWidget(self.sagittal,2,2)
         return slider.value()
+
     def setDisplayText(self, text):
         """Set the display's text."""
         self.display.setText(text)
