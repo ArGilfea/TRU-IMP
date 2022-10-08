@@ -119,13 +119,14 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(self.axial,2,0)
         self.generalLayout.addWidget(self.coronal,2,1)
         self.generalLayout.addWidget(self.sagittal,2,2)
+        self.displayStatus("Updating position")
         return slider.value()
 
     def setDisplayText(self, text):
         """Set the display's text."""
         self.display.setText(text)
         self.display.setFocus()
-    def displayStatus(self,action,time_i):
+    def displayStatus(self,action,time_i=time.time()):
         new_status = f"{action} done in {(time.time()-time_i):.2f}' s at {time.strftime('%H:%M:%S')}"
         self.statusBar.showMessage(new_status)
     def displayText(self):
