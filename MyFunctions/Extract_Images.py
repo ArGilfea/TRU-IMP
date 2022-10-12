@@ -8,7 +8,7 @@ from MyFunctions.Pickle_Functions import pickle_save
 
 def Extract_Images(path_in,name='',path_out='',verbose = False,
                     verbose_precise = False,time_scale = 'min',Dose_inj=0,mass=1,
-                    rescale=False,Description=''):
+                    rescale=False,Description='',save = True):
     if verbose:
         print("Reading all DICOM files for "+name)
         print('Opening all files one by one and storing the data in an array')
@@ -146,12 +146,14 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
     if verbose:
         print('Saving Data')
     initial4 = time.time()
-    if len(path_in) == 0: #Sets the output directory to the running directory if there is no specification
-        pickle_save(dicom, os.path.dirname(os.path.realpath(__file__))+'/'+name+'.pkl')
-    else:
-        pickle_save(dicom, path_out+'/'+name+'.pkl')
+    if save == True:
+        if len(path_in) == 0: #Sets the output directory to the running directory if there is no specification
+            pickle_save(dicom, os.path.dirname(os.path.realpath(__file__))+'/'+name+'.pkl')
+        else:
+            pickle_save(dicom, path_out+'/'+name+'.pkl')
     if verbose:
         print('Saving took ',"{:.2f}".format(time.time()-initial4),' s')
     ###-----------------Termination-Statement-------------###
     if verbose:
         print('Run Time for this extraction: ',"{:.2f}".format(time.time()-initial1),' s')
+    return dicom

@@ -1,5 +1,7 @@
 import pickle
-def pickle_save(obj, filename):
+
+from MyFunctions.DicomImage import DicomImage
+def pickle_save(obj:DicomImage, filename:str):
     """
     Saves a pickle file (format .pkl), with a given structure.\n
     N.B.: Updating an already existing pickle doesn't always work.\n
@@ -10,7 +12,7 @@ def pickle_save(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
 
-def pickle_open(name):
+def pickle_open(name:str):
     """
     Opens a pickle file given by the parameter name and return the structure opened.\n
     Keyword arguments:\n

@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 from MyFunctions.DicomImage import DicomImage #Custom Class
 import time
+import MyFunctions.Pickle_Functions as PF
 ###
 import numpy as np
 import time
@@ -14,6 +15,7 @@ print('Starting program...')
 print(time.strftime('%H:%M:%S'))
 path_in ='/Volumes/Backup_Stuff/Python/Data/'
 path_out ='/Volumes/Backup_Stuff/Python/Data_Results/'
+path_out ="/Users/philippelaporte/Desktop/"
 
 name_in = np.array(['Fantome_1_1min','Fantome_5_1min','Fantome_6_1min','Fantome_7_1min','Fantome_8_1min'])
 name_region = np.array(['Compartment 1','Compartment 2','Compartment 3'])
@@ -33,19 +35,22 @@ region = [[[[45,58],[89,102],[116,122]],[[15,80],[104,112],[82,100]],[[6,101],[1
             [[[16,35],[74,88],[118,130]],[[3,52],[85,100],[85,107]],[[1,43],[100,115],[45,82]]],
             [[[20,40],[74,88],[125,136]],[[5,55],[87,100],[91,112]],[[9,55],[100,116],[53,88]]]]
 initial = time.time()
-for i in range(3,name_in.shape[0]):
+print(path_in+name_in[3])
+fantom = PF.pickle_open(path_in+name_in[3]+'.pkl')
+print(fantom.version)
+for i in range(3,name_in.shape[0]-1):
     print(f"Now doing phantom {name_in[i]}")
     for j in range(name_out_comp.shape[0]):
         print(f"Now doing compartment {name_out_comp[j]}")
+        BS.Batch_Segmentations(segmentation_type='Filling',seed=seed[i][j],k=-1,subimage=region[i][j],
+                            name_segmentation = name_region[j],show_pre = False,threshold=0.5,growth = 2.5,min_f_growth=50,
+                            path_in = path_in,name_in=name_in[i],path_out=path_out+name_in[i]+'/',name_out=name_out_comp[j]+name_out_type[2])
         BS.Batch_Segmentations(segmentation_type='Canny',seed=seed[i][j],k=-1,subimage=region[i][j],
                             name_segmentation = name_region[j],show_pre = False,threshold=0.5,
                             path_in = path_in,name_in=name_in[i],path_out=path_out+name_in[i]+'/',name_out=name_out_comp[j]+name_out_type[0])
         BS.Batch_Segmentations(segmentation_type='ICM',seed=seed[i][j],k=-1,subimage=region[i][j],
                             name_segmentation = name_region[j],show_pre = False,threshold=0.5,
                             path_in = path_in,name_in=name_in[i],path_out=path_out+name_in[i]+'/',name_out=name_out_comp[j]+name_out_type[1])
-        BS.Batch_Segmentations(segmentation_type='Filling',seed=seed[i][j],k=-1,subimage=region[i][j],
-                            name_segmentation = name_region[j],show_pre = False,threshold=0.5,growth = 2.5,min_f_growth=50,
-                            path_in = path_in,name_in=name_in[i],path_out=path_out+name_in[i]+'/',name_out=name_out_comp[j]+name_out_type[2])
         print(f"Compartments done: {j+1}/{name_out_comp.shape[0]} in {time.time()-initial:.1f} s at {time.strftime('%H:%M:%S')}")
     print(f"Rats done: {(i+1)/name_in.shape[0]*100:.2f} % in {time.time()-initial:.1f} s at {time.strftime('%H:%M:%S')}")
 

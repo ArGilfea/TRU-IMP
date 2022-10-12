@@ -6,6 +6,7 @@ from skimage import feature
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 import time
+from numba import jit
 from dynesty import NestedSampler
 from dynesty import plotting as dyplot
 
@@ -499,9 +500,11 @@ class DicomImage(object):
             self.save_VOI(Canny_filled,name=name,do_stats=do_stats,do_moments=do_moments)
         else:
             return Canny_filled
-    def VOI_filled(self,seed=[[-1,-1,-1]],factor = 1,acq=0,sub_im = [[-1,-1],[-1,-1],[-1,1]],
-        name='',max_iter = 100,do_moments= False,save=True,do_stats=False,
-        verbose=False,save_between=False,fraction_f=[-1,0],size_f=[-1,0],voxels_f=[-1,0],counter_save = 0): #Done in 1.3.2
+    #@jit(nopython=True)
+    #@jit
+    def VOI_filled(self,seed: np.ndarray = [[-1,-1,-1]],factor = 1,acq=0,sub_im: np.ndarray = [[-1,-1],[-1,-1],[-1,1]],
+        name: str = '',max_iter: int = 100,do_moments: bool = False,save:bool=True,do_stats:bool=False,
+        verbose:bool=True,save_between:bool=False,fraction_f=[-1,0],size_f=[-1,0],voxels_f=[-1,0],counter_save: int = 0): #Done in 1.3.2
         """
         This function determines a VOI using a filling algorithm, as discussed in TG211.\n
         Keyword arguments:\n
@@ -566,7 +569,8 @@ class DicomImage(object):
             if iteration == 1:
                 region_std = np.abs(region_mean)
             if (verbose and iteration%5==0) or (verbose and iteration==1):
-                print(f"Iter: {iteration}, x={region_mean:.5e}, std={region_std:.5e}, voxels ={np.sum(VOI_old):.8e}")
+                #print(f"Iter: {iteration}, x={region_mean:.5e}, std={region_std:.5e}, voxels ={np.sum(VOI_old):.8e}")
+                print("Iter:", iteration,", x=",region_mean,", std=",region_std,", voxels =",np.sum(VOI_old))
             for i in range(range_im_tmp[0,0],range_im_tmp[0,1]+1):
                 for j in range(range_im_tmp[1,0],range_im_tmp[1,1]+1):
                     for k in range(range_im_tmp[2,0],range_im_tmp[2,1]+1):
@@ -589,16 +593,16 @@ class DicomImage(object):
         size_VOI = np.sum(VOI)
         fraction_VOI = np.sum(VOI)/(self.nb_acq*self.width*self.length)
         if fraction_VOI >= fraction_f[0] and fraction_VOI <= fraction_f[1]:
-            print(f"Saving VOI with f = {factor}, for size = {fraction_VOI} is within the range [{fraction_f[0]},{fraction_f[1]}].")
+            #print(f"Saving VOI with f = {factor}, for size = {fraction_VOI} is within the range [{fraction_f[0]},{fraction_f[1]}].")
             save_between = True
         if size_VOI*self.voxel_volume/1000 >= size_f[0] and size_VOI*self.voxel_volume/1000 <= size_f[1]:
-            print(f"Saving VOI with f = {factor}, for size = {size_VOI*self.voxel_volume/1000} is within the range [{size_f[0]},{size_f[1]}].")
+            #print(f"Saving VOI with f = {factor}, for size = {size_VOI*self.voxel_volume/1000} is within the range [{size_f[0]},{size_f[1]}].")
             save_between = True
         if size_VOI >= voxels_f[0] and size_VOI <= voxels_f[1]:
-            print(f"Saving VOI with f = {factor:.3f}, for size = {size_VOI} is within the range [{voxels_f[0]:.3f},{voxels_f[1]:.3f}].")
+            #print(f"Saving VOI with f = {factor:.3f}, for size = {size_VOI} is within the range [{voxels_f[0]:.3f},{voxels_f[1]:.3f}].")
             save_between = True
         if verbose:
-            print(f'Stopped the filling at iter {iteration}, while the max_iter was {max_iter}')
+            print('Stopped the filling at iter', {iteration},', while the max_iter was ',{max_iter})
         if save or save_between:
             counter_save += 1
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
@@ -635,7 +639,7 @@ class DicomImage(object):
             if counter_save >= max_number_save:
                 fraction_f=[-1,0];size_f=[-1,0];voxels_f=[-1,0]
                 break
-            VOI_filled = self.VOI_filled(seed=seed,factor=f_range[f],acq=acq,sub_im=sub_im,max_iter=max_iter,save=False,
+            VOI_filled = self.VOI_filled(seed=np.array(seed),factor=f_range[f],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=False,
                 verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f}",
                 do_moments=do_moments,do_stats=do_stats,fraction_f=fraction_f,size_f=size_f,voxels_f=voxels_f,counter_save=counter_save)
             counter_save = VOI_filled[1]
