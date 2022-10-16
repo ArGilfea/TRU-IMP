@@ -6,9 +6,9 @@ import time #To monitor time to run program
 from MyFunctions.DicomImage import DicomImage #Custom Class
 from MyFunctions.Pickle_Functions import pickle_save
 
-def Extract_Images(path_in,name='',path_out='',verbose = False,
-                    verbose_precise = False,time_scale = 'min',Dose_inj=0,mass=1,
-                    rescale=False,Description='',save = True):
+def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
+                    verbose_precise:bool = False,time_scale:str = 'min',Dose_inj:float=0,mass:float=1,total_time:float=60.62,
+                    rescale:bool=False,Description:str='',save:bool = True):
     if verbose:
         print("Reading all DICOM files for "+name)
         print('Opening all files one by one and storing the data in an array')
@@ -91,7 +91,7 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
     times=np.array(times)
     RescaleSlope=np.array(RescaleSlope)
     RescaleIntercept=np.array(RescaleIntercept)
-    times = (times - times[0])/times[-1]*60.62 #In min.
+    times = (times - times[0])/times[-1]*total_time #In min.
     if time_scale == 'sec':
         times = times*60
     elif time_scale == 'hr':

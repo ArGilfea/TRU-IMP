@@ -20,7 +20,7 @@ path_out ='/Volumes/Backup_Stuff/Python/Data'
 ############################################################
 #Phantom
 ############################################################
-Extract_r.Extract_Images(path_in+'FantDyn1/Acq1_1min/',path_out=path_out,mass=0.142,Dose_inj=35.34,
+"""Extract_r.Extract_Images(path_in+'FantDyn1/Acq1_1min/',path_out=path_out,mass=0.142,Dose_inj=35.34,
                         name='Fantome_1_1min',verbose=True,
                         Description='À ajouter',verbose_precise=True)
 #Extract.Extract_Images(path_in+'FantDyn3/PET-AC-DYN-1-MIN/',path_out=path_out,mass=0.142,Dose_inj=35.34,name='Fantome_3_1min',verbose=True,Description='À ajouter',verbose_precise=True)
@@ -36,12 +36,12 @@ Extract.Extract_Images(path_in+'FantDyn7/PET-AC-DYN-1-MIN/',path_out=path_out,ma
                         Description='Acquisition Dynamique de 40min.',verbose_precise=True)
 Extract.Extract_Images(path_in+'FantDyn8/PET-AC-DYN-1-MIN/',path_out=path_out,mass=0.13,Dose_inj=35.34,
                         name='Fantome_8_1min',verbose=True,
-                        Description='Acquisition Dynamique de 40min. Petit écoulement de la fiole sur la base',verbose_precise=True)
+                        Description='Acquisition Dynamique de 40min. Petit écoulement de la fiole sur la base',verbose_precise=True)"""
 Extract.Extract_Images("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/",path_out="/Users/philippelaporte/Desktop/",mass=0.13,Dose_inj=35.34,
-                        name='Fantome_9_1min',verbose=True,
+                        name='Fantome_9_1min',verbose=True,total_time=40,
                         Description='Acquisition Dynamique sans mouvement de 40min.',verbose_precise=True)
 Extract.Extract_Images("/Users/philippelaporte/Desktop/FantDYN10/PET-AC-DYN-1-MIN/",path_out="/Users/philippelaporte/Desktop/",mass=0.13,Dose_inj=35.34,
-                        name='Fantome_10_1min',verbose=True,
+                        name='Fantome_10_1min',verbose=True,total_time=40,
                         Description='Acquisition Dynamique sans mouvement de 40min.',verbose_precise=True)
 ############################################################
 #Rats (CUSM)
