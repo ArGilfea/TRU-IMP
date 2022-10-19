@@ -28,77 +28,91 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 ###
+size_Image = 200
+
 class Window(QMainWindow):
     def _createButtons(self):
-        pass
-    def _createDisplay(self):
-        self.display = QLineEdit()
-        self.display.setFixedHeight(self.DISPLAY_HEIGHT)
-        self.display.setAlignment(Qt.AlignRight)
-        self.display.setReadOnly(True)
-        self.generalLayout.addWidget(self.display)        
+        pass      
     def _createStatusBar(self):
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)      
         self.statusBar.showMessage("Nothing started")
-    def _createPopUp(self):
+    def _createInfoParam(self):
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
         self.btn = QPushButton("Info")
         self.btn.clicked.connect(self.on_button_clicked_infos)
-        self.generalLayout.addWidget(self.btn,0,3)      
-    def _createMessage(self):
-        self.msgLabel = QLabel("")
-        self.btn = QPushButton("Click Me!")
-        self.btn.clicked.connect(self.greet)
-        self.generalLayout.addWidget(self.btn)     
-        self.generalLayout.addWidget(self.msgLabel)    
-    def _createExitButton(self):
+        self.btn.setToolTip("Displays the infos of the current loaded acquisition")
+        btn_param = QPushButton("Parameters")
+        btn_param.setToolTip("Displays the parameters to resize the acquisition or to set up for the segmentations")
+        btn_param.clicked.connect(self.open_parameters)
+        layout.addWidget(btn_param)
+        layout.addWidget(self.btn)  
+        self.generalLayout.addWidget(subWidget,0,3)         
+    def _createExitButton(self,line=7):
         self.exit = QPushButton("Exit")
         self.exit.clicked.connect(self.close)
-        self.generalLayout.addWidget(self.exit,6,3)  
+        self.generalLayout.addWidget(self.exit,line,3)  
     def _createExtractDock(self,line=0):
+        subWidget = QWidget()
         msg_extract = QLabel("Path: ")
         source = QLineEdit()
         btn_extr = QPushButton("Extract")
+        btn_load = QPushButton("Load")
+        btn_browse = QPushButton("Browse")
+        source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
         source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
+        source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
         btn_extr.clicked.connect(partial(self.extract_button,source,"d"))
+        btn_load.clicked.connect(partial(self.load_button,source))
+        btn_browse.clicked.connect(partial(self.browse_button,source))
+
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+        layout.addWidget(btn_browse)
+        layout.addWidget(btn_extr)
+        layout.addWidget(btn_load)
 
         self.generalLayout.addWidget(msg_extract,line,0)  
         self.generalLayout.addWidget(source,line,1)           
-        self.generalLayout.addWidget(btn_extr,line,2)  
-    def _createLoadingDock(self,line=1):
-        msg_load = QLabel("Path: ")
-        source = QLineEdit()
-        btn_load = QPushButton("Load")
-        source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
-        source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
-        btn_load.clicked.connect(partial(self.load_button,source))
-        self.generalLayout.addWidget(msg_load,line,0)  
-        self.generalLayout.addWidget(source,line,1)   
-        self.generalLayout.addWidget(btn_load,line,2)  
+        self.generalLayout.addWidget(subWidget,line,2)  
     def _createSavingDock(self,line=2):
+        subWidget1 = QWidget()
+        subWidget2 = QWidget()
+        layout1 = QHBoxLayout()
+        layout2 = QHBoxLayout()
+        subWidget1.setLayout(layout1)
+        subWidget2.setLayout(layout2)
+
         msg_save = QLabel("Path: ")
         path = QLineEdit()
+        path_name = QLineEdit()
         path.setText("")
         btn_save = QPushButton("Save")
-        btn_save.clicked.connect(partial(self.save_button,path))
+        btn_save.clicked.connect(partial(self.save_button,path,path_name))
+
+        layout1.addWidget(path)
+        layout1.addWidget(path_name)
+        layout2.addWidget(btn_save)
 
         self.generalLayout.addWidget(msg_save,line,0)  
-        self.generalLayout.addWidget(path,line,1)  
-        self.generalLayout.addWidget(btn_save,line,2)  
+        self.generalLayout.addWidget(subWidget1,line,1)  
+        self.generalLayout.addWidget(subWidget2,line,2)  
     def _createParameterScreen(self,line=1):
         btn_param = QPushButton("Parameters")
         btn_param.clicked.connect(self.open_parameters)
         self.generalLayout.addWidget(btn_param,line,3)
     def _createImageDisplay(self,line=4):
-        size_Image = 200
         self.showFocus = False
+        self.showLog = False
         msg_Image = QLabel("View: ")
         msg_Axial = QLabel("Axial")
         msg_Sagittal = QLabel("Sagittal")
         msg_Coronal = QLabel("Coronal")
-        self.axial = MplCanvas(self, width=5, height=4, dpi=100)
-        self.sagittal = MplCanvas(self, width=5, height=4, dpi=100)
-        self.coronal = MplCanvas(self, width=5, height=4, dpi=100)
+        self.axial = MplCanvas(self, width=1, height=1, dpi=75)
+        self.sagittal = MplCanvas(self, width=1, height=1, dpi=75)
+        self.coronal = MplCanvas(self, width=1, height=1, dpi=75)
         try:
             self.axial.axes.pcolormesh(self.Image.Image[0,0,:,:])  
             self.sagittal.axes.pcolormesh(self.Image.Image[0,:,0,:])  
@@ -139,8 +153,11 @@ class Window(QMainWindow):
             pass
         sizeText = 30
         self.slider_widget = QWidget()
+        subWidget = QWidget()
         layout = QGridLayout()
+        sublayout = QGridLayout()
         self.slider_widget.setLayout(layout)
+        subWidget.setLayout(sublayout)
         self.sliderAcq = QSlider(Qt.Horizontal)
         self.sliderAxial = QSlider(Qt.Horizontal)
         self.sliderSagittal = QSlider(Qt.Horizontal)
@@ -174,13 +191,15 @@ class Window(QMainWindow):
         self.SagittalValueHeader = QLabel("Sag:")
         self.CoronalValueHeader = QLabel("Cor:")
         self.SegmValueHeader = QLabel("Segm:")
-        self.checkBoxMsg = QLabel("Focus:")
+        self.checkBoxMsgFocus = QLabel("Focus:")
+
         self.sliderAcqValue = QLineEdit()
         self.sliderAxialValue = QLineEdit()
         self.sliderSagittalValue = QLineEdit()
         self.sliderCoronalValue = QLineEdit()
         self.sliderSegmValue = QLineEdit()
         self.checkBoxFocus = QCheckBox()
+        self.checkBoxLog = QCheckBox()
         self.sliderAcqValue.setFixedWidth(sizeText)
         self.sliderAxialValue.setFixedWidth(sizeText)
         self.sliderSagittalValue.setFixedWidth(sizeText)
@@ -203,8 +222,17 @@ class Window(QMainWindow):
             self.sliderCoronal.valueChanged.connect(partial(self.set_value_slider,self.sliderCoronal,self.sliderCoronalValue))
             self.sliderSegm.valueChanged.connect(partial(self.set_value_slider,self.sliderSegm,self.sliderSegmValue))
             self.checkBoxFocus.stateChanged.connect(self.set_value_focus)
+            self.checkBoxLog.stateChanged.connect(self.set_value_log)
         except:
             pass
+        checkBoxMsglog = QLabel("log:")
+
+        sublayout.addWidget(self.checkBoxMsgFocus,0,0)
+        sublayout.addWidget(self.checkBoxFocus,0,1)
+        sublayout.addWidget(checkBoxMsglog,1,0)
+        sublayout.addWidget(self.checkBoxLog,1,1)
+        subWidget.setMinimumHeight(40)
+        subWidget.setContentsMargins(0,0,0,0)
         layout.addWidget(self.AcqValueHeader,0,0)
         layout.addWidget(self.AxialValueHeader,1,0)
         layout.addWidget(self.SagittalValueHeader,2,0)
@@ -215,14 +243,29 @@ class Window(QMainWindow):
         layout.addWidget(self.sliderSagittalValue,2,2)
         layout.addWidget(self.sliderCoronalValue,3,2)
         layout.addWidget(self.sliderSegmValue,4,2)
-        layout.addWidget(self.checkBoxMsg,5,0)
-        layout.addWidget(self.checkBoxFocus,5,1)
+        self.generalLayout.addWidget(subWidget,line,3)
         self.generalLayout.addWidget(self.slider_widget,line,1)
         self.slider_widget.resize(500,500)
-    def _createTACImage(self):
-        self.TACImage = MplCanvas(self, width=5, height=4, dpi=100)
+    def _createTACImage(self,line=5):
+        self.TACImage = MplCanvas(self, width=5, height=4, dpi=75)
+        self.TACImage.setMinimumSize(size_Image,size_Image)
         self.base_TAC_axes()
-        self.generalLayout.addWidget(self.TACImage)
+        self.generalLayout.addWidget(self.TACImage,line,2)
+    def _create1DImage(self,line = 6):
+        label = QLabel("Slices")
+        self.AxialImage1D = MplCanvas(self,width=5,height=4,dpi=75)
+        self.SagittalImage1D = MplCanvas(self,width=5,height=4,dpi=75)
+        self.CoronalImage1D = MplCanvas(self,width=5,height=4,dpi=75)
+        self.AxialImage1D.setMinimumSize(size_Image,size_Image)
+        self.SagittalImage1D.setMinimumSize(size_Image,size_Image)
+        self.CoronalImage1D.setMinimumSize(size_Image,size_Image)
+
+        self.base_1D_axes()
+
+        self.generalLayout.addWidget(label,line,0)
+        self.generalLayout.addWidget(self.AxialImage1D,line,1)
+        self.generalLayout.addWidget(self.SagittalImage1D,line,2)
+        self.generalLayout.addWidget(self.CoronalImage1D,line,3)
     def _createErrorMessage(self,message:str=""):
         alert = QMessageBox()
         if message =="":
@@ -233,6 +276,7 @@ class Window(QMainWindow):
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
         lineedit.setText(str(slider.value()))
         self.update_TAC()
+        self.update_1D()
         self.update_view()
         return slider.value()
     def set_value_focus(self):
@@ -241,6 +285,15 @@ class Window(QMainWindow):
         else:
             self.showFocus = False
         self.update_TAC()
+        self.update_1D()
+        self.update_view()
+    def set_value_log(self):
+        if self.checkBoxLog.isChecked() == True:
+            self.showLog = True
+        else:
+            self.showLog = False
+        self.update_TAC()
+        self.update_1D()
         self.update_view()
     def set_value_line_edit(self,slider:QSlider,lineedit:QLineEdit):
         try:
@@ -252,6 +305,7 @@ class Window(QMainWindow):
         except:
             slider.setValue(0)
         self.update_TAC()
+        self.update_1D()
         self.update_view()
     def combo_box_changed(self):
         self.view = self.ImageViewCombo.currentText()
@@ -260,6 +314,7 @@ class Window(QMainWindow):
         else:
             self.view_range = "Sub"
         self.update_TAC()
+        self.update_1D()
         self.update_view()
     def open_parameters(self):
         try:
@@ -284,6 +339,33 @@ class Window(QMainWindow):
             self.TACImage.draw()                
         except:
             pass
+    def update_1D(self):
+        try:
+            self.AxialImage1D.axes.cla()
+            self.SagittalImage1D.axes.cla()
+            self.CoronalImage1D.axes.cla()
+
+            values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
+            if self.view_range == "All":
+                self.AxialImage1D.axes.plot(np.arange(self.Image.nb_slice),self.Image.Image[values[0],:,values[2],values[3]])
+                self.SagittalImage1D.axes.plot(np.arange(self.Image.length),self.Image.Image[values[0],values[1],values[2],:])
+                self.CoronalImage1D.axes.plot(np.arange(self.Image.width),self.Image.Image[values[0],values[1],:,values[3]])
+            else:
+                subI = self.parameters.subImage
+                self.AxialImage1D.axes.plot(np.arange(subI[1,0],subI[1,1]+1),self.Image.Image[values[0],:,values[2],values[3]])
+                self.SagittalImage1D.axes.plot(np.arange(subI[2,0],subI[2,1]+1),self.Image.Image[values[0],values[1],values[2],:])
+                self.CoronalImage1D.axes.plot(np.arange(subI[3,0],subI[3,1]+1),self.Image.Image[values[0],values[1],:,values[3]])
+ 
+            if self.showFocus:
+                self.AxialImage1D.axes.axvline(values[1],color='r')
+                self.SagittalImage1D.axes.axvline(values[3],color='r')
+                self.CoronalImage1D.axes.axvline(values[2],color='r')
+            self.base_1D_axes()
+            self.AxialImage1D.draw()
+            self.SagittalImage1D.draw()
+            self.CoronalImage1D.draw()
+        except:
+            pass
     def update_sliders(self):
         if self.view_range == "All":
             self.sliderAcq.setMinimum(0);self.sliderAcq.setMaximum(self.Image.nb_acq-1)
@@ -294,11 +376,18 @@ class Window(QMainWindow):
             subI = self.parameters.subImage
             self.sliderAcq.setMinimum(subI[0,0]);self.sliderAcq.setMaximum(subI[0,1]-1)
             self.sliderAxial.setMinimum(subI[1,0]);self.sliderAxial.setMaximum(subI[1,1]-1)
-            self.sliderSagittal.setMinimum(subI[2,0]);self.sliderSagittal.setMaximum(subI[2,1]-1)
-            self.sliderCoronal.setMinimum(subI[3,0]);self.sliderCoronal.setMaximum(subI[3,1]-1)
+            self.sliderSagittal.setMinimum(subI[3,0]);self.sliderSagittal.setMaximum(subI[3,1]-1)
+            self.sliderCoronal.setMinimum(subI[2,0]);self.sliderCoronal.setMaximum(subI[2,1]-1)
     def base_TAC_axes(self):
         self.TACImage.axes.set_title("TAC");self.TACImage.axes.grid()
         self.TACImage.axes.set_xlabel("Time");self.TACImage.axes.set_ylabel("Signal")
+    def base_1D_axes(self):
+        self.AxialImage1D.axes.set_title("Axial Slice");self.AxialImage1D.axes.grid()
+        self.AxialImage1D.axes.set_xlabel("Voxel");self.AxialImage1D.axes.set_ylabel("Signal")
+        self.SagittalImage1D.axes.set_title("Axial Slice");self.SagittalImage1D.axes.grid()
+        self.SagittalImage1D.axes.set_xlabel("Voxel");self.SagittalImage1D.axes.set_ylabel("Signal")
+        self.CoronalImage1D.axes.set_title("Axial Slice");self.CoronalImage1D.axes.grid()
+        self.CoronalImage1D.axes.set_xlabel("Voxel");self.CoronalImage1D.axes.set_ylabel("Signal")
     def update_view(self):
         values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
         try: SubI = self.parameters.subImage
@@ -312,55 +401,62 @@ class Window(QMainWindow):
             self.coronal.axes.cla()
         except: pass
         if self.showFocus:
-            self.axial.axes.plot(values[2],values[3],'*',markersize = 6,color='y')
+            self.axial.axes.plot(values[3],values[2],'*',markersize = 6,color='y')
             self.sagittal.axes.plot(values[2],values[1],'*',markersize = 6,color='y')
             self.coronal.axes.plot(values[3],values[1],'*',markersize = 6,color='y')
-            self.axial.axes.axhline(values[3],color='r')
-            self.axial.axes.axvline(values[2],color='r')
+            self.axial.axes.axhline(values[2],color='r')
+            self.axial.axes.axvline(values[3],color='r')
             self.sagittal.axes.axhline(values[1],color='r')
             self.sagittal.axes.axvline(values[2],color='r')
             self.coronal.axes.axhline(values[1],color='r')
             self.coronal.axes.axvline(values[3],color='r')
+        if self.showLog:
+            def a(x):
+                return np.log(x+1)
+        else:
+            def a(x):
+                return x
+        func = a
         if self.view == "Slice":
             try:
-                self.axial.axes.pcolormesh(self.Image.Image[values[0],values[1],:,:])
-                self.sagittal.axes.pcolormesh(self.Image.Image[values[0],:,:,values[3]])
-                self.coronal.axes.pcolormesh(self.Image.Image[values[0],:,values[2],:])
+                self.axial.axes.pcolormesh(func(self.Image.Image[values[0],values[1],:,:]))
+                self.sagittal.axes.pcolormesh(func(self.Image.Image[values[0],:,:,values[3]]))
+                self.coronal.axes.pcolormesh(func(self.Image.Image[values[0],:,values[2],:]))
             except:
                 pass
         elif self.view == "Flat":
             try:
-                self.axial.axes.pcolormesh(self.Image.axial_flat(acq=values[0]))
-                self.sagittal.axes.pcolormesh(self.Image.sagittal_flat(acq=values[0]))
-                self.coronal.axes.pcolormesh(self.Image.coronal_flat(acq=values[0]))
+                self.axial.axes.pcolormesh(func(self.Image.axial_flat(acq=values[0])))
+                self.sagittal.axes.pcolormesh(func(self.Image.sagittal_flat(acq=values[0])))
+                self.coronal.axes.pcolormesh(func(self.Image.coronal_flat(acq=values[0])))
             except:
                 self._createErrorMessage("Can't perform this. No image is loaded or the flats are not done")
         elif self.view == "Segm. Slice":
             try:
-                self.axial.axes.pcolormesh(self.Image.axial_flat(counter=key)[values[0],values[1],:,:])
-                self.sagittal.axes.pcolormesh(self.Image.sagittal_flat(counter=key)[values[0],:,:,values[3]])
-                self.coronal.axes.pcolormesh(self.Image.coronal_flat(counter=key)[values[0],:,values[2],:])
+                self.axial.axes.pcolormesh(func(self.Image.axial_flat(counter=key)[values[0],values[1],:,:]))
+                self.sagittal.axes.pcolormesh(func(self.Image.sagittal_flat(counter=key)[values[0],:,:,values[3]]))
+                self.coronal.axes.pcolormesh(func(self.Image.coronal_flat(counter=key)[values[0],:,values[2],:]))
             except:
                 self._createErrorMessage("Can't perform this. No segmentations are present")
         elif self.view == "Segm. Flat":
             try:
-                self.axial.axes.pcolormesh(self.Image.axial_flat(counter=key))
-                self.sagittal.axes.pcolormesh(self.Image.sagittal_flat(counter=key))
-                self.coronal.axes.pcolormesh(self.Image.coronal_flat(counter=key))
+                self.axial.axes.pcolormesh(func(self.Image.axial_flat(counter=key)))
+                self.sagittal.axes.pcolormesh(func(self.Image.sagittal_flat(counter=key)))
+                self.coronal.axes.pcolormesh(func(self.Image.coronal_flat(counter=key)))
             except:
                 self._createErrorMessage("Can't perform this. No segmentations are present")
         elif self.view == "Sub. Slice":
             try:
-                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]),np.arange(SubI[2,0],SubI[2,1]),self.Image.Image[values[0],values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]])
-                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]),np.arange(SubI[1,0],SubI[1,1]),self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]])
-                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]),np.arange(SubI[1,0],SubI[1,1]),self.Image.Image[values[0],SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]])
+                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.Image[values[0],values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
+                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]]))
+                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]]))
             except:
                 self._createErrorMessage("Can't perform this. No SubImage selected")
         elif self.view == "Sub. Flat":
             try:
-                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]),np.arange(SubI[2,0],SubI[2,1]),self.Image.axial_flat(acq=values[0])[SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]])
-                self.sagittal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]),np.arange(SubI[1,0],SubI[1,1]),self.Image.sagittal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]])
-                self.coronal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]),np.arange(SubI[1,0],SubI[1,1]),self.Image.coronal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1]])
+                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.axial_flat(acq=values[0])[SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
+                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.sagittal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1]]))
+                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.coronal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]]))
             except:
                 self._createErrorMessage("Can't perform this. No SubImage selected")
         try:
@@ -394,6 +490,11 @@ class Window(QMainWindow):
                 Number of slices: {self.Image.nb_slice}<br>
                 Width: {self.Image.width}<br>
                 Length: {self.Image.length}<br>
+                Dose Injected: {self.Image.Dose_inj}<br>
+                Mass: {self.Image.mass}<br>
+                Units: {self.Image.units}<br>
+                Segm.: {self.Image.voi_counter}<br>
+                Segm. with Errors: {len(self.Image.voi_statistics_avg)}<br>
                 """
         return a
     def on_button_clicked_infos(self):
@@ -424,14 +525,18 @@ class Window(QMainWindow):
         self._createImageDisplay()
         self._createImageDisplayBars()
         self.parameters = GUIParameters(self.Image)
-    def save_button(self,path):
+    def browse_button(self,source:QLineEdit):
+        text = QFileDialog.getOpenFileName(self)
+        source.setText(text[0])
+    def save_button(self,path:QLineEdit,path_name:QLineEdit):
         initial = time.time()
         alert = QMessageBox()
         if path.text() == "":
             alert.setText("Empty path. Please specify where to save.")
         else:
             try:
-                PF.pickle_save(self.Image,path.text())
+                PF.pickle_save(self.Image,path.text()+path_name.text())
+                self._createErrorMessage()
                 alert.setText(f"Save successfull")
             except:
                 alert.setText(f"Impossible to save to the desired folder")
@@ -442,22 +547,22 @@ class Window(QMainWindow):
         self.BUTTON_SIZE = 40
         self.DISPLAY_HEIGHT = 35
         super().__init__(parent=None)
-        self.setMinimumSize(900, 600)
+        self.setMinimumSize(900, 800)
         self.setWindowTitle("My GUI")
         self.generalLayout = QGridLayout()
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
         self.setCentralWidget(centralWidget)
         self._createExtractDock()
-        self._createLoadingDock()
+        #self._createLoadingDock()
         self._createSavingDock()
-        self._createPopUp()
-        #self._createMessage()
-        self._createParameterScreen()
+        self._createInfoParam()
+        #self._createParameterScreen()
         self._createImageDisplay()
         self._createImageDisplayType()
         self._createImageDisplayBars()
         self._createTACImage()
+        self._create1DImage()
         self._createStatusBar()
         self._createExitButton() 
  
@@ -499,7 +604,7 @@ class PySeg:
         self._view.buttonMap["C"].clicked.connect(self._view.clearDisplay)
 
 class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
+    def __init__(self, parent=None, width:float=5, height:float=4, dpi:int=75):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)

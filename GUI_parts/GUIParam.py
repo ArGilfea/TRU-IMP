@@ -17,3 +17,5 @@ class GUIParameters(object):
         self.SaveSegm = True
         self.doCurves = True
         self.doStats = True
+
+        del Image
