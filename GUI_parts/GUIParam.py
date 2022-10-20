@@ -18,10 +18,11 @@ class GUIParameters(object):
         self.doCurves = True
         self.doStats = True
         self.doMoments = True
+        self.doCoefficients = True
         self.verbose = True
         self.SegmType = "ICM"
         self.alpha = 1
-        self.max_iter = 100
-        self.max_iter_kmean = 100
+        self.max_iter_ICM = 100
+        self.max_iter_kmean_ICM = 100
 
         del Image

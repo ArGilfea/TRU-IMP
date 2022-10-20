@@ -33,7 +33,7 @@ class ParamWindow(QMainWindow):
     """
     def __init__(self,parameters:GUIParameters,parent=None):
         super().__init__(parent)
-        self.setMinimumSize(300, 500)
+        self.setMinimumSize(300, 750)
         self.parameters = parameters
         self.setWindowTitle("Parameters")
         self.generalLayout = QGridLayout()
@@ -81,14 +81,14 @@ class ParamWindow(QMainWindow):
         self.sliderSeedCoronal.valueChanged.connect(partial(self.set_value_slider,self.sliderSeedCoronal,self.sliderCoronalValueSeed))
 
         layout.addWidget(AxialValueHeaderSeed,1,0)
-        layout.addWidget(SagittalValueHeaderSeed,2,0)
-        layout.addWidget(CoronalValueHeaderSeed,3,0)
+        layout.addWidget(SagittalValueHeaderSeed,3,0)
+        layout.addWidget(CoronalValueHeaderSeed,2,0)
         layout.addWidget(self.sliderSeedAxial,1,1)
-        layout.addWidget(self.sliderSeedSagittal,2,1)
-        layout.addWidget(self.sliderSeedCoronal,3,1)
+        layout.addWidget(self.sliderSeedSagittal,3,1)
+        layout.addWidget(self.sliderSeedCoronal,2,1)
         layout.addWidget(self.sliderAxialValueSeed,1,2)
-        layout.addWidget(self.sliderSagittalValueSeed,2,2)
-        layout.addWidget(self.sliderCoronalValueSeed,3,2)
+        layout.addWidget(self.sliderCoronalValueSeed,2,2)
+        layout.addWidget(self.sliderSagittalValueSeed,3,2)
         return seedWidget
     def _createSubImageSliders(self):
         sizeText = 30
@@ -133,12 +133,12 @@ class ParamWindow(QMainWindow):
 
         self.sliderAcqValueSubImMin.setText(f"{self.parameters.subImage[0,0]}")
         self.sliderAxialValueSubImMin.setText(f"{self.parameters.subImage[1,0]}")
-        self.sliderSagittalValueSubImMin.setText(f"{self.parameters.subImage[2,0]}")
-        self.sliderCoronalValueSubImMin.setText(f"{self.parameters.subImage[3,0]}")
+        self.sliderSagittalValueSubImMin.setText(f"{self.parameters.subImage[3,0]}")
+        self.sliderCoronalValueSubImMin.setText(f"{self.parameters.subImage[2,0]}")
         self.sliderAcqValueSubImMax.setText(f"{self.parameters.subImage[0,1]}")
         self.sliderAxialValueSubImMax.setText(f"{self.parameters.subImage[1,1]}")
-        self.sliderSagittalValueSubImMax.setText(f"{self.parameters.subImage[2,1]}")
-        self.sliderCoronalValueSubImMax.setText(f"{self.parameters.subImage[3,1]}")
+        self.sliderSagittalValueSubImMax.setText(f"{self.parameters.subImage[3,1]}")
+        self.sliderCoronalValueSubImMax.setText(f"{self.parameters.subImage[2,1]}")
 
         self.sliderAcqValueSubImMin.editingFinished.connect(partial(self.set_value_line_edit_noSlider,self.sliderAcqValueSubImMin))
         self.sliderAcqValueSubImMax.editingFinished.connect(partial(self.set_value_line_edit_noSlider,self.sliderAcqValueSubImMax))
@@ -151,20 +151,20 @@ class ParamWindow(QMainWindow):
 
         layout.addWidget(AcqValueHeaderSubIm,0,0)
         layout.addWidget(AxialValueHeaderSubIm,1,0)
-        layout.addWidget(SagittalValueHeaderSubI,2,0)
-        layout.addWidget(CoronalValueHeaderSubIm,3,0)
+        layout.addWidget(SagittalValueHeaderSubI,3,0)
+        layout.addWidget(CoronalValueHeaderSubIm,2,0)
         layout.addWidget(self.sliderAcqSubIm,0,1)
         layout.addWidget(self.sliderAxialSubIm,1,1)
-        layout.addWidget(self.sliderSagittalSubIm,2,1)
-        layout.addWidget(self.sliderCoronalSubIm,3,1)
+        layout.addWidget(self.sliderSagittalSubIm,3,1)
+        layout.addWidget(self.sliderCoronalSubIm,2,1)
         layout.addWidget(self.sliderAcqValueSubImMin,0,2)
-        layout.addWidget(self.sliderAxialValueSubImMin,1,2)
-        layout.addWidget(self.sliderSagittalValueSubImMin,2,2)
-        layout.addWidget(self.sliderCoronalValueSubImMin,3,2)
         layout.addWidget(self.sliderAcqValueSubImMax,0,3)
+        layout.addWidget(self.sliderAxialValueSubImMin,1,2)
         layout.addWidget(self.sliderAxialValueSubImMax,1,3)
-        layout.addWidget(self.sliderSagittalValueSubImMax,2,3)
-        layout.addWidget(self.sliderCoronalValueSubImMax,3,3)
+        layout.addWidget(self.sliderCoronalValueSubImMin,2,2)
+        layout.addWidget(self.sliderCoronalValueSubImMax,2,3)
+        layout.addWidget(self.sliderSagittalValueSubImMin,3,2)
+        layout.addWidget(self.sliderSagittalValueSubImMax,3,3)
         return subImageWidget   
 
     def _createBoolBox(self):
@@ -181,18 +181,25 @@ class ParamWindow(QMainWindow):
         self.SegmCombo.addItem("Threshold")
         self.SegmCombo.addItem("Filling (very slow)")
         self.SegmCombo.addItem("Filling f (very slow)")
+        self.SegmCombo.setCurrentText(self.parameters.SegmType)
         self.SegmCombo.activated[str].connect(self.SegmCombo_Changed)
         return self.SegmCombo
-    def _createIntInput(self):
+    def _createIntInput(self,initvalue:float):
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
-        slider = QSlider()
+        slider = QSlider(Qt.Horizontal)
         number = QLineEdit()
+        number.setText(str(initvalue))
+        slider.setSliderPosition(initvalue)
+        slider.setTickPosition(QSlider.TicksBothSides)
+        slider.setMinimumWidth(200)
+        slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
+        number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
         number.setMaximumWidth(50)
         layout.addWidget(slider)
         layout.addWidget(number)
-        return subWidget
+        return subWidget,slider
     def _createParamList(self):
         params = [attr for attr in dir(self.parameters) if not callable(getattr(self.parameters, attr)) and not attr.startswith("__")and not attr.startswith("_")]
         params_ = [attr for attr in dir(self.parameters) if not callable(getattr(self.parameters, attr)) and not attr.startswith("__")and attr.startswith("_")]
@@ -214,7 +221,10 @@ class ParamWindow(QMainWindow):
                 pass 
         for i in range(len(params)):
             paramNew = QLabel(params[i]+":")
-            labelNew = QLabel(str(var[f"{params[i]}"]))
+            if str(params[i]) != "alpha":
+                labelNew = QLabel(str(var[f"{params[i]}"]))
+            else:
+                labelNew = QLabel(f"{self.parameters.alpha:.4f}")
             if str(params[i]) == "seed":
                 self.label_Seed = labelNew
                 btnNew = self._createSeedSliders()
@@ -229,8 +239,31 @@ class ParamWindow(QMainWindow):
                     btnNew.stateChanged.connect(partial(self.set_value_checked_doCurves,btnNew))
                 elif str(params[i]) == "doStats":
                     btnNew.stateChanged.connect(partial(self.set_value_checked_doStats,btnNew))
-            elif isinstance(var[f"{params[i]}"],int):
-                btnNew = self._createIntInput()
+                elif str(params[i]) == "doCoefficients":
+                    btnNew.stateChanged.connect(partial(self.set_value_checked_doCoefficients,btnNew))
+            elif isinstance(var[f"{params[i]}"],(int,float)):
+                btnNew,slider = self._createIntInput(var[f"{params[i]}"])
+                slider.valueChanged.connect(self.update_int)
+                if str(params[i]) == "SegmAcq":
+                    slider.setTickInterval(1)
+                    slider.setRange(-1,self.parameters._size[0])
+                    slider.setValue(self.parameters.SegmAcq)
+                    self.sliderSegmAcq = slider   
+                elif str(params[i]) == "alpha": 
+                    slider.setRange(0,1000)
+                    slider.setValue(int(10/self.parameters.alpha))
+                    slider.setTickInterval(100)
+                    self.sliderAlpha = slider
+                elif str(params[i]) == "max_iter_ICM": 
+                    slider.setRange(1,10000)
+                    slider.setTickInterval(1000)
+                    slider.setValue(self.parameters.max_iter_ICM)
+                    self.sliderMaxIter = slider
+                elif str(params[i]) == "max_iter_kmean_ICM": 
+                    slider.setRange(1,10000)
+                    slider.setTickInterval(1000)
+                    slider.setValue(self.parameters.max_iter_kmean_ICM)
+                    self.sliderMaxIterKmean = slider
             elif str(params[i]) == "SegmType":
                 btnNew = self._createSegmType()
             self.generalLayout.addWidget(paramNew,i+len(params_)+1,0)
@@ -239,8 +272,13 @@ class ParamWindow(QMainWindow):
                 self.generalLayout.addWidget(btnNew,i+len(params_)+1,2)
             except:
                 pass
+    def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
+        lineedit.setText(str(slider.value()))
+        return slider.value()
     def SegmCombo_Changed(self):
         self.parameters.SegmType = self.SegmCombo.currentText()
+    def set_value_checked_doCoefficients(self,box:QCheckBox):
+        self.parameters.doCoefficients = box.isChecked()
     def set_value_checked_doStats(self,box:QCheckBox):
         self.parameters.doStats = box.isChecked()
     def set_value_checked_SaveSegm(self,box:QCheckBox):
@@ -284,7 +322,17 @@ class ParamWindow(QMainWindow):
         self.parameters.subImage[0,1] = self.sliderAcqValueSubImMax.text()
         self.parameters.subImage[1,0] = self.sliderAxialValueSubImMin.text()
         self.parameters.subImage[1,1] = self.sliderAxialValueSubImMax.text()
-        self.parameters.subImage[2,0] = self.sliderSagittalValueSubImMin.text()
-        self.parameters.subImage[2,1] = self.sliderSagittalValueSubImMax.text()
-        self.parameters.subImage[3,0] = self.sliderCoronalValueSubImMin.text()
-        self.parameters.subImage[3,1] = self.sliderCoronalValueSubImMax.text()
+        self.parameters.subImage[2,0] = self.sliderCoronalValueSubImMin.text()
+        self.parameters.subImage[2,1] = self.sliderCoronalValueSubImMax.text()
+        self.parameters.subImage[3,0] = self.sliderSagittalValueSubImMin.text()
+        self.parameters.subImage[3,1] = self.sliderSagittalValueSubImMax.text()
+    def update_int(self):
+        try:
+            self.parameters.SegmAcq = self.sliderSegmAcq.value()
+            try:
+                self.parameters.alpha = 10/self.sliderAlpha.value()
+            except:
+                self.parameters.alpha = 0
+            self.parameters.max_iter_ICM = self.sliderMaxIter.value()
+            self.parameters.max_iter_kmean_ICM = self.sliderMaxIterKmean.value()
+        except: pass

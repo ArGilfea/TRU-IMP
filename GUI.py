@@ -13,6 +13,7 @@ import MyFunctions.Extract_Images as Extract
 from GUI_parts.GUIParam import GUIParameters
 from GUI_parts.ParamWindow import ParamWindow
 import time
+import MyFunctions.Batch_Segmentations
 ###
 import numpy as np
 import time
@@ -68,7 +69,7 @@ class Window(QMainWindow):
         source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
         source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
         source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
-        btn_extr.clicked.connect(partial(self.extract_button,source,"d"))
+        btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
         btn_browse.clicked.connect(partial(self.browse_button_file,source))
 
@@ -108,6 +109,7 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(subWidget2,line,2)  
     def _createImageDisplay(self,line=4):
         self.showFocus = False
+        self.showSubImage = False
         self.showLog = False
         msg_Image = QLabel("View: ")
         msg_Axial = QLabel("Axial")
@@ -129,11 +131,11 @@ class Window(QMainWindow):
         self.sagittal.setMinimumSize(size_Image,size_Image)
         self.generalLayout.addWidget(msg_Image,line,0)  
         self.generalLayout.addWidget(msg_Axial,line-1,1)
-        self.generalLayout.addWidget(msg_Sagittal,line-1,2)
-        self.generalLayout.addWidget(msg_Coronal,line-1,3)
+        self.generalLayout.addWidget(msg_Sagittal,line-1,3)
+        self.generalLayout.addWidget(msg_Coronal,line-1,2)
         self.generalLayout.addWidget(self.axial,line,1)
-        self.generalLayout.addWidget(self.sagittal,line,2)
-        self.generalLayout.addWidget(self.coronal,line,3)
+        self.generalLayout.addWidget(self.sagittal,line,3)
+        self.generalLayout.addWidget(self.coronal,line,2)
     def _createImageDisplayType(self,line=2):
         self.ImageViewCombo = QComboBox()
         self.view = "Slice"
@@ -186,14 +188,15 @@ class Window(QMainWindow):
         self.sliderSegm.setSingleStep(1)
         layout.addWidget(self.sliderAcq,0,1)
         layout.addWidget(self.sliderAxial,1,1)
-        layout.addWidget(self.sliderSagittal,2,1)
-        layout.addWidget(self.sliderCoronal,3,1)
+        layout.addWidget(self.sliderSagittal,3,1)
+        layout.addWidget(self.sliderCoronal,2,1)
         layout.addWidget(self.sliderSegm,4,1)
         self.AcqValueHeader = QLabel("Acq:")
         self.AxialValueHeader = QLabel("Ax:")
         self.SagittalValueHeader = QLabel("Sag:")
         self.CoronalValueHeader = QLabel("Cor:")
         self.SegmValueHeader = QLabel("Segm:")
+        self.checkBoxMsgSubImage = QLabel("Sub Image:")
         self.checkBoxMsgFocus = QLabel("Focus:")
 
         self.sliderAcqValue = QLineEdit()
@@ -202,6 +205,7 @@ class Window(QMainWindow):
         self.sliderCoronalValue = QLineEdit()
         self.sliderSegmValue = QLineEdit()
         self.checkBoxFocus = QCheckBox()
+        self.checkBoxSubImage = QCheckBox()
         self.checkBoxLog = QCheckBox()
         self.sliderAcqValue.setFixedWidth(sizeText)
         self.sliderAxialValue.setFixedWidth(sizeText)
@@ -225,6 +229,7 @@ class Window(QMainWindow):
             self.sliderCoronal.valueChanged.connect(partial(self.set_value_slider,self.sliderCoronal,self.sliderCoronalValue))
             self.sliderSegm.valueChanged.connect(partial(self.set_value_slider,self.sliderSegm,self.sliderSegmValue))
             self.checkBoxFocus.stateChanged.connect(self.set_value_focus)
+            self.checkBoxSubImage.stateChanged.connect(self.set_value_subImage)
             self.checkBoxLog.stateChanged.connect(self.set_value_log)
         except:
             pass
@@ -232,19 +237,21 @@ class Window(QMainWindow):
 
         sublayout.addWidget(self.checkBoxMsgFocus,0,0)
         sublayout.addWidget(self.checkBoxFocus,0,1)
-        sublayout.addWidget(checkBoxMsglog,1,0)
-        sublayout.addWidget(self.checkBoxLog,1,1)
+        sublayout.addWidget(self.checkBoxMsgSubImage,1,0)
+        sublayout.addWidget(self.checkBoxSubImage,1,1)
+        sublayout.addWidget(checkBoxMsglog,2,0)
+        sublayout.addWidget(self.checkBoxLog,2,1)
         subWidget.setMinimumHeight(40)
         subWidget.setContentsMargins(0,0,0,0)
         layout.addWidget(self.AcqValueHeader,0,0)
         layout.addWidget(self.AxialValueHeader,1,0)
-        layout.addWidget(self.SagittalValueHeader,2,0)
-        layout.addWidget(self.CoronalValueHeader,3,0)
+        layout.addWidget(self.SagittalValueHeader,3,0)
+        layout.addWidget(self.CoronalValueHeader,2,0)
         layout.addWidget(self.SegmValueHeader,4,0)
         layout.addWidget(self.sliderAcqValue,0,2)
         layout.addWidget(self.sliderAxialValue,1,2)
-        layout.addWidget(self.sliderSagittalValue,2,2)
-        layout.addWidget(self.sliderCoronalValue,3,2)
+        layout.addWidget(self.sliderSagittalValue,3,2)
+        layout.addWidget(self.sliderCoronalValue,2,2)
         layout.addWidget(self.sliderSegmValue,4,2)
         self.generalLayout.addWidget(subWidget,line,3)
         self.generalLayout.addWidget(self.slider_widget,line,1)
@@ -267,8 +274,8 @@ class Window(QMainWindow):
 
         self.generalLayout.addWidget(label,line,0)
         self.generalLayout.addWidget(self.AxialImage1D,line,1)
-        self.generalLayout.addWidget(self.SagittalImage1D,line,2)
-        self.generalLayout.addWidget(self.CoronalImage1D,line,3)
+        self.generalLayout.addWidget(self.SagittalImage1D,line,3)
+        self.generalLayout.addWidget(self.CoronalImage1D,line,2)
     def _createErrorMessage(self,message:str=""):
         alert = QMessageBox()
         if message =="":
@@ -285,6 +292,12 @@ class Window(QMainWindow):
             self.showFocus = True
         else:
             self.showFocus = False
+        self.update_all()
+    def set_value_subImage(self):
+        if self.checkBoxSubImage.isChecked() == True:
+            self.showSubImage = True
+        else:
+            self.showSubImage = False
         self.update_all()
     def set_value_log(self):
         if self.checkBoxLog.isChecked() == True:
@@ -318,13 +331,15 @@ class Window(QMainWindow):
     def run_segm(self):
         try:
             initial = time.time()
-            if self.parameters.SegmType == "ICM":
-                self.Image.VOI_ICM(acq=20,alpha=self.parameters.alpha,subinfo=self.parameters.subImage[1:,:],
-                                    max_iter=self.parameters.max_iter,max_iter_kmean=self.parameters.max_iter_kmean,
-                                    verbose=self.parameters.verbose,save=self.parameters.SaveSegm,
-                                    do_moments=self.parameters.doMoments,do_stats=self.parameters.doStats)
-            else:
-                pass
+            MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
+                                                            seed = self.parameters.seed,k=self.parameters.SegmAcq,
+                                                            subimage=self.parameters.subImage[1:,:],
+                                                            alpha=self.parameters.alpha,max_iter_ICM=self.parameters.max_iter_ICM,
+                                                            max_iter_kmean_ICM=self.parameters.max_iter_kmean_ICM,save=False,
+                                                            do_coefficients=self.parameters.doCoefficients,
+                                                            SaveSegm=self.parameters.SaveSegm,do_moments=self.parameters.doMoments,
+                                                            do_stats=self.parameters.doStats,verbose=self.parameters.verbose)
+
             self.displayStatus(f"{self.parameters.SegmType} segmentation",initial)
             self.update_segm()
         except:
@@ -340,15 +355,28 @@ class Window(QMainWindow):
         try:
             self.TACImage.axes.cla()
             values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
-            x_axis = self.Image.time
-            if self.sliderSegm.value() >= 0:
-                y_axis = self.Image.voi_statistics[self.sliderSegm.value()]
-                self.TACImage.axes.plot(x_axis,y_axis,color='b')
+            subI = self.parameters.subImage[0,:]
+            if self.view_range == "All":
+                x_axis = self.Image.time
+                if self.sliderSegm.value() >= 0:
+                    y_axis = self.Image.voi_statistics[self.sliderSegm.value()]
+                else:
+                    y_axis = self.Image.Image[:,values[1],values[2],values[3]]
             else:
-                y_axis = self.Image.Image[:,values[1],values[2],values[3]]
-                self.TACImage.axes.plot(x_axis,y_axis,color='b')
+                x_axis = np.arange(subI[0],subI[1])
+                if self.sliderSegm.value() >= 0:
+                    y_axis = self.Image.voi_statistics[self.sliderSegm.value()][subI[0]:subI[1]]
+                else:
+                    y_axis = self.Image.Image[:,values[1],values[2],values[3]][subI[0]:subI[1]]
             if self.showFocus:
                 self.TACImage.axes.axvline(self.Image.time[values[0]],color='r')
+            if self.showSubImage:
+                self.TACImage.axes.axvline(x_axis[self.parameters.subImage[0,0]],color='y')
+                try:
+                    self.TACImage.axes.axvline(self.Image.time[self.parameters.subImage[0,1]],color='y')
+                except:
+                    self.TACImage.axes.axvline(self.Image.time[-1],color='y')
+            self.TACImage.axes.plot(x_axis,y_axis,color='b')
             self.base_TAC_axes()
             self.TACImage.draw()                
         except:
@@ -367,13 +395,21 @@ class Window(QMainWindow):
             else:
                 subI = self.parameters.subImage
                 self.AxialImage1D.axes.plot(np.arange(subI[1,0],subI[1,1]+1),self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]])
-                self.SagittalImage1D.axes.plot(np.arange(subI[2,0],subI[2,1]+1),self.Image.Image[values[0],values[1],values[2],subI[2,0]:subI[2,1]+1])
-                self.CoronalImage1D.axes.plot(np.arange(subI[3,0],subI[3,1]+1),self.Image.Image[values[0],values[1],subI[3,0]:subI[3,1]+1,values[3]])
+                self.SagittalImage1D.axes.plot(np.arange(subI[3,0],subI[3,1]+1),self.Image.Image[values[0],values[1],values[2],subI[3,0]:subI[3,1]+1])
+                self.CoronalImage1D.axes.plot(np.arange(subI[2,0],subI[2,1]+1),self.Image.Image[values[0],values[1],subI[2,0]:subI[2,1]+1,values[3]])
  
             if self.showFocus:
                 self.AxialImage1D.axes.axvline(values[1],color='r')
                 self.SagittalImage1D.axes.axvline(values[3],color='r')
                 self.CoronalImage1D.axes.axvline(values[2],color='r')
+            if self.showSubImage:
+                self.AxialImage1D.axes.axvline(self.parameters.subImage[1,0],color='y')
+                self.AxialImage1D.axes.axvline(self.parameters.subImage[1,1],color='y')
+                self.SagittalImage1D.axes.axvline(self.parameters.subImage[3,0],color='y')
+                self.SagittalImage1D.axes.axvline(self.parameters.subImage[3,1],color='y')
+                self.CoronalImage1D.axes.axvline(self.parameters.subImage[2,0],color='y')
+                self.CoronalImage1D.axes.axvline(self.parameters.subImage[2,1],color='y')
+
             self.base_1D_axes()
             self.AxialImage1D.draw()
             self.SagittalImage1D.draw()
@@ -388,19 +424,19 @@ class Window(QMainWindow):
             self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length-1)
         else:
             subI = self.parameters.subImage
-            self.sliderAcq.setMinimum(subI[0,0]);self.sliderAcq.setMaximum(subI[0,1]-1)
-            self.sliderAxial.setMinimum(subI[1,0]);self.sliderAxial.setMaximum(subI[1,1]-1)
-            self.sliderSagittal.setMinimum(subI[3,0]);self.sliderSagittal.setMaximum(subI[3,1]-1)
-            self.sliderCoronal.setMinimum(subI[2,0]);self.sliderCoronal.setMaximum(subI[2,1]-1)
+            self.sliderAcq.setMinimum(subI[0,0]);self.sliderAcq.setMaximum(subI[0,1])
+            self.sliderAxial.setMinimum(subI[1,0]);self.sliderAxial.setMaximum(subI[1,1])
+            self.sliderSagittal.setMinimum(subI[3,0]);self.sliderSagittal.setMaximum(subI[3,1])
+            self.sliderCoronal.setMinimum(subI[2,0]);self.sliderCoronal.setMaximum(subI[2,1])
     def base_TAC_axes(self):
         self.TACImage.axes.set_title("TAC");self.TACImage.axes.grid()
         self.TACImage.axes.set_xlabel("Time");self.TACImage.axes.set_ylabel("Signal")
     def base_1D_axes(self):
         self.AxialImage1D.axes.set_title("Axial Slice");self.AxialImage1D.axes.grid()
         self.AxialImage1D.axes.set_xlabel("Voxel");self.AxialImage1D.axes.set_ylabel("Signal")
-        self.SagittalImage1D.axes.set_title("Axial Slice");self.SagittalImage1D.axes.grid()
+        self.SagittalImage1D.axes.set_title("Sagittal Slice");self.SagittalImage1D.axes.grid()
         self.SagittalImage1D.axes.set_xlabel("Voxel");self.SagittalImage1D.axes.set_ylabel("Signal")
-        self.CoronalImage1D.axes.set_title("Axial Slice");self.CoronalImage1D.axes.grid()
+        self.CoronalImage1D.axes.set_title("Coronal Slice");self.CoronalImage1D.axes.grid()
         self.CoronalImage1D.axes.set_xlabel("Voxel");self.CoronalImage1D.axes.set_ylabel("Signal")
     def update_view(self):
         values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
@@ -424,6 +460,19 @@ class Window(QMainWindow):
             self.sagittal.axes.axvline(values[2],color='r')
             self.coronal.axes.axhline(values[1],color='r')
             self.coronal.axes.axvline(values[3],color='r')
+        if self.showSubImage:
+            self.axial.axes.axhline(self.parameters.subImage[2,0],color='y')
+            self.axial.axes.axhline(self.parameters.subImage[2,1],color='y')
+            self.sagittal.axes.axhline(self.parameters.subImage[1,0],color='y')
+            self.sagittal.axes.axhline(self.parameters.subImage[1,1],color='y')
+            self.coronal.axes.axhline(self.parameters.subImage[1,0],color='y')
+            self.coronal.axes.axhline(self.parameters.subImage[1,1],color='y')
+            self.axial.axes.axvline(self.parameters.subImage[3,0],color='y')
+            self.axial.axes.axvline(self.parameters.subImage[3,1],color='y')
+            self.sagittal.axes.axvline(self.parameters.subImage[2,0],color='y')
+            self.sagittal.axes.axvline(self.parameters.subImage[2,1],color='y')
+            self.coronal.axes.axvline(self.parameters.subImage[3,0],color='y')
+            self.coronal.axes.axvline(self.parameters.subImage[3,1],color='y')
         if self.showLog:
             def a(x):
                 return np.log(x+1)
@@ -533,25 +582,36 @@ class Window(QMainWindow):
     def extract_button(self,source):
         initial = time.time()
         try:
-            self.Image = Extract_r.Extract_Images(source.text(),verbose=True,save=False)
+            a = self.name
+            self._createErrorMessage("An image is already loaded")
         except:
             try:
-                self.Image = Extract.Extract_Images(source.text(),verbose=True,save=False)
+                self.Image = Extract_r.Extract_Images(source.text(),verbose=True,save=False)
             except:
-                self._createErrorMessage("Extraction is not possible")
-                return 0
-        self.displayStatus("File extracted", initial)
-        self._createImageDisplay()
-        self._createImageDisplayBars()
-        self.parameters = GUIParameters(self.Image)
+                try:
+                    self.Image = Extract.Extract_Images(source.text(),verbose=True,save=False)
+                except:
+                    self._createErrorMessage("Extraction is not possible")
+                    return 0
+            self.displayStatus("File extracted", initial)
+            self._createImageDisplay()
+            self._createImageDisplayBars()
+            self.parameters = GUIParameters(self.Image)
     def load_button(self,source):
         initial = time.time()
-        self.Image = PF.pickle_open(source.text())
-        self.name = self.Image.version
-        self.displayStatus("File loading", initial)
-        self._createImageDisplay()
-        self._createImageDisplayBars()
-        self.parameters = GUIParameters(self.Image)
+        try:
+            a = self.name
+            self._createErrorMessage("An image is already loaded")
+        except:
+            try:
+                self.Image = PF.pickle_open(source.text())
+                self.name = self.Image.version
+                self.displayStatus("File loading", initial)
+                self._createImageDisplay()
+                self._createImageDisplayBars()
+                self.parameters = GUIParameters(self.Image)
+            except:
+                self._createErrorMessage("Loading is not possible")
     def browse_button_directory(self,source:QLineEdit):
         text =  QFileDialog.getExistingDirectory()
         source.setText(text+"/")
