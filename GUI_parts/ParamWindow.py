@@ -165,18 +165,51 @@ class ParamWindow(QMainWindow):
         layout.addWidget(self.sliderAxialValueSubImMax,1,3)
         layout.addWidget(self.sliderSagittalValueSubImMax,2,3)
         layout.addWidget(self.sliderCoronalValueSubImMax,3,3)
-        return subImageWidget    
+        return subImageWidget   
+
+    def _createBoolBox(self):
+        btn = QCheckBox()
+        return btn
+
+    def _createSegmType(self):
+        self.SegmCombo = QComboBox()
+        self.SegmCombo.addItem("ICM")
+        self.SegmCombo.addItem("Canny Filled")
+        self.SegmCombo.addItem("Canny Contour")
+        self.SegmCombo.addItem("Ellipsoid")
+        self.SegmCombo.addItem("k Mean")
+        self.SegmCombo.addItem("Threshold")
+        self.SegmCombo.addItem("Filling (very slow)")
+        self.SegmCombo.addItem("Filling f (very slow)")
+        self.SegmCombo.activated[str].connect(self.SegmCombo_Changed)
+        return self.SegmCombo
+    def _createIntInput(self):
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+        slider = QSlider()
+        number = QLineEdit()
+        number.setMaximumWidth(50)
+        layout.addWidget(slider)
+        layout.addWidget(number)
+        return subWidget
     def _createParamList(self):
         params = [attr for attr in dir(self.parameters) if not callable(getattr(self.parameters, attr)) and not attr.startswith("__")and not attr.startswith("_")]
         params_ = [attr for attr in dir(self.parameters) if not callable(getattr(self.parameters, attr)) and not attr.startswith("__")and attr.startswith("_")]
         var = vars(self.parameters)
+        text1 = QLabel("Parameter")
+        text2 = QLabel("Values")
+        text3 = QLabel("New Values")
+        self.generalLayout.addWidget(text1,0,0)
+        self.generalLayout.addWidget(text2,0,1)
+        self.generalLayout.addWidget(text3,0,2)
         for i in range(len(params_)):
             if str(params_[i]) == "_size":
                 paramNew = QLabel(params_[i]+":")
                 labelNew = QLabel(str(var[f"{params_[i]}"]))
             try:
-                self.generalLayout.addWidget(paramNew,i,0)
-                self.generalLayout.addWidget(labelNew,i,1)
+                self.generalLayout.addWidget(paramNew,i+1,0)
+                self.generalLayout.addWidget(labelNew,i+1,1)
             except:
                 pass 
         for i in range(len(params)):
@@ -187,12 +220,33 @@ class ParamWindow(QMainWindow):
                 btnNew = self._createSeedSliders()
             elif str(params[i]) == "subImage":
                 btnNew = self._createSubImageSliders()
-            self.generalLayout.addWidget(paramNew,i+len(params_),0)
-            self.generalLayout.addWidget(labelNew,i+len(params_),1)
+            elif isinstance(var[f"{params[i]}"],bool):
+                btnNew = self._createBoolBox()
+                btnNew.setChecked(var[f"{params[i]}"])
+                if str(params[i]) == "SaveSegm":
+                    btnNew.stateChanged.connect(partial(self.set_value_checked_SaveSegm,btnNew))
+                elif str(params[i]) == "doCurves":
+                    btnNew.stateChanged.connect(partial(self.set_value_checked_doCurves,btnNew))
+                elif str(params[i]) == "doStats":
+                    btnNew.stateChanged.connect(partial(self.set_value_checked_doStats,btnNew))
+            elif isinstance(var[f"{params[i]}"],int):
+                btnNew = self._createIntInput()
+            elif str(params[i]) == "SegmType":
+                btnNew = self._createSegmType()
+            self.generalLayout.addWidget(paramNew,i+len(params_)+1,0)
+            self.generalLayout.addWidget(labelNew,i+len(params_)+1,1)
             try:
-                self.generalLayout.addWidget(btnNew,i+len(params_),2)
+                self.generalLayout.addWidget(btnNew,i+len(params_)+1,2)
             except:
                 pass
+    def SegmCombo_Changed(self):
+        self.parameters.SegmType = self.SegmCombo.currentText()
+    def set_value_checked_doStats(self,box:QCheckBox):
+        self.parameters.doStats = box.isChecked()
+    def set_value_checked_SaveSegm(self,box:QCheckBox):
+        self.parameters.SaveSegm = box.isChecked()
+    def set_value_checked_doCurves(self,box:QCheckBox):
+        self.parameters.doCurves = box.isChecked()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
         lineedit.setText(str(slider.value()))
         try:
@@ -230,7 +284,7 @@ class ParamWindow(QMainWindow):
         self.parameters.subImage[0,1] = self.sliderAcqValueSubImMax.text()
         self.parameters.subImage[1,0] = self.sliderAxialValueSubImMin.text()
         self.parameters.subImage[1,1] = self.sliderAxialValueSubImMax.text()
-        self.parameters.subImage[3,0] = self.sliderSagittalValueSubImMin.text()
-        self.parameters.subImage[3,1] = self.sliderSagittalValueSubImMax.text()
-        self.parameters.subImage[2,0] = self.sliderCoronalValueSubImMin.text()
-        self.parameters.subImage[2,1] = self.sliderCoronalValueSubImMax.text()
+        self.parameters.subImage[2,0] = self.sliderSagittalValueSubImMin.text()
+        self.parameters.subImage[2,1] = self.sliderSagittalValueSubImMax.text()
+        self.parameters.subImage[3,0] = self.sliderCoronalValueSubImMin.text()
+        self.parameters.subImage[3,1] = self.sliderCoronalValueSubImMax.text()

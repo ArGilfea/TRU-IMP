@@ -13,9 +13,15 @@ class GUIParameters(object):
         self._size = np.array([Image.nb_acq,Image.nb_slice,Image.width,Image.length])
         self.seed = np.array([0,0,0])
         self.subImage = np.array([[0,Image.nb_acq],[0,Image.nb_slice],[0,Image.width],[0,Image.length]])
-        self.Acq = 0
+        self.SegmAcq = 0
         self.SaveSegm = True
         self.doCurves = True
         self.doStats = True
+        self.doMoments = True
+        self.verbose = True
+        self.SegmType = "ICM"
+        self.alpha = 1
+        self.max_iter = 100
+        self.max_iter_kmean = 100
 
         del Image

@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QEventLoop
 from functools import partial
 ###
 import matplotlib
@@ -45,10 +46,13 @@ class Window(QMainWindow):
         self.btn.clicked.connect(self.on_button_clicked_infos)
         self.btn.setToolTip("Displays the infos of the current loaded acquisition")
         btn_param = QPushButton("Parameters")
+        btn_segm = QPushButton("Segment")
         btn_param.setToolTip("Displays the parameters to resize the acquisition or to set up for the segmentations")
         btn_param.clicked.connect(self.open_parameters)
+        btn_segm.clicked.connect(self.run_segm)
         layout.addWidget(btn_param)
         layout.addWidget(self.btn)  
+        layout.addWidget(btn_segm)
         self.generalLayout.addWidget(subWidget,0,3)         
     def _createExitButton(self,line=7):
         self.exit = QPushButton("Exit")
@@ -66,7 +70,7 @@ class Window(QMainWindow):
         source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
         btn_extr.clicked.connect(partial(self.extract_button,source,"d"))
         btn_load.clicked.connect(partial(self.load_button,source))
-        btn_browse.clicked.connect(partial(self.browse_button,source))
+        btn_browse.clicked.connect(partial(self.browse_button_file,source))
 
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
@@ -91,18 +95,17 @@ class Window(QMainWindow):
         path.setText("")
         btn_save = QPushButton("Save")
         btn_save.clicked.connect(partial(self.save_button,path,path_name))
+        btn_browse = QPushButton("Browse")
+        btn_browse.clicked.connect(partial(self.browse_button_directory,path))
 
         layout1.addWidget(path)
         layout1.addWidget(path_name)
+        layout2.addWidget(btn_browse)
         layout2.addWidget(btn_save)
 
         self.generalLayout.addWidget(msg_save,line,0)  
         self.generalLayout.addWidget(subWidget1,line,1)  
         self.generalLayout.addWidget(subWidget2,line,2)  
-    def _createParameterScreen(self,line=1):
-        btn_param = QPushButton("Parameters")
-        btn_param.clicked.connect(self.open_parameters)
-        self.generalLayout.addWidget(btn_param,line,3)
     def _createImageDisplay(self,line=4):
         self.showFocus = False
         self.showLog = False
@@ -275,26 +278,20 @@ class Window(QMainWindow):
         alert.exec()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
         lineedit.setText(str(slider.value()))
-        self.update_TAC()
-        self.update_1D()
-        self.update_view()
+        self.update_all()
         return slider.value()
     def set_value_focus(self):
         if self.checkBoxFocus.isChecked() == True:
             self.showFocus = True
         else:
             self.showFocus = False
-        self.update_TAC()
-        self.update_1D()
-        self.update_view()
+        self.update_all()
     def set_value_log(self):
         if self.checkBoxLog.isChecked() == True:
             self.showLog = True
         else:
             self.showLog = False
-        self.update_TAC()
-        self.update_1D()
-        self.update_view()
+        self.update_all()
     def set_value_line_edit(self,slider:QSlider,lineedit:QLineEdit):
         try:
             lineedit.setText(f"{int(lineedit.text())}")
@@ -304,35 +301,52 @@ class Window(QMainWindow):
             slider.setValue(int(lineedit.text()))
         except:
             slider.setValue(0)
-        self.update_TAC()
-        self.update_1D()
-        self.update_view()
+        self.update_all()
     def combo_box_changed(self):
         self.view = self.ImageViewCombo.currentText()
         if self.view in ["Slice","Flat","Segm. Slice","Segm. Flat"]:
             self.view_range = "All"
         else:
             self.view_range = "Sub"
-        self.update_TAC()
-        self.update_1D()
-        self.update_view()
+        self.update_all()
     def open_parameters(self):
         try:
-            self.paramWindow = QDialog()
-            self.paramWindow.setWindowTitle("Parameters")
-            print("Seed before",self.parameters.seed)
-            print("SubImage before",self.parameters.subImage)
             window = ParamWindow(self.parameters,self)
             window.show()
         except:
             self._createErrorMessage()
+    def run_segm(self):
+        try:
+            initial = time.time()
+            if self.parameters.SegmType == "ICM":
+                self.Image.VOI_ICM(acq=20,alpha=self.parameters.alpha,subinfo=self.parameters.subImage[1:,:],
+                                    max_iter=self.parameters.max_iter,max_iter_kmean=self.parameters.max_iter_kmean,
+                                    verbose=self.parameters.verbose,save=self.parameters.SaveSegm,
+                                    do_moments=self.parameters.doMoments,do_stats=self.parameters.doStats)
+            else:
+                pass
+            self.displayStatus(f"{self.parameters.SegmType} segmentation",initial)
+            self.update_segm()
+        except:
+            self._createErrorMessage("Unable to run the segmentation")
+    def update_all(self):
+        self.update_TAC()
+        self.update_1D()
+        self.update_view()
+        self.update_segm()
+    def update_segm(self):
+        self.sliderSegm.setMaximum(self.Image.voi_counter-1)
     def update_TAC(self):
         try:
             self.TACImage.axes.cla()
             values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
             x_axis = self.Image.time
-            y_axis = self.Image.Image[:,values[1],values[2],values[3]]
-            self.TACImage.axes.plot(x_axis,y_axis,color='b')
+            if self.sliderSegm.value() >= 0:
+                y_axis = self.Image.voi_statistics[self.sliderSegm.value()]
+                self.TACImage.axes.plot(x_axis,y_axis,color='b')
+            else:
+                y_axis = self.Image.Image[:,values[1],values[2],values[3]]
+                self.TACImage.axes.plot(x_axis,y_axis,color='b')
             if self.showFocus:
                 self.TACImage.axes.axvline(self.Image.time[values[0]],color='r')
             self.base_TAC_axes()
@@ -352,9 +366,9 @@ class Window(QMainWindow):
                 self.CoronalImage1D.axes.plot(np.arange(self.Image.width),self.Image.Image[values[0],values[1],:,values[3]])
             else:
                 subI = self.parameters.subImage
-                self.AxialImage1D.axes.plot(np.arange(subI[1,0],subI[1,1]+1),self.Image.Image[values[0],:,values[2],values[3]])
-                self.SagittalImage1D.axes.plot(np.arange(subI[2,0],subI[2,1]+1),self.Image.Image[values[0],values[1],values[2],:])
-                self.CoronalImage1D.axes.plot(np.arange(subI[3,0],subI[3,1]+1),self.Image.Image[values[0],values[1],:,values[3]])
+                self.AxialImage1D.axes.plot(np.arange(subI[1,0],subI[1,1]+1),self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]])
+                self.SagittalImage1D.axes.plot(np.arange(subI[2,0],subI[2,1]+1),self.Image.Image[values[0],values[1],values[2],subI[2,0]:subI[2,1]+1])
+                self.CoronalImage1D.axes.plot(np.arange(subI[3,0],subI[3,1]+1),self.Image.Image[values[0],values[1],subI[3,0]:subI[3,1]+1,values[3]])
  
             if self.showFocus:
                 self.AxialImage1D.axes.axvline(values[1],color='r')
@@ -433,9 +447,9 @@ class Window(QMainWindow):
                 self._createErrorMessage("Can't perform this. No image is loaded or the flats are not done")
         elif self.view == "Segm. Slice":
             try:
-                self.axial.axes.pcolormesh(func(self.Image.axial_flat(counter=key)[values[0],values[1],:,:]))
-                self.sagittal.axes.pcolormesh(func(self.Image.sagittal_flat(counter=key)[values[0],:,:,values[3]]))
-                self.coronal.axes.pcolormesh(func(self.Image.coronal_flat(counter=key)[values[0],:,values[2],:]))
+                self.axial.axes.pcolormesh(func(self.Image.voi[f"{key}"][values[1],:,:]))
+                self.sagittal.axes.pcolormesh(func(self.Image.voi[f"{key}"][:,:,values[3]]))
+                self.coronal.axes.pcolormesh(func(self.Image.voi[f"{key}"][:,values[2],:]))
             except:
                 self._createErrorMessage("Can't perform this. No segmentations are present")
         elif self.view == "Segm. Flat":
@@ -459,6 +473,20 @@ class Window(QMainWindow):
                 self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.coronal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]]))
             except:
                 self._createErrorMessage("Can't perform this. No SubImage selected")
+        elif self.view == "Segm. Sub. Slice":
+            try:
+                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.voi[f"{key}"][values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
+                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]]))
+                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]]))
+            except:
+                self._createErrorMessage("Can't perform this. No SubImage selected or no segmentation done")
+        elif self.view == "Segm. Sub. Flat":
+            try:
+                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.axial_flat(counter=key)[SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
+                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.sagittal_flat(counter=key)[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1]]))
+                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.coronal_flat(counter=key)[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]]))
+            except:
+                self._createErrorMessage("Can't perform this. No SubImage selected or no segmentation done")
         try:
             self.axial.draw()
             self.sagittal.draw()
@@ -498,21 +526,20 @@ class Window(QMainWindow):
                 """
         return a
     def on_button_clicked_infos(self):
-        alert = QMessageBox()
-        alert.setWindowTitle("Infos")
         try:
-            alert.setText(self.show_infos_acq())
+            self._createErrorMessage(self.show_infos_acq())
         except:
-            alert.setText("No file uploaded")
-        alert.exec()
-    def extract_button(self,source,method="d"):
+            self._createErrorMessage("No file uploaded")
+    def extract_button(self,source):
         initial = time.time()
-        if method == "r":
+        try:
             self.Image = Extract_r.Extract_Images(source.text(),verbose=True,save=False)
-        elif method == "d":
-            self.Image = Extract.Extract_Images(source.text(),verbose=True,save=False)
-        else:
-            raise Exception("Extraction method is invalid")
+        except:
+            try:
+                self.Image = Extract.Extract_Images(source.text(),verbose=True,save=False)
+            except:
+                self._createErrorMessage("Extraction is not possible")
+                return 0
         self.displayStatus("File extracted", initial)
         self._createImageDisplay()
         self._createImageDisplayBars()
@@ -525,23 +552,26 @@ class Window(QMainWindow):
         self._createImageDisplay()
         self._createImageDisplayBars()
         self.parameters = GUIParameters(self.Image)
-    def browse_button(self,source:QLineEdit):
+    def browse_button_directory(self,source:QLineEdit):
+        text =  QFileDialog.getExistingDirectory()
+        source.setText(text+"/")
+    def browse_button_file(self,source:QLineEdit):
         text = QFileDialog.getOpenFileName(self)
         source.setText(text[0])
     def save_button(self,path:QLineEdit,path_name:QLineEdit):
         initial = time.time()
-        alert = QMessageBox()
-        if path.text() == "":
-            alert.setText("Empty path. Please specify where to save.")
+        if path.text() == "" or path_name.text()=="":
+            self._createErrorMessage("Empty path. Please specify where to save.")
         else:
             try:
-                PF.pickle_save(self.Image,path.text()+path_name.text())
-                self._createErrorMessage()
-                alert.setText(f"Save successfull")
+                if path_name.text()[-4:] == ".pkl":
+                    PF.pickle_save(self.Image,path.text()+path_name.text())
+                else:
+                    PF.pickle_save(self.Image,path.text()+path_name.text()+".pkl")
+                self._createErrorMessage(f"Save successfull")
             except:
-                alert.setText(f"Impossible to save to the desired folder")
+                self._createErrorMessage(f"Impossible to save to the desired folder")
         self.displayStatus("File saved", initial)
-        alert.exec()
 
     def __init__(self):
         self.BUTTON_SIZE = 40
@@ -557,7 +587,6 @@ class Window(QMainWindow):
         #self._createLoadingDock()
         self._createSavingDock()
         self._createInfoParam()
-        #self._createParameterScreen()
         self._createImageDisplay()
         self._createImageDisplayType()
         self._createImageDisplayBars()
