@@ -21,8 +21,11 @@ class GUIParameters(object):
         self.doCoefficients = True
         self.verbose = True
         self.SegmType = "ICM"
-        self.alpha = 1
+        self.alphaICM = 1
         self.max_iter_ICM = 100
         self.max_iter_kmean_ICM = 100
+        self.sigmaCanny = 1
+        self.combinationCanny = 2
+        self.methodCanny = "Taxicab"
 
         del Image

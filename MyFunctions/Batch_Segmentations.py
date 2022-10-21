@@ -6,7 +6,8 @@ import time #To monitor time to run program
 from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 
-def Batch_Segmentations(segmentation_type:str='all',Image: DicomImage = None,seed=[[]],k=-1,subimage=[-1],threshold = -1,sigma_Canny=5,sigma_threshold=5,
+def Batch_Segmentations(segmentation_type:str='all',Image: DicomImage = None,seed=[[]],k=-1,subimage=[-1],threshold = -1,sigma_Canny=5,
+                            combinationCanny = 2, methodCanny = "Taxicab",sigma_threshold=5,
                             alpha=1e1,max_iter_ICM=100,max_iter_kmean_ICM=100,max_iter_Fill=300,factor_Fill=[0.1,2.8],steps_Fill = 1000,growth=-1,min_f_growth=0,
                             name_segmentation = '',path_in='',name_in='',path_out = '',name_out='',show_pre=False,save=True,do_coefficients=True,
                             SaveSegm = True,do_moments=True,do_stats=True,verbose=False):
@@ -69,9 +70,10 @@ def Batch_Segmentations(segmentation_type:str='all',Image: DicomImage = None,see
         Image.show_point(seed,star=True,sub_im=subimage)
         plt.show()
 
-    if segmentation_type == 'Canny' or segmentation_type == 'all':
+    if segmentation_type == 'Canny' or segmentation_type == 'Canny Filled' or segmentation_type == 'all':
         print('Running the gradient segmentations...')
-        Canny_Batch(Image=Image,k=k,subimage=subimage,sigma_Canny=sigma_Canny,name_segmentation=name_segmentation)
+        Canny_Batch(Image=Image,k=k,subimage=subimage,sigma_Canny=sigma_Canny,combinationCanny=combinationCanny,methodCanny=methodCanny,
+                            name_segmentation=name_segmentation)
     if segmentation_type == 'ICM' or segmentation_type == 'all':
         print('Running the statistics segmentations...')
         ICM_Batch(Image,k,subimage=subimage,alpha=alpha,max_iter_ICM=max_iter_ICM,max_iter_kmean_ICM=max_iter_kmean_ICM,
@@ -97,7 +99,7 @@ def Batch_Segmentations(segmentation_type:str='all',Image: DicomImage = None,see
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
     print(f"All the segmentations were done in {(time.time() - initial):.2f} s.")
 
-def Canny_Batch(Image,k,subimage=[-1],sigma_Canny=5,name_segmentation = ''):
+def Canny_Batch(Image:DicomImage,k,subimage=[-1],sigma_Canny=5,combinationCanny=2,methodCanny="Taxicab",name_segmentation = ''):
     """
     Runs Canny Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
@@ -111,7 +113,8 @@ def Canny_Batch(Image,k,subimage=[-1],sigma_Canny=5,name_segmentation = ''):
     """
     initial = time.time()
     for i in range(k.shape[0]):
-        Image.VOI_Canny_filled(subinfo = subimage,acq=k[i],sigma=sigma_Canny,name=f"{name_segmentation} Canny Filled acq {k[i]}",do_moments=True,do_stats=True)
+        Image.VOI_Canny_filled(subinfo = subimage,acq=k[i],sigma=sigma_Canny,combination=combinationCanny,method=methodCanny,
+                                name=f"{name_segmentation} Canny Filled acq {k[i]}",do_moments=True,do_stats=True)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
 def ICM_Batch(Image,k,subimage=[-1],alpha=1e1,max_iter_ICM=100,max_iter_kmean_ICM=100,name_segmentation = '',save=True,do_moments=True,

@@ -330,11 +330,17 @@ class Window(QMainWindow):
             self._createErrorMessage()
     def run_segm(self):
         try:
+            if self.parameters.SegmAcq >= 0:
+                k = np.array([self.parameters.SegmAcq])
+            else:
+                k=-1
             initial = time.time()
             MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
-                                                            seed = self.parameters.seed,k=self.parameters.SegmAcq,
+                                                            seed = self.parameters.seed,k=k,
                                                             subimage=self.parameters.subImage[1:,:],
-                                                            alpha=self.parameters.alpha,max_iter_ICM=self.parameters.max_iter_ICM,
+                                                            sigma_Canny=self.parameters.sigmaCanny,combinationCanny=self.parameters.combinationCanny,
+                                                            methodCanny=self.parameters.methodCanny,
+                                                            alpha=self.parameters.alphaICM,max_iter_ICM=self.parameters.max_iter_ICM,
                                                             max_iter_kmean_ICM=self.parameters.max_iter_kmean_ICM,save=False,
                                                             do_coefficients=self.parameters.doCoefficients,
                                                             SaveSegm=self.parameters.SaveSegm,do_moments=self.parameters.doMoments,
@@ -363,7 +369,7 @@ class Window(QMainWindow):
                 else:
                     y_axis = self.Image.Image[:,values[1],values[2],values[3]]
             else:
-                x_axis = np.arange(subI[0],subI[1])
+                x_axis = self.Image.time[subI[0]:subI[1]]
                 if self.sliderSegm.value() >= 0:
                     y_axis = self.Image.voi_statistics[self.sliderSegm.value()][subI[0]:subI[1]]
                 else:
