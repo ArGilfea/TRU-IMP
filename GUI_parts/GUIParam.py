@@ -27,5 +27,14 @@ class GUIParameters(object):
         self.sigmaCanny = 1
         self.combinationCanny = 2
         self.methodCanny = "Taxicab"
+        self.steps_filling = 1000
+        self.max_iter_fill = 300
+        self.factor_Fill = [0.1,2.8]
+        self.growth = -1
+        self.min_f_growth = 0
+        self.threshold_fill = 0.99
+        self.verbose_graph_fill = False
+
+        self.threshold = 0.5
 
         del Image

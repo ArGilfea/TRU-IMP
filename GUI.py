@@ -12,6 +12,7 @@ import MyFunctions.Extract_Images_R as Extract_r
 import MyFunctions.Extract_Images as Extract
 from GUI_parts.GUIParam import GUIParameters
 from GUI_parts.ParamWindow import ParamWindow
+from GUI_parts.ExportWindow import ExportWindow
 import time
 import MyFunctions.Batch_Segmentations
 ###
@@ -98,11 +99,13 @@ class Window(QMainWindow):
         btn_save.clicked.connect(partial(self.save_button,path,path_name))
         btn_browse = QPushButton("Browse")
         btn_browse.clicked.connect(partial(self.browse_button_directory,path))
-
+        btn_export = QPushButton("Export")
+        btn_export.clicked.connect(self.open_export)
         layout1.addWidget(path)
         layout1.addWidget(path_name)
         layout2.addWidget(btn_browse)
         layout2.addWidget(btn_save)
+        layout2.addWidget(btn_export)
 
         self.generalLayout.addWidget(msg_save,line,0)  
         self.generalLayout.addWidget(subWidget1,line,1)  
@@ -328,6 +331,15 @@ class Window(QMainWindow):
             window.show()
         except:
             self._createErrorMessage()
+    def open_export(self):
+        """
+        Opens a new window to decide what to export and what to save
+        """
+        try:
+            window = ExportWindow(self.parameters,self.Image,self)
+            window.show()
+        except:
+            self._createErrorMessage()
     def run_segm(self):
         try:
             if self.parameters.SegmAcq >= 0:
@@ -341,7 +353,15 @@ class Window(QMainWindow):
                                                             sigma_Canny=self.parameters.sigmaCanny,combinationCanny=self.parameters.combinationCanny,
                                                             methodCanny=self.parameters.methodCanny,
                                                             alpha=self.parameters.alphaICM,max_iter_ICM=self.parameters.max_iter_ICM,
-                                                            max_iter_kmean_ICM=self.parameters.max_iter_kmean_ICM,save=False,
+                                                            max_iter_kmean_ICM=self.parameters.max_iter_kmean_ICM,
+                                                            steps_Fill = self.parameters.steps_filling,
+                                                            max_iter_Fill = self.parameters.max_iter_fill,
+                                                            factor_Fill = self.parameters.factor_Fill,
+                                                            growth = self.parameters.growth,
+                                                            min_f_growth = self.parameters.min_f_growth,
+                                                            threshold_fill=self.parameters.threshold_fill,
+                                                            verbose_graph_fill = self.parameters.verbose_graph_fill,
+                                                            save=False,
                                                             do_coefficients=self.parameters.doCoefficients,
                                                             SaveSegm=self.parameters.SaveSegm,do_moments=self.parameters.doMoments,
                                                             do_stats=self.parameters.doStats,verbose=self.parameters.verbose)
@@ -606,18 +626,22 @@ class Window(QMainWindow):
     def load_button(self,source):
         initial = time.time()
         try:
-            a = self.name
-            self._createErrorMessage("An image is already loaded")
+            self.parameters = PF.pickle_open(source.text())
+            a = self.parameters.SegmAcq
         except:
             try:
-                self.Image = PF.pickle_open(source.text())
-                self.name = self.Image.version
-                self.displayStatus("File loading", initial)
-                self._createImageDisplay()
-                self._createImageDisplayBars()
-                self.parameters = GUIParameters(self.Image)
+                a = self.name
+                self._createErrorMessage("An image is already loaded")
             except:
-                self._createErrorMessage("Loading is not possible")
+                try:
+                    self.Image = PF.pickle_open(source.text())
+                    self.name = self.Image.version
+                    self.displayStatus("File loading", initial)
+                    self._createImageDisplay()
+                    self._createImageDisplayBars()
+                    self.parameters = GUIParameters(self.Image)
+                except:
+                    self._createErrorMessage("Loading is not possible")
     def browse_button_directory(self,source:QLineEdit):
         text =  QFileDialog.getExistingDirectory()
         source.setText(text+"/")

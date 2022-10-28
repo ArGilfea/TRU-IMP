@@ -40,8 +40,13 @@ class ParamWindow(QMainWindow):
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
         self.setCentralWidget(centralWidget)
-        self._createParamList()
+        self.initialize_param_window()
         centralWidget.resize(centralWidget.sizeHint());
+
+    def initialize_param_window(self):
+        self.current_line = 1
+        self._createParamList()
+
     def _createSeedSliders(self):
         sizeText = 30
         seedWidget = QWidget()
@@ -90,7 +95,11 @@ class ParamWindow(QMainWindow):
         layout.addWidget(self.sliderAxialValueSeed,1,2)
         layout.addWidget(self.sliderCoronalValueSeed,2,2)
         layout.addWidget(self.sliderSagittalValueSeed,3,2)
-        return seedWidget
+        
+        self.generalLayout.addWidget(QLabel("Seed"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.seed}"),self.current_line,1)
+        self.generalLayout.addWidget(seedWidget,self.current_line,2)
+        self.current_line += 1
     def _createSubImageSliders(self):
         sizeText = 30
         subImageWidget = QWidget()
@@ -166,8 +175,11 @@ class ParamWindow(QMainWindow):
         layout.addWidget(self.sliderCoronalValueSubImMax,2,3)
         layout.addWidget(self.sliderSagittalValueSubImMin,3,2)
         layout.addWidget(self.sliderSagittalValueSubImMax,3,3)
-        return subImageWidget   
 
+        self.generalLayout.addWidget(QLabel("SubImage"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.subImage}"),self.current_line,1)
+        self.generalLayout.addWidget(subImageWidget,self.current_line,2)
+        self.current_line += 1
     def _createBoolBox(self):
         btn = QCheckBox()
         return btn
@@ -176,7 +188,10 @@ class ParamWindow(QMainWindow):
         self.MethCombo.addItem("TaxiCab")
         self.MethCombo.setCurrentText(self.parameters.methodCanny)
         self.MethCombo.activated[str].connect(self.MethCombo_Changed)
-        return self.MethCombo
+        self.generalLayout.addWidget(QLabel("Method Canny"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.methodCanny}"),self.current_line,1)
+        self.generalLayout.addWidget(self.MethCombo,self.current_line,2)
+        self.current_line +=1
     def _createSegmType(self):
         self.SegmCombo = QComboBox()
         self.SegmCombo.addItem("ICM")
@@ -189,7 +204,10 @@ class ParamWindow(QMainWindow):
         self.SegmCombo.addItem("Filling f (very slow)")
         self.SegmCombo.setCurrentText(self.parameters.SegmType)
         self.SegmCombo.activated[str].connect(self.SegmCombo_Changed)
-        return self.SegmCombo
+        self.generalLayout.addWidget(QLabel("Segm. Method"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.SegmType}"),self.current_line,1)
+        self.generalLayout.addWidget(self.SegmCombo,self.current_line,2)
+        self.current_line +=1
     def _createIntInput(self,initvalue:float):
         subWidget = QWidget()
         layout = QHBoxLayout()
@@ -202,113 +220,177 @@ class ParamWindow(QMainWindow):
         slider.setMinimumWidth(200)
         slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
         number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
-        number.setMaximumWidth(50)
+        number.setMaximumWidth(75)
         layout.addWidget(slider)
         layout.addWidget(number)
-        return subWidget,slider,number
+        return subWidget,slider
+    def _createAcqValue(self):
+        btnNew,slider = self._createIntInput(self.parameters.SegmAcq)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(1)
+        slider.setRange(-1,self.parameters._size[0])
+        slider.setValue(self.parameters.SegmAcq)
+        self.sliderSegmAcq = slider   
+
+        self.generalLayout.addWidget(QLabel("Acq. Segm."),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.SegmAcq}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+
+    def _createSigmaCanny(self):
+        btnNew,slider = self._createIntInput(self.parameters.sigmaCanny)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderSigma = slider   
+        slider.setRange(1,10000)
+        try:
+            slider.setValue(int(1000*self.parameters.sigmaCanny))
+        except:
+            slider.setValue(0)
+        slider.setTickInterval(1000)
+        self.generalLayout.addWidget(QLabel("Sigma Canny"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.sigmaCanny}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createAlphaICM(self):
+        btnNew,slider = self._createIntInput(self.parameters.alphaICM)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderAlpha = slider   
+        slider.setRange(0,10000)
+        try:
+            slider.setValue(int(1000*self.parameters.alphaICM))
+        except:
+            slider.setValue(0)
+        slider.setTickInterval(1000)
+        self.generalLayout.addWidget(QLabel("Alpha ICM"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.alphaICM}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createCombCanny(self):
+        btnNew,slider = self._createIntInput(self.parameters.combinationCanny)
+        slider.valueChanged.connect(self.update_int)
+        slider.setRange(1,3)
+        slider.setTickInterval(1)
+        slider.setValue(self.parameters.combinationCanny)
+        self.sliderComb = slider   
+
+        self.generalLayout.addWidget(QLabel("Comb. Canny"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.combinationCanny}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createMaxiIterICM(self):
+        btnNew,slider = self._createIntInput(self.parameters.max_iter_ICM)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderMaxIter = slider   
+        slider.setRange(1,10000)
+        slider.setTickInterval(1000)
+        slider.setValue(self.parameters.max_iter_ICM)
+        self.generalLayout.addWidget(QLabel("Max. Iter."),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.max_iter_ICM}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createMaxiIterKMeanICM(self):
+        btnNew,slider = self._createIntInput(self.parameters.max_iter_kmean_ICM)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderMaxIterKmean = slider   
+        slider.setRange(1,10000)
+        slider.setTickInterval(1000)
+        slider.setValue(self.parameters.max_iter_kmean_ICM)
+        self.generalLayout.addWidget(QLabel("Max. Iter K Mean"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.max_iter_kmean_ICM}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createStepsFilling(self):
+        btnNew,slider = self._createIntInput(self.parameters.steps_filling)
+        slider.valueChanged.connect(self.update_int)   
+        slider.setRange(0,1000)
+        slider.setTickInterval(100)
+        slider.setValue(self.parameters.steps_filling)
+        self.sliderStepsFilling = slider
+        self.generalLayout.addWidget(QLabel("Steps Filling"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.steps_filling}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createMaxIterFilling(self):
+        btnNew,slider = self._createIntInput(self.parameters.max_iter_fill)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderMaxIterFilling = slider   
+        slider.setRange(1,1000)
+        slider.setTickInterval(100)
+        slider.setValue(self.parameters.max_iter_fill)
+        self.generalLayout.addWidget(QLabel("Max. Iter Filling"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.max_iter_fill}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createVerboseGraphFill(self):
+        btnNew = self._createBoolBox()
+        btnNew.setChecked(self.parameters.verbose_graph_fill)
+        btnNew.stateChanged.connect(partial(self.set_value_checked_VerboseGraphFill,btnNew))
+        self.generalLayout.addWidget(QLabel("Graph Filling"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.verbose_graph_fill}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createSaveBox(self):
+        btnNew = self._createBoolBox()
+        btnNew.setChecked(self.parameters.SaveSegm)
+        btnNew.stateChanged.connect(partial(self.set_value_checked_SaveSegm,btnNew))
+        self.generalLayout.addWidget(QLabel("Save"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.SaveSegm}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createStatsBox(self):
+        btnNew = self._createBoolBox()
+        btnNew.setChecked(self.parameters.doStats)
+        btnNew.stateChanged.connect(partial(self.set_value_checked_doStats,btnNew))
+        self.generalLayout.addWidget(QLabel("Stats"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.doStats}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createCurvesBox(self):
+        btnNew = self._createBoolBox()
+        btnNew.setChecked(self.parameters.doCurves)
+        btnNew.stateChanged.connect(partial(self.set_value_checked_doCurves,btnNew))
+        self.generalLayout.addWidget(QLabel("Curves"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.doCurves}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createCoefficientsBox(self):
+        btnNew = self._createBoolBox()
+        btnNew.setChecked(self.parameters.doCoefficients)
+        btnNew.stateChanged.connect(partial(self.set_value_checked_doCoefficients,btnNew))
+        self.generalLayout.addWidget(QLabel("Coeff."),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.doCoefficients}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
     def _createParamList(self):
-        params = [attr for attr in dir(self.parameters) if not callable(getattr(self.parameters, attr)) and not attr.startswith("__")and not attr.startswith("_")]
-        params_ = [attr for attr in dir(self.parameters) if not callable(getattr(self.parameters, attr)) and not attr.startswith("__")and attr.startswith("_")]
-        var = vars(self.parameters)
-        text1 = QLabel("Parameter");text4 = QLabel("Parameter")
-        text2 = QLabel("Values");text5 = QLabel("Values")
-        text3 = QLabel("New Values");text6 = QLabel("New Values")
+        text1 = QLabel("Parameter")
+        text2 = QLabel("Values")
+        text3 = QLabel("New Values")
         self.generalLayout.addWidget(text1,0,0)
         self.generalLayout.addWidget(text2,0,1)
         self.generalLayout.addWidget(text3,0,2)
-        self.generalLayout.addWidget(text4,0,3)
-        self.generalLayout.addWidget(text5,0,4)
-        self.generalLayout.addWidget(text6,0,5)
-        """
-        for i in range(len(params_)):
-            if str(params_[i]) == "_size":
-                paramNew = QLabel(params_[i]+":")
-                labelNew = QLabel(str(var[f"{params_[i]}"]))
-            try:
-                self.generalLayout.addWidget(paramNew,i+1,0)
-                self.generalLayout.addWidget(labelNew,i+1,1)
-            except:
-                pass 
-        """
-        for i in range(len(params)):
-            paramNew = QLabel(params[i]+":")
-            if str(params[i]) not in ["alphaICM","sigmaCanny"]:
-                labelNew = QLabel(str(var[f"{params[i]}"]))
-            elif str(params[i]) == "alphaICM":
-                labelNew = QLabel(f"{self.parameters.alphaICM:.4f}")
-            elif str(params[i]) == "sigmaCanny":
-                labelNew = QLabel(f"{self.parameters.sigmaCanny:.4f}")
-            if str(params[i]) == "seed":
-                self.label_Seed = labelNew
-                btnNew = self._createSeedSliders()
-            elif str(params[i]) == "subImage":
-                btnNew = self._createSubImageSliders()
-            elif isinstance(var[f"{params[i]}"],bool):
-                btnNew = self._createBoolBox()
-                btnNew.setChecked(var[f"{params[i]}"])
-                if str(params[i]) == "SaveSegm":
-                    btnNew.stateChanged.connect(partial(self.set_value_checked_SaveSegm,btnNew))
-                elif str(params[i]) == "doCurves":
-                    btnNew.stateChanged.connect(partial(self.set_value_checked_doCurves,btnNew))
-                elif str(params[i]) == "doStats":
-                    btnNew.stateChanged.connect(partial(self.set_value_checked_doStats,btnNew))
-                elif str(params[i]) == "doCoefficients":
-                    btnNew.stateChanged.connect(partial(self.set_value_checked_doCoefficients,btnNew))
-            elif isinstance(var[f"{params[i]}"],(int,float)):
-                btnNew,slider,number = self._createIntInput(var[f"{params[i]}"])
-                slider.valueChanged.connect(self.update_int)
-                if str(params[i]) == "SegmAcq":
-                    slider.setTickInterval(1)
-                    slider.setRange(-1,self.parameters._size[0])
-                    slider.setValue(self.parameters.SegmAcq)
-                    self.sliderSegmAcq = slider   
-                elif str(params[i]) == "combinationCanny": 
-                    slider.setRange(1,3)
-                    slider.setTickInterval(1)
-                    slider.setValue(self.parameters.combinationCanny)
-                    self.sliderComb = slider
-                elif str(params[i]) == "sigmaCanny": 
-                    slider.setRange(1,10000)
-                    try:
-                        slider.setValue(int(1000*self.parameters.sigmaCanny))
-                    except:
-                        slider.setValue(0)
-                    slider.setTickInterval(1000)
-                    self.sliderSigma = slider
-                elif str(params[i]) == "alphaICM": 
-                    slider.setRange(0,10000)
-                    try:
-                        slider.setValue(int(1000*self.parameters.alphaICM))
-                    except:
-                        slider.setValue(0)
-                    slider.setTickInterval(1000)
-                    self.sliderAlpha = slider
-                elif str(params[i]) == "max_iter_ICM": 
-                    slider.setRange(1,10000)
-                    slider.setTickInterval(1000)
-                    slider.setValue(self.parameters.max_iter_ICM)
-                    self.sliderMaxIter = slider
-                elif str(params[i]) == "max_iter_kmean_ICM": 
-                    slider.setRange(1,10000)
-                    slider.setTickInterval(1000)
-                    slider.setValue(self.parameters.max_iter_kmean_ICM)
-                    self.sliderMaxIterKmean = slider
-            elif str(params[i]) == "methodCanny":
-                btnNew = self._createMethodCannyType()
-            elif str(params[i]) == "SegmType":
-                btnNew = self._createSegmType()
-            if i < len(params)/2:
-                k = 0
-                j = 0
-            else:
-                k = 3
-                j = len(params)/2
-            self.generalLayout.addWidget(paramNew,i+len(params_)+1-j,0+k)
-            self.generalLayout.addWidget(labelNew,i+len(params_)+1-j,1+k)
-            try:
-                self.generalLayout.addWidget(btnNew,i+len(params_)+1-j,2+k)
-            except:
-                pass
+        
+        self._createSegmType()
+        self._createSeedSliders()
+        self._createSubImageSliders()
+        self._createAcqValue()
+
+        if self.parameters.SegmType in ["Canny Filled","Canny Contour"]:
+            self._createMethodCannyType()
+            self._createSigmaCanny()
+            self._createCombCanny()
+        elif self.parameters.SegmType == "ICM":
+            self._createAlphaICM()
+            self._createMaxiIterICM()
+            self._createMaxiIterKMeanICM()
+        elif self.parameters.SegmType in ["Filling (very slow)","Filling f (very slow)"]:
+            self._createVerboseGraphFill()
+            self._createStepsFilling()
+            self._createMaxIterFilling()
+        self._createSaveBox()
+        self._createStatsBox()
+        self._createCurvesBox()
+        self._createCoefficientsBox()
+
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
         lineedit.setText(str(slider.value()))
         return slider.value()
@@ -316,12 +398,15 @@ class ParamWindow(QMainWindow):
         self.parameters.methodCanny = self.MethCombo.currentText()
     def SegmCombo_Changed(self):
         self.parameters.SegmType = self.SegmCombo.currentText()
+        self.refresh_app()
     def set_value_checked_doCoefficients(self,box:QCheckBox):
         self.parameters.doCoefficients = box.isChecked()
     def set_value_checked_doStats(self,box:QCheckBox):
         self.parameters.doStats = box.isChecked()
     def set_value_checked_SaveSegm(self,box:QCheckBox):
         self.parameters.SaveSegm = box.isChecked()
+    def set_value_checked_VerboseGraphFill(self,box:QCheckBox):
+        self.parameters.verbose_graph_fill = box.isChecked()
     def set_value_checked_doCurves(self,box:QCheckBox):
         self.parameters.doCurves = box.isChecked()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
@@ -373,4 +458,15 @@ class ParamWindow(QMainWindow):
             self.parameters.combinationCanny = self.sliderComb.value()
             self.parameters.max_iter_ICM = self.sliderMaxIter.value()
             self.parameters.max_iter_kmean_ICM = self.sliderMaxIterKmean.value()
+            self.parameters.max_iter_fill = self.sliderMaxIterFilling.value()
+            self.parameters.steps_filling = self.sliderStepsFilling.value()
         except: pass
+
+    def refresh_app(self):
+        if self.generalLayout is not None:
+            while self.generalLayout.count():
+                item = self.generalLayout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+        self.initialize_param_window()
