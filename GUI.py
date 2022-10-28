@@ -1,9 +1,6 @@
-from array import array
-from signal import signal
-from threading import local
-from turtle import color
 import numpy as np
 import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import matplotlib.pyplot as plt
 from sympy import Q
 from MyFunctions.DicomImage import DicomImage #Custom Class
@@ -23,7 +20,6 @@ import matplotlib.pyplot as plt
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
-from PyQt5.QtCore import QEventLoop
 from functools import partial
 ###
 import matplotlib

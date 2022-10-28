@@ -108,7 +108,7 @@ class ExportWindow(QMainWindow):
         slider = QSlider(Qt.Horizontal)
         number = QLineEdit()
         number.setText(str(-1))
-        slider.setRange(-1,self.Image.voi_counter)
+        slider.setRange(-1,self.Image.voi_counter-1)
         slider.setTickPosition(QSlider.TicksBothSides)
         slider.setSingleStep(1)
         slider.setValue(-1)
@@ -142,7 +142,7 @@ class ExportWindow(QMainWindow):
         slider = QSlider(Qt.Horizontal)
         number = QLineEdit()
         number.setText(str(-1))
-        slider.setRange(-1,self.Image.voi_counter)
+        slider.setRange(-1,self.Image.voi_counter-1)
         slider.setTickPosition(QSlider.TicksBothSides)
         slider.setSingleStep(1)
         slider.setValue(-1)
@@ -174,6 +174,7 @@ class ExportWindow(QMainWindow):
         self._createDicomSave()
         self._createParamSave()
         self._createTACsSave()
+        self._createSegmFlatSave()
 
         self._createExportAll()
 
@@ -188,7 +189,7 @@ class ExportWindow(QMainWindow):
     def TACComboChanged(self):
         self.TACTypeSave = self.TACType.currentText()
     def SegFlatComboChanged(self):
-        self.SegmFlatSaveValues = self.SegFlatTypeSave.currentText()
+        self.SegFlatTypeSave = self.SegFlatType.currentText()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
         lineedit.setText(str(slider.value()))
     def set_value_line_edit(self,slider:QSlider,lineedit:QLineEdit):
