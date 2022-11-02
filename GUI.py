@@ -1,3 +1,4 @@
+from re import sub
 from inflection import parameterize
 import numpy as np
 import os
@@ -71,6 +72,8 @@ class Window(QMainWindow):
         source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
         source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
         source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
+        source.setText("/Users/philippelaporte/Desktop/Test/Test_Errors_DicomImage.pkl")
+        
         btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
         btn_browse.clicked.connect(partial(self.browse_button_file,source))
@@ -104,12 +107,12 @@ class Window(QMainWindow):
         btn_export.clicked.connect(self.open_export)
         layout1.addWidget(path)
         layout1.addWidget(path_name)
-        layout2.addWidget(btn_browse)
-        layout2.addWidget(btn_save)
+        #layout2.addWidget(btn_browse)
+        #layout2.addWidget(btn_save)
         layout2.addWidget(btn_export)
 
-        self.generalLayout.addWidget(msg_save,line,0)  
-        self.generalLayout.addWidget(subWidget1,line,1)  
+        #self.generalLayout.addWidget(msg_save,line,0)  
+        #self.generalLayout.addWidget(subWidget1,line,1)  
         self.generalLayout.addWidget(subWidget2,line,2)  
     def _createImageDisplay(self,line=4):
         self.showFocus = False
@@ -141,6 +144,9 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(self.sagittal,line,3)
         self.generalLayout.addWidget(self.coronal,line,2)
     def _createImageDisplayType(self,line=2):
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
         self.ImageViewCombo = QComboBox()
         self.view = "Slice"
         self.view_range = "All"
@@ -153,7 +159,17 @@ class Window(QMainWindow):
         self.ImageViewCombo.addItem("Segm. Sub. Slice")
         self.ImageViewCombo.addItem("Segm. Sub. Flat")
         self.ImageViewCombo.activated[str].connect(self.combo_box_changed)
-        self.generalLayout.addWidget(self.ImageViewCombo,line,3)
+
+        self.ResultViewCombo = QComboBox()
+        self.resultView = "TAC"
+        self.ResultViewCombo.addItem("TAC")
+        self.ResultViewCombo.addItem("Dice")
+        self.ResultViewCombo.addItem("Jaccard")
+        self.ResultViewCombo.activated[str].connect(self.combo_box_result_changed)
+
+        layout.addWidget(self.ImageViewCombo)
+        layout.addWidget(self.ResultViewCombo)
+        self.generalLayout.addWidget(subWidget,line,3)
     def _createImageDisplayBars(self,line=5):
         try:
             self.generalLayout.removeWidget(self.slider_widget)
@@ -345,6 +361,9 @@ class Window(QMainWindow):
         else:
             self.view_range = "Sub"
         self.update_all()
+    def combo_box_result_changed(self):
+        self.resultView = self.ResultViewCombo.currentText()
+        self.update_all()
     def open_parameters(self):
         try:
             window = ParamWindow(self.parameters,self)
@@ -405,19 +424,44 @@ class Window(QMainWindow):
                 k = np.array([self.parameters.ErrorSegm])
             else:
                 k=-1
-            MyFunctions.Batch_Errors.Batch_Errors(error_type=self.parameters.ErrorType)
+            MyFunctions.Batch_Errors.Batch_Errors(Image=self.Image,error_type=self.parameters.ErrorType,k=k,
+                                                    order=self.parameters.orderShift,d=self.parameters.distanceShift,
+                                                    verbose=self.parameters.verbose)
             self.displayStatus(f"{self.parameters.SegmType} errors",initial)
             self.update_segm()
         except:
             self._createErrorMessage("Unable to run the error bars production")
     def update_all(self):
-        self.update_TAC()
+        self.update_Result()
         self.update_1D()
         self.update_view()
         self.update_segm()
     def update_segm(self):
         self.sliderSegm.setMaximum(self.Image.voi_counter-1)
         self.sliderSegmStats.setMaximum(self.Image.voi_statistics_counter-1)
+    def update_Result(self):
+        if self.resultView == "TAC":
+            self.update_TAC()
+        elif self.resultView == "Dice":
+            self.update_Dice()
+        elif self.resultView == "Jaccard":
+            self.update_Jaccard()
+    def update_Dice(self):
+        try:
+            self.TACImage.axes.cla()
+            im = self.TACImage.axes.pcolormesh(self.Image.dice_all)
+            self.base_coeff_axes(im)
+            self.TACImage.draw() 
+        except:
+            pass
+    def update_Jaccard(self):
+        try:
+            self.TACImage.axes.cla()
+            im = self.TACImage.axes.pcolormesh(self.Image.jaccard_all)
+            self.base_coeff_axes(im)
+            self.TACImage.draw() 
+        except:
+            pass
     def update_TAC(self):
         try:
             self.TACImage.axes.cla()
@@ -425,14 +469,22 @@ class Window(QMainWindow):
             subI = self.parameters.subImage[0,:]
             if self.view_range == "All":
                 x_axis = self.Image.time
-                if self.sliderSegm.value() >= 0:
-                    y_axis = self.Image.voi_statistics[self.sliderSegm.value()]
+                if self.sliderSegm.value() >= 0 or self.sliderSegmStats.value() >= 0:
+                    if self.sliderSegm.value() >= 0:
+                        y_axis = self.Image.voi_statistics[self.sliderSegm.value()]
+                    if self.sliderSegmStats.value() >= 0:
+                        y_axis2 = self.Image.voi_statistics_avg[self.sliderSegmStats.value()]
+                        error = self.Image.voi_statistics_std[self.sliderSegmStats.value()]
                 else:
                     y_axis = self.Image.Image[:,values[1],values[2],values[3]]
             else:
                 x_axis = self.Image.time[subI[0]:subI[1]]
-                if self.sliderSegm.value() >= 0:
-                    y_axis = self.Image.voi_statistics[self.sliderSegm.value()][subI[0]:subI[1]]
+                if self.sliderSegm.value() >= 0 or self.sliderSegmStats.value() >= 0:
+                    if self.sliderSegm.value() >= 0:
+                        y_axis = self.Image.voi_statistics[self.sliderSegm.value()][subI[0]:subI[1]]
+                    if self.sliderSegmStats.value() >= 0:
+                        y_axis2 = self.Image.voi_statistics_avg[self.sliderSegmStats.value()][subI[0]:subI[1]]
+                        error = self.Image.voi_statistics_std[self.sliderSegmStats.value()][subI[0]:subI[1]]
                 else:
                     y_axis = self.Image.Image[:,values[1],values[2],values[3]][subI[0]:subI[1]]
             if self.showFocus:
@@ -443,7 +495,12 @@ class Window(QMainWindow):
                     self.TACImage.axes.axvline(self.Image.time[self.parameters.subImage[0,1]],color='y')
                 except:
                     self.TACImage.axes.axvline(self.Image.time[-1],color='y')
-            self.TACImage.axes.plot(x_axis,y_axis,color='b')
+            try:
+                self.TACImage.axes.plot(x_axis,y_axis,color='b',label="TAC")
+            except: pass
+            try:
+                self.TACImage.axes.errorbar(x_axis,y_axis2,error,color='r',label="Error TAC")
+            except: pass
             self.base_TAC_axes()
             self.TACImage.draw()                
         except:
@@ -496,8 +553,21 @@ class Window(QMainWindow):
             self.sliderSagittal.setMinimum(subI[3,0]);self.sliderSagittal.setMaximum(subI[3,1])
             self.sliderCoronal.setMinimum(subI[2,0]);self.sliderCoronal.setMaximum(subI[2,1])
     def base_TAC_axes(self):
+        try:
+            self.cb.remove()
+        except: pass
         self.TACImage.axes.set_title("TAC");self.TACImage.axes.grid()
         self.TACImage.axes.set_xlabel("Time");self.TACImage.axes.set_ylabel("Signal")
+        try:
+            if self.sliderSegm.value() >= 0 and self.sliderSegmStats.value() >= 0:
+                self.TACImage.axes.legend()
+        except: pass
+    def base_coeff_axes(self,mappable):
+        try:
+            self.cb.remove()
+        except: pass
+        self.TACImage.axes.set_title(self.resultView)
+        self.cb = self.TACImage.fig.colorbar(mappable)
     def base_1D_axes(self):
         self.AxialImage1D.axes.set_title("Axial Slice");self.AxialImage1D.axes.grid()
         self.AxialImage1D.axes.set_xlabel("Voxel");self.AxialImage1D.axes.set_ylabel("Signal")
@@ -708,7 +778,7 @@ class Window(QMainWindow):
         self.BUTTON_SIZE = 40
         self.DISPLAY_HEIGHT = 35
         super().__init__(parent=None)
-        self.setMinimumSize(900, 800)
+        self.setMinimumSize(1200, 800)
         self.setWindowTitle("My GUI")
         self.generalLayout = QGridLayout()
         centralWidget = QWidget(self)
@@ -720,7 +790,7 @@ class Window(QMainWindow):
         self._createInfoParam()
         self._createImageDisplay()
         self._createImageDisplayType()
-        self._createImageDisplayBars()
+        #self._createImageDisplayBars()
         self._createTACImage()
         self._create1DImage()
         self._createStatusBar()
@@ -767,6 +837,7 @@ class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None, width:float=5, height:float=4, dpi:int=75):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
+        self.fig = fig
         super(MplCanvas, self).__init__(fig)
 
 

@@ -50,8 +50,12 @@ class ExportWindow(QMainWindow):
         self.ExportParam = False
         self.ExportTAC = False
         self.ExportSegFlat = False
+        self.ExportDice = False
+        self.ExportJaccard = False
         self.TACTypeSave = "TAC Images"
         self.SegFlatTypeSave = "All"
+        self.ExportErrorTAC = False
+        self.ErrorTACTypeSave = "Error TAC Images"
 
     def initialize_export_window(self):
         self.current_line = 1
@@ -160,6 +164,52 @@ class ExportWindow(QMainWindow):
         self.generalLayout.addWidget(self.SegFlatType,self.current_line,3)
         self.current_line +=1
 
+    def _createDiceSave(self):
+        self.DiceCoeffButton = QCheckBox()
+        self.DiceCoeffButton.stateChanged.connect(self.setValueExportDice)
+        self.generalLayout.addWidget(QLabel("Dice Coeff."),self.current_line,0)
+        self.generalLayout.addWidget(self.DiceCoeffButton,self.current_line,1)
+        self.current_line +=1
+    def _createJaccardSave(self):
+        self.JaccardCoeffButton = QCheckBox()
+        self.JaccardCoeffButton.stateChanged.connect(self.setValueExportJaccard)
+        self.generalLayout.addWidget(QLabel("Jaccard Coeff."),self.current_line,0)
+        self.generalLayout.addWidget(self.JaccardCoeffButton,self.current_line,1)
+        self.current_line +=1
+
+    def _createErrorTACsSave(self):
+        self.ErrorTACButton = QCheckBox()
+        self.ErrorTACButton.stateChanged.connect(self.setValueErrorTAC)
+        self.ErrorTACType = QComboBox()
+        self.ErrorTACType.addItem("Error TAC Images")
+        self.ErrorTACType.addItem("Raw Values")
+        self.ErrorTACType.addItem("All")
+        self.ErrorTACButton.setToolTip("Export the specific Error TAC curve, either via a txt file or the image itself.\n-1 for all of them.")
+
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+        slider = QSlider(Qt.Horizontal)
+        number = QLineEdit()
+        number.setText(str(-1))
+        slider.setRange(-1,self.Image.voi_statistics_counter-1)
+        slider.setTickPosition(QSlider.TicksBothSides)
+        slider.setSingleStep(1)
+        slider.setValue(-1)
+        number.setFixedWidth(30)
+        slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
+        number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
+        layout.addWidget(slider)
+        layout.addWidget(number)
+        self.ErrorTACsSaveValues = slider
+        self.ErrorTACType.activated[str].connect(self.ErrorTACComboChanged)
+
+        self.generalLayout.addWidget(QLabel("Error TACs"),self.current_line,0)
+        self.generalLayout.addWidget(self.ErrorTACButton,self.current_line,1)
+        self.generalLayout.addWidget(subWidget,self.current_line,2)
+        self.generalLayout.addWidget(self.ErrorTACType,self.current_line,3)
+        self.current_line +=1
+
     def _createExportAll(self):
         self.saveButton = QPushButton("Export")
 
@@ -175,6 +225,9 @@ class ExportWindow(QMainWindow):
         self._createParamSave()
         self._createTACsSave()
         self._createSegmFlatSave()
+        self._createDiceSave()
+        self._createJaccardSave()
+        self._createErrorTACsSave()
 
         self._createExportAll()
 
@@ -186,8 +239,16 @@ class ExportWindow(QMainWindow):
         self.ExportTAC = self.TACButton.isChecked()
     def setValueSegmFlat(self):
         self.ExportSegFlat = self.TACButton.isChecked()
+    def setValueExportDice(self):
+        self.ExportDice = self.DiceCoeffButton.isChecked()
+    def setValueExportJaccard(self):
+        self.ExportJaccard = self.JaccardCoeffButton.isChecked()
+    def setValueErrorTAC(self):
+        self.ExportErrorTAC = self.ErrorTACButton.isChecked()
     def TACComboChanged(self):
         self.TACTypeSave = self.TACType.currentText()
+    def ErrorTACComboChanged(self):
+        self.ErrorTACTypeSave = self.ErrorTACType.currentText()
     def SegFlatComboChanged(self):
         self.SegFlatTypeSave = self.SegFlatType.currentText()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
@@ -220,6 +281,26 @@ class ExportWindow(QMainWindow):
     def exportParamProcess(self):
         if self.pathName.text() != "" and self.headerName.text() != "":
             PF.pickle_save(self.parameters,self.pathName.text()+self.headerName.text()+"_Parameters.pkl")
+        else:
+            self._createErrorMessage("Unable to Save")
+    def exportDiceProcess(self):
+        if self.pathName.text() != "" and self.headerName.text() != "":
+            fig = plt.figure()
+            plt.xlabel("Segm."); plt.ylabel("Segm.");plt.title("Dice Coefficients");plt.grid()
+            plt.pcolormesh(self.Image.dice_all)
+            plt.colorbar()
+            fig.savefig(self.pathName.text()+self.headerName.text()+f"_Dice.png")
+            del fig
+        else:
+            self._createErrorMessage("Unable to Save")
+    def exportJaccardProcess(self):
+        if self.pathName.text() != "" and self.headerName.text() != "":
+            fig = plt.figure()
+            plt.xlabel("Segm."); plt.ylabel("Segm.");plt.title("Jaccard Coefficients");plt.grid()
+            plt.pcolormesh(self.Image.jaccard_all)
+            plt.colorbar()
+            fig.savefig(self.pathName.text()+self.headerName.text()+f"_Jaccard.png")
+            del fig
         else:
             self._createErrorMessage("Unable to Save")
     def exportTACProcess(self):
@@ -274,6 +355,29 @@ class ExportWindow(QMainWindow):
                     del fig
         else:
             self._createErrorMessage("Unable to Save")
+    def exportErrorTACProcess(self):
+        if self.pathName.text() != "" and self.headerName.text() != "":
+            k = self.ErrorTACsSaveValues.value()
+            if k == -1:
+                z = np.arange(self.Image.voi_statistics_counter)
+            else:
+                z = np.array([k])
+            if self.ErrorTACTypeSave in ["All","Error TAC Images"]:
+                for i in range(z.shape[0]):
+                    fig = plt.figure()
+                    plt.xlabel("Time (min)"); plt.ylabel("Signal");plt.title("Error TAC");plt.grid()
+                    plt.errorbar(self.Image.time,self.Image.voi_statistics_avg[z[i]],self.Image.voi_statistics_std[z[i]])
+                    fig.savefig(self.pathName.text()+self.headerName.text()+f"_Acq_{z[i]}_Error_TAC.png")
+                    del fig
+            if self.ErrorTACTypeSave in ["All","Raw Values"]:
+                arrayTAC = np.zeros((self.Image.time.shape[0],2*z.shape[0]+1))
+                arrayTAC[:,0] = self.Image.time
+                for i in range(z.shape[0]):
+                    arrayTAC[:,2*i+1] = self.Image.voi_statistics_avg[z[i]]
+                    arrayTAC[:,2*i+2] = self.Image.voi_statistics_std[z[i]]
+                np.savetxt(self.pathName.text()+self.headerName.text()+f"_Acq_{k}_Error_TAC.csv",arrayTAC,delimiter=';')
+        else:
+            self._createErrorMessage("Unable to Save")
     def exportInfo(self):
         try:
             if self.ExportDicom:
@@ -284,6 +388,12 @@ class ExportWindow(QMainWindow):
                 self.exportTACProcess()
             if self.ExportSegFlat:
                 self.exportSegFlatProcess()
+            if self.ExportDice:
+                self.exportDiceProcess()
+            if self.ExportJaccard:
+                self.exportJaccardProcess()
+            if self.ExportErrorTAC:
+                self.exportErrorTACProcess()
             self._createErrorMessage("Export Successful")
         except:
             self._createErrorMessage("Unable to Export")

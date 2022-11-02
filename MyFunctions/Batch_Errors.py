@@ -11,7 +11,8 @@ from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 
 def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
-                path_in='',name_in='',path_out = '',name_out='',save:bool = False):
+                path_in='',name_in='',path_out = '',name_out='',saveResult:bool = False,
+                verbose:bool=False,order=1,d=1,weight=1):
     """
     TBA
     """
@@ -30,20 +31,16 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
             path_out = path_in
         Image = PF.pickle_open(path_in+name_in+'.pkl')
     if k == -1:
-        k = np.arange(Image.nb_acq)
+        k = np.arange(Image.voi_counter)
     else:
         k = np.array(k)
 
-    
     if error_type == "Linear Shift":
-        pass
+        Linear_Shift_Errors_Batch(Image,k=k,order=order,d=d,weight=weight,verbose=verbose)
 
-    if save:
+    if saveResult:
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
     print(f"All the errors were computed in {(time.time() - initial):.2f} s.")
 
-def Linear_Shift_Errors_Batch(Image:DicomImage,k):
-    initial = time.time()
-    for i in range(k.shape[0]):
-        Image
-        print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
+def Linear_Shift_Errors_Batch(Image:DicomImage,k:np.ndarray,order=1,d=1,weight=1,verbose:bool=True):
+    Image.linear_shifts_errors(keys=k,order=order,d=d,weight=weight,verbose=verbose)

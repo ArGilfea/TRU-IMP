@@ -23,6 +23,7 @@ class GUIParameters(object):
         self.doMoments = True
         self.doCoefficients = True
         self.verbose = True
+        self.verbosePrecise = True
         self.SegmType = "None"
         self.ErrorType = "None"
         self.alphaICM = 1

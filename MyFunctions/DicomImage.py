@@ -329,7 +329,7 @@ class DicomImage(object):
         else: keys=np.array(keys)
         for i in range(keys.shape[0]):
             self.linear_shifts_error(keys[i],order=order,d=d,weight=weight,verbose=verbose_precise)
-            if verbose: print(f"Segmentations done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+            if verbose: print(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
 ############################################################
 #                                                          #
 # This section deals with the adding and removal of VOIs   #

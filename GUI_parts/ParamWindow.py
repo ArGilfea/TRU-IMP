@@ -33,7 +33,7 @@ class ParamWindow(QMainWindow):
     """
     def __init__(self,parameters:GUIParameters,parent=None):
         super().__init__(parent)
-        self.setMinimumSize(300, 800)
+        self.setMinimumSize(300, 750)
         self.parameters = parameters
         self.setWindowTitle("Parameters")
         self.generalLayout = QGridLayout()
@@ -404,6 +404,31 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
 
+    def _createOrderShiftError(self):
+        btnNew,slider = self._createIntInput(self.parameters.orderShift)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(1)
+        slider.setRange(1,3)
+        slider.setValue(self.parameters.orderShift)
+        self.sliderErrorOrderShift = slider   
+
+        self.generalLayout.addWidget(QLabel("Order"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.orderShift}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createDShiftError(self):
+        btnNew,slider = self._createIntInput(self.parameters.distanceShift)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(1)
+        slider.setRange(1,10)
+        slider.setValue(self.parameters.distanceShift)
+        self.sliderErrorDistanceShift = slider   
+
+        self.generalLayout.addWidget(QLabel("Distance"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.distanceShift}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+
     def _createSigmaCanny(self):
         btnNew,slider = self._createIntInput(self.parameters.sigmaCanny)
         slider.valueChanged.connect(self.update_int)
@@ -560,7 +585,6 @@ class ParamWindow(QMainWindow):
         
         self._createSegmType()
         self._createErrorType()
-        self._createSeedSliders()
         self._createSubImageSliders()
         self._createAcqValue()
 
@@ -575,6 +599,7 @@ class ParamWindow(QMainWindow):
         elif self.parameters.SegmType == "k Mean":
             self._createMaxiIterKMeanICM
         elif self.parameters.SegmType in ["Filling (very slow)","Filling f (very slow)"]:
+            self._createSeedSliders()
             self._createVerboseGraphFill()
             self._createStepsFilling()
             self._createMaxIterFilling()
@@ -586,6 +611,9 @@ class ParamWindow(QMainWindow):
             self._createAxesEllipsoidSliders()
         if self.parameters.ErrorType != "None":
             self._createErrorValue()
+        if self.parameters.ErrorType == "Linear Shift":
+            self._createOrderShiftError()
+            self._createDShiftError()
         self._createSaveBox()
         self._createStatsBox()
         self._createCurvesBox()
@@ -697,6 +725,12 @@ class ParamWindow(QMainWindow):
         except: pass
         try:
             self.parameters.ErrorSegm = self.sliderErrorAcq.value()
+        except: pass
+        try:
+            self.parameters.orderShift = self.sliderErrorOrderShift.value()
+        except: pass
+        try:
+            self.parameters.distanceShift = self.sliderErrorDistanceShift.value()
         except: pass
         try:
             self.parameters.threshold = self.sliderThresh.value()/100
