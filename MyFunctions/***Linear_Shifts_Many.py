@@ -7,8 +7,8 @@ from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 
 def Linear_Shifts_Many(linear_shifts,k=-1, 
-                            name_segmentation = '',path_in='',name_in='',path_out = '',name_out='',save=True,
-                            verbose = False):
+                            name_segmentation = '',path_in='',name_in='',path_out = '',name_out='',saveOutput=True,
+                            verbose = False, saveCurve = True):
     '''
     Keyword arguments:\n
     linear_shifts -- array consisting of the shifts of interest. Each line will be an independent linear shift which will be applied to each segmentations k.\n
@@ -19,7 +19,7 @@ def Linear_Shifts_Many(linear_shifts,k=-1,
     path_out -- path to save the result, as long as save is True (default '')\n    
     name_out -- name of the new DicomImage saved (if save is set to True).
             That name will be appended to name_in (default '')\n
-    save -- save the final result as a new instance of a DicomImage class (default True)\n
+    saveOutput -- save the final result as a new instance of a DicomImage class (default True)\n
     verbose -- prints running information of the program (default False)\n
     '''
     linear_shifts = np.array(linear_shifts)
@@ -37,5 +37,5 @@ def Linear_Shifts_Many(linear_shifts,k=-1,
             Image.linear_shift(shifts = linear_shifts[j,:],counter = k[i],name=name_segmentation)
             if verbose:
                 print(f"Part done: {(i*linear_shifts.shape[0]+j+1)/(k.shape[0]*linear_shifts.shape[0])*100:.1f} % in {(time.time()-initial):.1f} s")
-    if save:
+    if saveOutput:
         PF.pickle_save(Image,path_out+name_out+'.pkl')

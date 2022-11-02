@@ -33,7 +33,7 @@ class ParamWindow(QMainWindow):
     """
     def __init__(self,parameters:GUIParameters,parent=None):
         super().__init__(parent)
-        self.setMinimumSize(300, 750)
+        self.setMinimumSize(300, 800)
         self.parameters = parameters
         self.setWindowTitle("Parameters")
         self.generalLayout = QGridLayout()
@@ -100,6 +100,116 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(QLabel(f"{self.parameters.seed}"),self.current_line,1)
         self.generalLayout.addWidget(seedWidget,self.current_line,2)
         self.current_line += 1
+
+    def _createCenterEllipsoidSliders(self):
+        sizeText = 30
+        seedWidget = QWidget()
+        layout = QGridLayout()
+        seedWidget.setLayout(layout)
+        AxialValueHeaderCenter = QLabel("Ax:")
+        SagittalValueHeaderCenter = QLabel("Sag:")
+        CoronalValueHeaderCenter = QLabel("Cor:")
+        self.sliderCenterAxial = QSlider(Qt.Horizontal)
+        self.sliderCenterSagittal = QSlider(Qt.Horizontal)
+        self.sliderCenterCoronal = QSlider(Qt.Horizontal)
+        self.sliderAxialValueCenter = QLineEdit()
+        self.sliderSagittalValueCenter = QLineEdit()
+        self.sliderCoronalValueCenter = QLineEdit()
+        self.sliderCenterAxial.setMinimum(0);self.sliderCenterAxial.setMaximum(self.parameters._size[1]-1)
+        self.sliderCenterSagittal.setMinimum(0);self.sliderCenterSagittal.setMaximum(self.parameters._size[2]-1)
+        self.sliderCenterCoronal.setMinimum(0);self.sliderCenterCoronal.setMaximum(self.parameters._size[3]-1)
+        self.sliderCenterAxial.setValue(self.parameters.centerEllipsoid[0])
+        self.sliderCenterSagittal.setValue(self.parameters.centerEllipsoid[2])
+        self.sliderCenterCoronal.setValue(self.parameters.centerEllipsoid[1])
+        self.sliderCenterAxial.setTickPosition(QSlider.TicksBothSides);self.sliderCenterAxial.setSingleStep(1)
+        self.sliderCenterSagittal.setTickPosition(QSlider.TicksBothSides);self.sliderCenterSagittal.setSingleStep(1)
+        self.sliderCenterCoronal.setTickPosition(QSlider.TicksBothSides);self.sliderCenterCoronal.setSingleStep(1)
+        self.sliderAxialValueCenter.setFixedWidth(sizeText)
+        self.sliderSagittalValueCenter.setFixedWidth(sizeText)
+        self.sliderCoronalValueCenter.setFixedWidth(sizeText)
+
+        self.sliderAxialValueCenter.setText(f"{self.parameters.centerEllipsoid[0]}")
+        self.sliderSagittalValueCenter.setText(f"{self.parameters.centerEllipsoid[2]}")
+        self.sliderCoronalValueCenter.setText(f"{self.parameters.centerEllipsoid[1]}")
+        
+        self.sliderAxialValueCenter.editingFinished.connect(partial(self.set_value_line_edit,self.sliderCenterAxial,self.sliderAxialValueCenter))
+        self.sliderSagittalValueCenter.editingFinished.connect(partial(self.set_value_line_edit,self.sliderCenterSagittal,self.sliderSagittalValueCenter))
+        self.sliderCoronalValueCenter.editingFinished.connect(partial(self.set_value_line_edit,self.sliderCenterCoronal,self.sliderCoronalValueCenter))
+        
+        self.sliderCenterAxial.valueChanged.connect(partial(self.set_value_slider,self.sliderCenterAxial,self.sliderAxialValueCenter))
+        self.sliderCenterSagittal.valueChanged.connect(partial(self.set_value_slider,self.sliderCenterSagittal,self.sliderSagittalValueCenter))
+        self.sliderCenterCoronal.valueChanged.connect(partial(self.set_value_slider,self.sliderCenterCoronal,self.sliderCoronalValueCenter))
+
+        layout.addWidget(AxialValueHeaderCenter,1,0)
+        layout.addWidget(SagittalValueHeaderCenter,3,0)
+        layout.addWidget(CoronalValueHeaderCenter,2,0)
+        layout.addWidget(self.sliderCenterAxial,1,1)
+        layout.addWidget(self.sliderCenterSagittal,3,1)
+        layout.addWidget(self.sliderCenterCoronal,2,1)
+        layout.addWidget(self.sliderAxialValueCenter,1,2)
+        layout.addWidget(self.sliderCoronalValueCenter,2,2)
+        layout.addWidget(self.sliderSagittalValueCenter,3,2)
+        
+        self.generalLayout.addWidget(QLabel("Center Ellips."),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.centerEllipsoid}"),self.current_line,1)
+        self.generalLayout.addWidget(seedWidget,self.current_line,2)
+        self.current_line += 1
+
+    def _createAxesEllipsoidSliders(self):
+        sizeText = 30
+        seedWidget = QWidget()
+        layout = QGridLayout()
+        seedWidget.setLayout(layout)
+        AxialValueHeaderAxes = QLabel("Ax:")
+        SagittalValueHeaderAxes = QLabel("Sag:")
+        CoronalValueHeaderAxes = QLabel("Cor:")
+        self.sliderAxesAxial = QSlider(Qt.Horizontal)
+        self.sliderAxesSagittal = QSlider(Qt.Horizontal)
+        self.sliderAxesCoronal = QSlider(Qt.Horizontal)
+        self.sliderAxialValueAxes = QLineEdit()
+        self.sliderSagittalValueAxes = QLineEdit()
+        self.sliderCoronalValueAxes = QLineEdit()
+        self.sliderAxesAxial.setMinimum(0);self.sliderAxesAxial.setMaximum(self.parameters._size[1]-1)
+        self.sliderAxesSagittal.setMinimum(0);self.sliderAxesSagittal.setMaximum(self.parameters._size[2]-1)
+        self.sliderAxesCoronal.setMinimum(0);self.sliderAxesCoronal.setMaximum(self.parameters._size[3]-1)
+        self.sliderAxesAxial.setValue(self.parameters.axesEllipsoid[0])
+        self.sliderAxesSagittal.setValue(self.parameters.axesEllipsoid[2])
+        self.sliderAxesCoronal.setValue(self.parameters.axesEllipsoid[1])
+        self.sliderAxesAxial.setTickPosition(QSlider.TicksBothSides);self.sliderAxesAxial.setSingleStep(1)
+        self.sliderAxesSagittal.setTickPosition(QSlider.TicksBothSides);self.sliderAxesSagittal.setSingleStep(1)
+        self.sliderAxesCoronal.setTickPosition(QSlider.TicksBothSides);self.sliderAxesCoronal.setSingleStep(1)
+        self.sliderAxialValueAxes.setFixedWidth(sizeText)
+        self.sliderSagittalValueAxes.setFixedWidth(sizeText)
+        self.sliderCoronalValueAxes.setFixedWidth(sizeText)
+
+        self.sliderAxialValueAxes.setText(f"{self.parameters.axesEllipsoid[0]}")
+        self.sliderSagittalValueAxes.setText(f"{self.parameters.axesEllipsoid[2]}")
+        self.sliderCoronalValueAxes.setText(f"{self.parameters.axesEllipsoid[1]}")
+        
+        self.sliderAxialValueAxes.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAxesAxial,self.sliderAxialValueAxes))
+        self.sliderSagittalValueAxes.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAxesSagittal,self.sliderSagittalValueAxes))
+        self.sliderCoronalValueAxes.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAxesCoronal,self.sliderCoronalValueAxes))
+        
+        self.sliderAxesAxial.valueChanged.connect(partial(self.set_value_slider,self.sliderAxesAxial,self.sliderAxialValueAxes))
+        self.sliderAxesSagittal.valueChanged.connect(partial(self.set_value_slider,self.sliderAxesSagittal,self.sliderSagittalValueAxes))
+        self.sliderAxesCoronal.valueChanged.connect(partial(self.set_value_slider,self.sliderAxesCoronal,self.sliderCoronalValueAxes))
+
+        layout.addWidget(AxialValueHeaderAxes,1,0)
+        layout.addWidget(SagittalValueHeaderAxes,3,0)
+        layout.addWidget(CoronalValueHeaderAxes,2,0)
+        layout.addWidget(self.sliderAxesAxial,1,1)
+        layout.addWidget(self.sliderAxesSagittal,3,1)
+        layout.addWidget(self.sliderAxesCoronal,2,1)
+        layout.addWidget(self.sliderAxialValueAxes,1,2)
+        layout.addWidget(self.sliderCoronalValueAxes,2,2)
+        layout.addWidget(self.sliderSagittalValueAxes,3,2)
+        
+        self.generalLayout.addWidget(QLabel("Axes Ellips."),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.axesEllipsoid}"),self.current_line,1)
+        self.generalLayout.addWidget(seedWidget,self.current_line,2)
+        self.current_line += 1
+
+
     def _createSubImageSliders(self):
         sizeText = 30
         subImageWidget = QWidget()
@@ -163,10 +273,10 @@ class ParamWindow(QMainWindow):
         layout.addWidget(AxialValueHeaderSubIm,1,0)
         layout.addWidget(SagittalValueHeaderSubI,3,0)
         layout.addWidget(CoronalValueHeaderSubIm,2,0)
-        layout.addWidget(self.sliderAcqSubIm,0,1)
-        layout.addWidget(self.sliderAxialSubIm,1,1)
-        layout.addWidget(self.sliderSagittalSubIm,3,1)
-        layout.addWidget(self.sliderCoronalSubIm,2,1)
+        #layout.addWidget(self.sliderAcqSubIm,0,1)
+        #layout.addWidget(self.sliderAxialSubIm,1,1)
+        #layout.addWidget(self.sliderSagittalSubIm,3,1)
+        #layout.addWidget(self.sliderCoronalSubIm,2,1)
         layout.addWidget(self.sliderAcqValueSubImMin,0,2)
         layout.addWidget(self.sliderAcqValueSubImMax,0,3)
         layout.addWidget(self.sliderAxialValueSubImMin,1,2)
@@ -194,6 +304,7 @@ class ParamWindow(QMainWindow):
         self.current_line +=1
     def _createSegmType(self):
         self.SegmCombo = QComboBox()
+        self.SegmCombo.addItem("None")
         self.SegmCombo.addItem("ICM")
         self.SegmCombo.addItem("Canny Filled")
         self.SegmCombo.addItem("Canny Contour")
@@ -207,6 +318,50 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(QLabel("Segm. Method"),self.current_line,0)
         self.generalLayout.addWidget(QLabel(f"{self.parameters.SegmType}"),self.current_line,1)
         self.generalLayout.addWidget(self.SegmCombo,self.current_line,2)
+        self.current_line +=1
+    def _createErrorType(self):
+        self.ErrorCombo = QComboBox()
+        self.ErrorCombo.addItem("None")
+        self.ErrorCombo.addItem("Linear Shift")
+
+        self.ErrorCombo.setCurrentText(self.parameters.ErrorType)
+        self.ErrorCombo.activated[str].connect(self.ErrorMethodCombo_Changed)
+        self.generalLayout.addWidget(QLabel("Error Method"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.ErrorType}"),self.current_line,1)
+        self.generalLayout.addWidget(self.ErrorCombo,self.current_line,2)
+        self.current_line +=1
+    def _createFactorFFilling(self):
+        btnNew,slider = self._createIntInput(self.parameters.factor_fill_f)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(100)
+        slider.setRange(0,1000)
+        slider.setValue(100*self.parameters.factor_fill_f)
+
+        self.sliderFactorF = slider   
+        self.generalLayout.addWidget(QLabel("Factor Filling"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.factor_fill_f}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createFactorFillingRange(self):
+        sizeText = 30
+        RangeWidget = QWidget()
+        layout = QGridLayout()
+        RangeWidget.setLayout(layout)    
+
+        self.FactorFRangeValueMin = QLineEdit()
+        self.FactorFRangeValueMax = QLineEdit()
+        self.FactorFRangeValueMin.setFixedWidth(sizeText)
+        self.FactorFRangeValueMax.setFixedWidth(sizeText)
+        self.FactorFRangeValueMin.setText(f"{self.parameters.factor_Fill_range[0]}")
+        self.FactorFRangeValueMax.setText(f"{self.parameters.factor_Fill_range[1]}")
+        layout.addWidget(self.FactorFRangeValueMin,0,0)
+        layout.addWidget(self.FactorFRangeValueMax,0,1)
+        self.FactorFRangeValueMin.editingFinished.connect(self.update_int)
+        self.FactorFRangeValueMax.editingFinished.connect(self.update_int)
+
+        self.generalLayout.addWidget(QLabel("Factor Filling Range"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.factor_Fill_range}"),self.current_line,1)
+        self.generalLayout.addWidget(RangeWidget,self.current_line,2)
         self.current_line +=1
     def _createIntInput(self,initvalue:float):
         subWidget = QWidget()
@@ -228,12 +383,24 @@ class ParamWindow(QMainWindow):
         btnNew,slider = self._createIntInput(self.parameters.SegmAcq)
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(1)
-        slider.setRange(-1,self.parameters._size[0])
+        slider.setRange(-1,self.parameters._size[0]-1)
         slider.setValue(self.parameters.SegmAcq)
         self.sliderSegmAcq = slider   
 
         self.generalLayout.addWidget(QLabel("Acq. Segm."),self.current_line,0)
         self.generalLayout.addWidget(QLabel(f"{self.parameters.SegmAcq}"),self.current_line,1)
+        self.generalLayout.addWidget(btnNew,self.current_line,2)
+        self.current_line +=1
+    def _createErrorValue(self):
+        btnNew,slider = self._createIntInput(self.parameters.ErrorSegm)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(1)
+        slider.setRange(-1,self.parameters._nbSeg-1)
+        slider.setValue(self.parameters.ErrorSegm)
+        self.sliderErrorAcq = slider   
+
+        self.generalLayout.addWidget(QLabel("Seg. Error"),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.ErrorSegm}"),self.current_line,1)
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
 
@@ -361,6 +528,28 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(QLabel(f"{self.parameters.doCoefficients}"),self.current_line,1)
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
+    def _createThresholdBox(self):
+        btnNew,slider = self._createIntInput(self.parameters.threshold)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderThresh = slider  
+        slider.setRange(0,100)
+        slider.setTickInterval(10)
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+        try:
+            slider.setValue(int(100*self.parameters.threshold))
+        except:
+            pass
+        btnThresh = self._createBoolBox()
+        btnThresh.setChecked(self.parameters.doThreshold)
+        btnThresh.stateChanged.connect(partial(self.set_value_checked_doThreshold,btnThresh))
+        layout.addWidget(btnThresh)
+        layout.addWidget(btnNew)
+        self.generalLayout.addWidget(QLabel("Thresh."),self.current_line,0)
+        self.generalLayout.addWidget(QLabel(f"{self.parameters.doThreshold}, {self.parameters.threshold}"),self.current_line,1)
+        self.generalLayout.addWidget(subWidget,self.current_line,2)
+        self.current_line +=1
     def _createParamList(self):
         text1 = QLabel("Parameter")
         text2 = QLabel("Values")
@@ -370,6 +559,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(text3,0,2)
         
         self._createSegmType()
+        self._createErrorType()
         self._createSeedSliders()
         self._createSubImageSliders()
         self._createAcqValue()
@@ -382,25 +572,38 @@ class ParamWindow(QMainWindow):
             self._createAlphaICM()
             self._createMaxiIterICM()
             self._createMaxiIterKMeanICM()
+        elif self.parameters.SegmType == "k Mean":
+            self._createMaxiIterKMeanICM
         elif self.parameters.SegmType in ["Filling (very slow)","Filling f (very slow)"]:
             self._createVerboseGraphFill()
             self._createStepsFilling()
             self._createMaxIterFilling()
+            self._createFactorFillingRange()
+            if self.parameters.SegmType == "Filling (very slow)":
+                self._createFactorFFilling()
+        elif self.parameters.SegmType == "Ellipsoid":
+            self._createCenterEllipsoidSliders()
+            self._createAxesEllipsoidSliders()
+        if self.parameters.ErrorType != "None":
+            self._createErrorValue()
         self._createSaveBox()
         self._createStatsBox()
         self._createCurvesBox()
         self._createCoefficientsBox()
+        self._createThresholdBox()
 
-    def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
-        lineedit.setText(str(slider.value()))
-        return slider.value()
     def MethCombo_Changed(self):
         self.parameters.methodCanny = self.MethCombo.currentText()
     def SegmCombo_Changed(self):
         self.parameters.SegmType = self.SegmCombo.currentText()
         self.refresh_app()
+    def ErrorMethodCombo_Changed(self):
+        self.parameters.ErrorType = self.ErrorCombo.currentText()
+        self.refresh_app()
     def set_value_checked_doCoefficients(self,box:QCheckBox):
         self.parameters.doCoefficients = box.isChecked()
+    def set_value_checked_doThreshold(self,box:QCheckBox):
+        self.parameters.doThreshold = box.isChecked()
     def set_value_checked_doStats(self,box:QCheckBox):
         self.parameters.doStats = box.isChecked()
     def set_value_checked_SaveSegm(self,box:QCheckBox):
@@ -413,6 +616,10 @@ class ParamWindow(QMainWindow):
         lineedit.setText(str(slider.value()))
         try:
             self.update_seed()
+        except: pass
+        try: self.update_center_ellipsoid()
+        except: pass
+        try: self.update_axes_ellipsoid()
         except: pass
         return slider.value()
     def set_value_line_edit(self,slider:QSlider,lineedit:QLineEdit):
@@ -427,7 +634,12 @@ class ParamWindow(QMainWindow):
             slider.setValue(int(lineedit.text()))
         except:
             slider.setValue(0)
-        self.update_seed()
+        try: self.update_seed()
+        except: pass
+        try: self.update_center_ellipsoid()
+        except: pass
+        try: self.update_axes_ellipsoid()
+        except: pass
     def set_value_line_edit_noSlider(self,lineedit:QLineEdit):
         """
         Changes the value of the 
@@ -437,10 +649,18 @@ class ParamWindow(QMainWindow):
         except:
             lineedit.setText("0")
         self.update_subImage()
+    def update_center_ellipsoid(self):
+        self.parameters.centerEllipsoid[0] = self.sliderAxialValueCenter.text()
+        self.parameters.centerEllipsoid[1] = self.sliderCoronalValueCenter.text()
+        self.parameters.centerEllipsoid[2] = self.sliderSagittalValueCenter.text()
+    def update_axes_ellipsoid(self):
+        self.parameters.axesEllipsoid[0] = self.sliderAxialValueAxes.text()
+        self.parameters.axesEllipsoid[1] = self.sliderCoronalValueAxes.text()
+        self.parameters.axesEllipsoid[2] = self.sliderSagittalValueAxes.text()
     def update_seed(self):
         self.parameters.seed[0] = self.sliderAxialValueSeed.text()
-        self.parameters.seed[1] = self.sliderSagittalValueSeed.text()
-        self.parameters.seed[2] = self.sliderCoronalValueSeed.text()
+        self.parameters.seed[1] = self.sliderCoronalValueSeed.text()
+        self.parameters.seed[2] = self.sliderSagittalValueSeed.text()
     def update_subImage(self):
         self.parameters.subImage[0,0] = self.sliderAcqValueSubImMin.text()
         self.parameters.subImage[0,1] = self.sliderAcqValueSubImMax.text()
@@ -453,15 +673,43 @@ class ParamWindow(QMainWindow):
     def update_int(self):
         try:
             self.parameters.SegmAcq = self.sliderSegmAcq.value()
+        except: pass
+        try:
             self.parameters.alphaICM = self.sliderAlpha.value()/1000
+        except: pass
+        try:
             self.parameters.sigmaCanny = self.sliderSigma.value()/1000
+        except: pass
+        try:
             self.parameters.combinationCanny = self.sliderComb.value()
+        except: pass
+        try:
             self.parameters.max_iter_ICM = self.sliderMaxIter.value()
+        except: pass
+        try:
             self.parameters.max_iter_kmean_ICM = self.sliderMaxIterKmean.value()
+        except: pass
+        try:
             self.parameters.max_iter_fill = self.sliderMaxIterFilling.value()
+        except: pass
+        try:
             self.parameters.steps_filling = self.sliderStepsFilling.value()
         except: pass
-
+        try:
+            self.parameters.ErrorSegm = self.sliderErrorAcq.value()
+        except: pass
+        try:
+            self.parameters.threshold = self.sliderThresh.value()/100
+        except: pass
+        try:
+            self.parameters.factor_fill_f = self.sliderFactorF.value()/100
+        except: pass
+        try:
+            self.parameters.factor_Fill_range[0] = float(self.FactorFRangeValueMin.text())
+        except: pass
+        try:
+            self.parameters.factor_Fill_range[1] = float(self.FactorFRangeValueMax.text())
+        except: pass
     def refresh_app(self):
         if self.generalLayout is not None:
             while self.generalLayout.count():

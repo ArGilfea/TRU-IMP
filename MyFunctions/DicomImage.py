@@ -52,7 +52,7 @@ class DicomImage(object):
         self.voi_center_of_mass = []
         self.voi_moment_of_inertia = []
         self.voi_statistics = []
-        self.voi_statistics_avg = []
+        self.voi_statistics_counter = 0
         self.voi_statistics_avg = []
         self.voi_statistics_std = []
         self.axial_flats = np.zeros((self.nb_acq,self.width,self.length))
@@ -306,6 +306,7 @@ class DicomImage(object):
             stats_curves[i,:] = self.VOI_statistics(VOI = VOI_shifted)
             if verbose:
                 print(f"% done for key {key}: {(i+1)/shift_axis.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+        self.voi_statistics_counter += 1
         self.voi_statistics_avg.append(np.mean(stats_curves,0))
         self.voi_statistics_std.append(np.std(stats_curves,0))
 
@@ -407,14 +408,15 @@ class DicomImage(object):
             self.voi_statistics(self.voi_statistics[key])
             self.voi_counter += 1
 
-    def add_VOI_ellipsoid(self,infos = np.array([[2,2,2],[1,1,1]]),name='',do_moments=False,do_stats=False,save=True): #Done in 1.0
+    def add_VOI_ellipsoid(self,center = np.array([2,2,2]),axes = np.array([1,1,1]),name='',do_moments=False,do_stats=False,save=True): #Done in 1.0
         """Creates a physical ellipsoid volume of interest (VOI)
         centered at a specific voxel specified by the first row in infos 
         and whose length of the three axes 
         are aligned with the array and specified by the second row in infos.
         
         Keyword arguments:\n
-        infos -- center of the ellipsoid and the length of the three axes (default [[2,2,2],[1,1,1]])\n
+        center -- center of the ellipsoid and (default [2,2,2])\n
+        axes -- the length of the three axes (default [1,1,1])\n
         name -- name of the VOI (default '')\n
         do_moments -- compute the moments of the VOI and store them (default False)\n
         do_stats -- compute the TACs relative to the VOI (default False)\n
@@ -425,7 +427,7 @@ class DicomImage(object):
         for i in range(self.nb_slice):
             for j in range(self.width):
                 for k in range(self.length):
-                    if( (i-infos[0,0])**2/infos[1,0]**2 + (j-infos[0,1])**2/infos[1,1]**2 + (k-infos[0,2])**2/infos[1,2]**2 <= 1):
+                    if( (i-center[0])**2/axes[0]**2 + (j-center[1])**2/axes[1]**2 + (k-center[2])**2/axes[2]**2 <= 1):
                         VOI[i,j,k] = 1
                         voxels += 1
         if save:

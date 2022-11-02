@@ -1,3 +1,4 @@
+from inflection import parameterize
 import numpy as np
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -12,6 +13,7 @@ from GUI_parts.ParamWindow import ParamWindow
 from GUI_parts.ExportWindow import ExportWindow
 import time
 import MyFunctions.Batch_Segmentations
+import MyFunctions.Batch_Errors
 ###
 import numpy as np
 import time
@@ -45,12 +47,15 @@ class Window(QMainWindow):
         self.btn.setToolTip("Displays the infos of the current loaded acquisition")
         btn_param = QPushButton("Parameters")
         btn_segm = QPushButton("Segment")
+        buttonErrors = QPushButton("ErrorBars")
         btn_param.setToolTip("Displays the parameters to resize the acquisition or to set up for the segmentations")
         btn_param.clicked.connect(self.open_parameters)
         btn_segm.clicked.connect(self.run_segm)
+        buttonErrors.clicked.connect(self.run_errors)
         layout.addWidget(btn_param)
         layout.addWidget(self.btn)  
         layout.addWidget(btn_segm)
+        layout.addWidget(buttonErrors)
         self.generalLayout.addWidget(subWidget,0,3)         
     def _createExitButton(self,line=7):
         self.exit = QPushButton("Exit")
@@ -167,12 +172,14 @@ class Window(QMainWindow):
         self.sliderSagittal = QSlider(Qt.Horizontal)
         self.sliderCoronal = QSlider(Qt.Horizontal)
         self.sliderSegm = QSlider(Qt.Horizontal)
+        self.sliderSegmStats = QSlider(Qt.Horizontal)
         try:
             self.sliderAcq.setMinimum(0);self.sliderAcq.setMaximum(self.Image.nb_acq-1)
             self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice-1)
             self.sliderSagittal.setMinimum(0);self.sliderSagittal.setMaximum(self.Image.width-1)
             self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length-1)
             self.sliderSegm.setMinimum(-1);self.sliderSegm.setMaximum(self.Image.voi_counter-1)
+            self.sliderSegmStats.setMinimum(-1);self.sliderSegmStats.setMaximum(self.Image.voi_statistics_counter-1)
         except:
             pass
         self.sliderAcq.setTickPosition(QSlider.TicksBothSides)
@@ -180,21 +187,24 @@ class Window(QMainWindow):
         self.sliderSagittal.setTickPosition(QSlider.TicksBothSides)
         self.sliderCoronal.setTickPosition(QSlider.TicksBothSides)
         self.sliderSegm.setTickPosition(QSlider.TicksBothSides)
+        self.sliderSegmStats.setTickPosition(QSlider.TicksBothSides)
         self.sliderAcq.setSingleStep(1)
         self.sliderAxial.setSingleStep(1)
         self.sliderSagittal.setSingleStep(1)
         self.sliderCoronal.setSingleStep(1)
         self.sliderSegm.setSingleStep(1)
+        self.sliderSegmStats.setSingleStep(1)
         layout.addWidget(self.sliderAcq,0,1)
         layout.addWidget(self.sliderAxial,1,1)
         layout.addWidget(self.sliderSagittal,3,1)
         layout.addWidget(self.sliderCoronal,2,1)
-        layout.addWidget(self.sliderSegm,4,1)
+
         self.AcqValueHeader = QLabel("Acq:")
         self.AxialValueHeader = QLabel("Ax:")
         self.SagittalValueHeader = QLabel("Sag:")
         self.CoronalValueHeader = QLabel("Cor:")
         self.SegmValueHeader = QLabel("Segm:")
+        SegmStatsValueHeader = QLabel("Segm. Errors:")
         self.checkBoxMsgSubImage = QLabel("Sub Image:")
         self.checkBoxMsgFocus = QLabel("Focus:")
 
@@ -203,6 +213,7 @@ class Window(QMainWindow):
         self.sliderSagittalValue = QLineEdit()
         self.sliderCoronalValue = QLineEdit()
         self.sliderSegmValue = QLineEdit()
+        self.sliderSegmStatsValue = QLineEdit()
         self.checkBoxFocus = QCheckBox()
         self.checkBoxSubImage = QCheckBox()
         self.checkBoxLog = QCheckBox()
@@ -211,22 +222,26 @@ class Window(QMainWindow):
         self.sliderSagittalValue.setFixedWidth(sizeText)
         self.sliderCoronalValue.setFixedWidth(sizeText)
         self.sliderSegmValue.setFixedWidth(sizeText)
+        self.sliderSegmStatsValue.setFixedWidth(sizeText)
         try:
             self.sliderAcqValue.setText(f"{self.set_value_slider(self.sliderAcq,self.sliderAcqValue)}")
             self.sliderAxialValue.setText(f"{self.set_value_slider(self.sliderAxial,self.sliderAxialValue)}")
             self.sliderSagittalValue.setText(f"{self.set_value_slider(self.sliderSagittal,self.sliderSagittalValue)}")
             self.sliderCoronalValue.setText(f"{self.set_value_slider(self.sliderCoronal,self.sliderCoronalValue)}")
             self.sliderSegmValue.setText(f"{self.set_value_slider(self.sliderSegm,self.sliderSegmValue)}")
+            self.sliderSegmStatsValue.setText(f"{self.set_value_slider(self.sliderSegmStats,self.sliderSegmStatsValue)}")
             self.sliderAcqValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAcq,self.sliderAcqValue))
             self.sliderAxialValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAxial,self.sliderAxialValue))
             self.sliderSagittalValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSagittal,self.sliderSagittalValue))
             self.sliderCoronalValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderCoronal,self.sliderCoronalValue))
             self.sliderSegmValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSegm,self.sliderSegmValue))
+            self.sliderSegmStatsValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSegmStats,self.sliderSegmStatsValue))
             self.sliderAcq.valueChanged.connect(partial(self.set_value_slider,self.sliderAcq,self.sliderAcqValue))
             self.sliderAxial.valueChanged.connect(partial(self.set_value_slider,self.sliderAxial,self.sliderAxialValue))
             self.sliderSagittal.valueChanged.connect(partial(self.set_value_slider,self.sliderSagittal,self.sliderSagittalValue))
             self.sliderCoronal.valueChanged.connect(partial(self.set_value_slider,self.sliderCoronal,self.sliderCoronalValue))
             self.sliderSegm.valueChanged.connect(partial(self.set_value_slider,self.sliderSegm,self.sliderSegmValue))
+            self.sliderSegmStats.valueChanged.connect(partial(self.set_value_slider,self.sliderSegmStats,self.sliderSegmStatsValue))
             self.checkBoxFocus.stateChanged.connect(self.set_value_focus)
             self.checkBoxSubImage.stateChanged.connect(self.set_value_subImage)
             self.checkBoxLog.stateChanged.connect(self.set_value_log)
@@ -236,22 +251,31 @@ class Window(QMainWindow):
 
         sublayout.addWidget(self.checkBoxMsgFocus,0,0)
         sublayout.addWidget(self.checkBoxFocus,0,1)
-        sublayout.addWidget(self.checkBoxMsgSubImage,1,0)
-        sublayout.addWidget(self.checkBoxSubImage,1,1)
-        sublayout.addWidget(checkBoxMsglog,2,0)
-        sublayout.addWidget(self.checkBoxLog,2,1)
+        sublayout.addWidget(self.checkBoxMsgSubImage,0,2)
+        sublayout.addWidget(self.checkBoxSubImage,0,3)
+        sublayout.addWidget(checkBoxMsglog,1,0)
+        sublayout.addWidget(self.checkBoxLog,1,1)
         subWidget.setMinimumHeight(40)
         subWidget.setContentsMargins(0,0,0,0)
+
+        sublayout.addWidget(self.SegmValueHeader,2,0)
+        sublayout.addWidget(self.sliderSegm,2,1)
+        sublayout.addWidget(self.sliderSegmValue,2,2)
+
+        sublayout.addWidget(SegmStatsValueHeader,3,0)
+        sublayout.addWidget(self.sliderSegmStats,3,1)
+        sublayout.addWidget(self.sliderSegmStatsValue,3,2)
+
         layout.addWidget(self.AcqValueHeader,0,0)
         layout.addWidget(self.AxialValueHeader,1,0)
         layout.addWidget(self.SagittalValueHeader,3,0)
-        layout.addWidget(self.CoronalValueHeader,2,0)
-        layout.addWidget(self.SegmValueHeader,4,0)
+        layout.addWidget(self.CoronalValueHeader,2,0) 
+        
         layout.addWidget(self.sliderAcqValue,0,2)
         layout.addWidget(self.sliderAxialValue,1,2)
         layout.addWidget(self.sliderSagittalValue,3,2)
         layout.addWidget(self.sliderCoronalValue,2,2)
-        layout.addWidget(self.sliderSegmValue,4,2)
+        
         self.generalLayout.addWidget(subWidget,line,3)
         self.generalLayout.addWidget(self.slider_widget,line,1)
         self.slider_widget.resize(500,500)
@@ -338,11 +362,11 @@ class Window(QMainWindow):
             self._createErrorMessage()
     def run_segm(self):
         try:
+            initial = time.time()
             if self.parameters.SegmAcq >= 0:
                 k = np.array([self.parameters.SegmAcq])
             else:
                 k=-1
-            initial = time.time()
             MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
                                                             seed = self.parameters.seed,k=k,
                                                             subimage=self.parameters.subImage[1:,:],
@@ -352,20 +376,40 @@ class Window(QMainWindow):
                                                             max_iter_kmean_ICM=self.parameters.max_iter_kmean_ICM,
                                                             steps_Fill = self.parameters.steps_filling,
                                                             max_iter_Fill = self.parameters.max_iter_fill,
-                                                            factor_Fill = self.parameters.factor_Fill,
+                                                            factor_Fill_range = self.parameters.factor_Fill_range,
+                                                            factor_fill= self.parameters.factor_fill_f,
                                                             growth = self.parameters.growth,
                                                             min_f_growth = self.parameters.min_f_growth,
                                                             threshold_fill=self.parameters.threshold_fill,
                                                             verbose_graph_fill = self.parameters.verbose_graph_fill,
+                                                            centerEllipsoid=self.parameters.centerEllipsoid,
+                                                            axesEllipsoid=self.parameters.axesEllipsoid,
                                                             save=False,
+                                                            do_Thresh=self.parameters.doThreshold,threshold=self.parameters.threshold,
                                                             do_coefficients=self.parameters.doCoefficients,
                                                             SaveSegm=self.parameters.SaveSegm,do_moments=self.parameters.doMoments,
                                                             do_stats=self.parameters.doStats,verbose=self.parameters.verbose)
-
+            if self.parameters.SegmType != "None":
+                if k == -1 and self.parameters.SegmType != "Ellipsoid":
+                    self.parameters._nbSeg += self.parameters._size[0]
+                else:
+                    self.parameters._nbSeg += 1
             self.displayStatus(f"{self.parameters.SegmType} segmentation",initial)
             self.update_segm()
         except:
             self._createErrorMessage("Unable to run the segmentation")
+    def run_errors(self):
+        try:
+            initial = time.time()
+            if self.parameters.ErrorSegm >= 0:
+                k = np.array([self.parameters.ErrorSegm])
+            else:
+                k=-1
+            MyFunctions.Batch_Errors.Batch_Errors(error_type=self.parameters.ErrorType)
+            self.displayStatus(f"{self.parameters.SegmType} errors",initial)
+            self.update_segm()
+        except:
+            self._createErrorMessage("Unable to run the error bars production")
     def update_all(self):
         self.update_TAC()
         self.update_1D()
@@ -373,6 +417,7 @@ class Window(QMainWindow):
         self.update_segm()
     def update_segm(self):
         self.sliderSegm.setMaximum(self.Image.voi_counter-1)
+        self.sliderSegmStats.setMaximum(self.Image.voi_statistics_counter-1)
     def update_TAC(self):
         try:
             self.TACImage.axes.cla()

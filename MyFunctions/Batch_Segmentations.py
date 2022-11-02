@@ -1,4 +1,5 @@
 import os
+from unicodedata import name
 import numpy as np
 import matplotlib.pyplot as plt
 import pydicom #To read Dicom Files
@@ -8,11 +9,13 @@ from torch import threshold #To monitor time to run program
 from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 
-def Batch_Segmentations(segmentation_type:str='all',Image: DicomImage = None,seed=[[]],k=-1,subimage=[-1],threshold = -1,sigma_Canny=5,
+def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,seed=[[]],k=-1,subimage=[-1],threshold = -1,sigma_Canny=5,
                             combinationCanny = 2, methodCanny = "Taxicab",sigma_threshold=5,threshold_fill=0.99,
-                            alpha=1e1,max_iter_ICM=100,max_iter_kmean_ICM=100,max_iter_Fill=300,factor_Fill=[0.1,2.8],steps_Fill = 1000,growth=-1,min_f_growth=0,
+                            centerEllipsoid = np.array([2,2,2]),axesEllipsoid = np.array([1,1,1]),
+                            alpha=1e1,max_iter_ICM=100,max_iter_kmean_ICM=100,max_iter_Fill=300,factor_fill = 1,
+                            factor_Fill_range=[0.1,2.8],steps_Fill = 1000,growth=-1,min_f_growth=0,
                             name_segmentation = '',path_in='',name_in='',path_out = '',name_out='',show_pre=False,save=True,do_coefficients=True,
-                            SaveSegm = True,do_moments=True,do_stats=True,verbose=False,verbose_graph_fill = False):
+                            SaveSegm = True,do_moments=True,do_stats=True,do_Thresh = False,verbose=False,verbose_graph_fill = False):
     '''
     Keyword arguments:\n
     segmentation_type -- type of segmentation to run (default all)\n
@@ -26,7 +29,8 @@ def Batch_Segmentations(segmentation_type:str='all',Image: DicomImage = None,see
     alpha -- used for the ICM segmentation (default 1e1)\n
     max_iter_ICM -- used for the ICM segmentation (default 100)\n
     max_iter_Fill -- used for the filling segmentation (default 300)\n
-    factor_Fill -- factor used for the filling algorithm (default [0.1,2.8])\n
+    factor_Fill_range -- factor used for the filling algorithm (default [0.1,2.8])\n
+    factor_Fill -- factor used for the filling algorithm (default 1)\n
     steps_Fill -- steps for the filling algorithm (default 1000)\n
     growth -- growth factor for the filling algorithm(default -1)\n
     min_f_growth -- minimal index of f for the growth factor in the filling algorithm(default 0)\n
@@ -74,22 +78,41 @@ def Batch_Segmentations(segmentation_type:str='all',Image: DicomImage = None,see
 
     if segmentation_type == 'Canny' or segmentation_type == 'Canny Filled' or segmentation_type == 'all':
         print('Running the gradient segmentations...')
-        Canny_Batch(Image=Image,k=k,subimage=subimage,sigma_Canny=sigma_Canny,combinationCanny=combinationCanny,methodCanny=methodCanny,
-                            name_segmentation=name_segmentation)
+        Canny_Fill_Batch(Image=Image,k=k,subimage=subimage,sigma_Canny=sigma_Canny,combinationCanny=combinationCanny,methodCanny=methodCanny,
+                            name_segmentation=name_segmentation,do_moments=do_moments,do_Stats=do_stats,
+                            SaveSegm=SaveSegm)
     if segmentation_type == 'ICM' or segmentation_type == 'all':
         print('Running the statistics segmentations...')
         ICM_Batch(Image,k,subimage=subimage,alpha=alpha,max_iter_ICM=max_iter_ICM,max_iter_kmean_ICM=max_iter_kmean_ICM,
                     name_segmentation = name_segmentation,save=SaveSegm,do_moments=do_moments,do_stats=do_stats,verbose=verbose)
     if segmentation_type in ['Filling','Filling f (very slow)','all']:
         print('Running the filling segmentations...')
-        Filling_Batch(Image,k,seed=seed,subimage=subimage,max_iter_Fill=max_iter_Fill,
+        Filling_Batch_f(Image,k,seed=seed,subimage=subimage,max_iter_Fill=max_iter_Fill,
                         threshold_fill=threshold_fill,
-                        factor_Fill=factor_Fill,steps_Fill = steps_Fill,
+                        factor_Fill=factor_Fill_range,steps_Fill = steps_Fill,
                         growth=growth,min_f_growth=min_f_growth,
-                        name_segmentation=name_segmentation,
-                        verbose_graph_fill = verbose_graph_fill)
+                        name_segmentation=name_segmentation,SaveSegm=SaveSegm,
+                        verbose_graph_fill = verbose_graph_fill,
+                        do_moments=do_moments,do_stats=do_stats)
 
-    if threshold > 0 and threshold < 1:
+    if segmentation_type in ['Canny Contour']:
+        print('Running the gradient contour...')
+        Canny_Contour_Batch(Image,k,subImage=subimage,combinationCanny=combinationCanny,
+                            sigma_Canny=sigma_Canny,name_segmentation=name_segmentation,
+                            SaveSegm=SaveSegm)
+    if segmentation_type == "Ellipsoid":
+        print('Running the ellipsoid segmentation...')
+        Image.add_VOI_ellipsoid(center=centerEllipsoid,axes=axesEllipsoid,name=name_segmentation,do_moments=do_moments,do_stats=do_stats,save=SaveSegm)
+    if segmentation_type == "k Mean":
+        print('Running the k Mean segmentations...')
+        kMean_Batch(Image,k,subimage=subimage,max_iter_kmean=max_iter_kmean_ICM,saveSegm=SaveSegm,name_segmentation=name_segmentation,
+                        do_moments=do_moments,do_stats=do_stats,verbose=verbose)
+    if segmentation_type == "Filling (very slow)":
+        print('Running the filling segmentations...')
+        Filling_Batch(Image,k=k,seed=seed,subimage=subimage,factor=factor_fill,max_iter_f=max_iter_Fill,
+                            name_segmentation=name_segmentation,SaveSegm=SaveSegm,do_moments=do_moments,
+                            do_stats=do_stats,verbose=verbose)
+    if threshold > 0 and threshold < 1 and do_Thresh:
         print('Doing the thresholding...')
         inter = time.time()
         for i in range(k.shape[0]):
@@ -105,7 +128,22 @@ def Batch_Segmentations(segmentation_type:str='all',Image: DicomImage = None,see
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
     print(f"All the segmentations were done in {(time.time() - initial):.2f} s.")
 
-def Canny_Batch(Image:DicomImage,k,subimage=[-1],sigma_Canny=5,combinationCanny=2,methodCanny="Taxicab",name_segmentation = ''):
+def Canny_Contour_Batch(Image:DicomImage,k,subImage=[-1],combinationCanny=2,
+                        sigma_Canny=5,name_segmentation='',SaveSegm=True,
+                        do_moments=True,do_Stats=True):
+    """
+    TBA
+    """
+    initial = time.time()
+    for i in range(k.shape[0]):
+        Image.VOI_canny(subImage=subImage,combination=combinationCanny,sigma=sigma_Canny,
+                        name=f"{name_segmentation} Canny Contour {k[i]}",
+                        do_moments=do_moments,save=SaveSegm,do_stats=do_Stats)
+        print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
+
+def Canny_Fill_Batch(Image:DicomImage,k,subimage=[-1],sigma_Canny=5,combinationCanny=2,
+                    methodCanny="Taxicab",name_segmentation = '',SaveSegm=True,
+                    do_moments=True,do_Stats=True):
     """
     Runs Canny Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
@@ -119,8 +157,10 @@ def Canny_Batch(Image:DicomImage,k,subimage=[-1],sigma_Canny=5,combinationCanny=
     """
     initial = time.time()
     for i in range(k.shape[0]):
-        Image.VOI_Canny_filled(subinfo = subimage,acq=k[i],sigma=sigma_Canny,combination=combinationCanny,method=methodCanny,
-                                name=f"{name_segmentation} Canny Filled acq {k[i]}",do_moments=True,do_stats=True)
+        Image.VOI_Canny_filled(subinfo = subimage,acq=k[i],sigma=sigma_Canny,combination=combinationCanny,
+                                method=methodCanny,save=SaveSegm,
+                                name=f"{name_segmentation} Canny Filled acq {k[i]}",
+                                do_moments=do_moments,do_stats=do_Stats)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
 def ICM_Batch(Image,k,subimage=[-1],alpha=1e1,max_iter_ICM=100,max_iter_kmean_ICM=100,name_segmentation = '',save=True,do_moments=True,
@@ -143,8 +183,21 @@ def ICM_Batch(Image,k,subimage=[-1],alpha=1e1,max_iter_ICM=100,max_iter_kmean_IC
                             do_moments=do_moments,do_stats=do_stats,verbose = verbose,save=save)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
-def Filling_Batch(Image,k,seed=[[]],subimage=[-1],max_iter_Fill=300,factor_Fill=[0.1,2.8],steps_Fill = 1000,
-                    threshold_fill = 0.99,growth=-1,min_f_growth=0,name_segmentation = '',verbose_graph_fill=False):
+def kMean_Batch(Image:DicomImage,k:np.ndarray,subimage:np.ndarray=[-1],max_iter_kmean:int=100,saveSegm:bool = True, name_segmentation:str = '', do_moments:bool=True,
+                    do_stats:bool=True, verbose:bool=False):
+    """
+    TBA
+    """
+    initial = time.time()
+    for i in range(k.shape[0]):
+        Image.VOI_kMean(acq = k[i],subinfo=subimage,max_iter=max_iter_kmean,
+                        save=saveSegm,do_moments=do_moments,do_stats=do_stats,
+                        verbose=verbose,name=f"{name_segmentation} kMean acq {k[i]}")
+        print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
+
+def Filling_Batch_f(Image,k,seed=[[]],subimage=[-1],max_iter_Fill=300,factor_Fill=[0.1,2.8],steps_Fill = 1000,
+                    threshold_fill = 0.99,growth=-1,min_f_growth=0,name_segmentation = '',verbose_graph_fill=False,
+                    SaveSegm=True,do_moments=True,do_stats=True):
     '''
     Runs Filling Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
@@ -175,5 +228,20 @@ def Filling_Batch(Image,k,seed=[[]],subimage=[-1],max_iter_Fill=300,factor_Fill=
         Image.VOI_filled_f(seed=[seed[1:]],factor=factor_Fill,steps = steps_Fill,acq=k[i],sub_im=subimage,
                     max_iter=max_iter_Fill,verbose=False,verbose_graphs=verbose_graph_fill,max_number_save=1,
                     save_between=False,growth=growth,min_f_growth=min_f_growth,threshold=threshold_fill,
-                    name=f"{name_segmentation} Filled acq {k[i]}",do_moments=True,do_stats=True,break_after_f=True)
+                    name=f"{name_segmentation} Filled f acq {k[i]}",do_moments=do_moments,do_stats=do_stats,break_after_f=True,
+                    SaveSegm=SaveSegm)
+        print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
+
+def Filling_Batch(Image:DicomImage,k:np.ndarray,seed=[[]],subimage = [-1],factor=1,
+                    max_iter_f = 100, 
+                    name_segmentation = '',
+                    SaveSegm=True,do_moments=True,do_stats=True,verbose=False):
+    """
+    TBA
+    """
+    initial = time.time()
+    for i in range(k.shape[0]):
+        Image.VOI_filled(seed=seed,sub_im=subimage,factor=factor,acq=k[1],max_iter=max_iter_f,
+                            name=f"{name_segmentation} Filled acq {k[i]}",do_moments=do_moments,do_stats=do_stats,break_after_f=True,
+                            SaveSegm=SaveSegm,verbose=verbose)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
