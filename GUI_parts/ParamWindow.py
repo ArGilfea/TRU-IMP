@@ -32,6 +32,7 @@ class ParamWindow(QMainWindow):
     Class to open a parameter window to get user's inputs
     """
     def __init__(self,parameters:GUIParameters,parent=None):
+        """Initializes the ParamWindow with the GUI Parameters"""
         super().__init__(parent)
         self.setMinimumSize(300, 750)
         self.parameters = parameters
@@ -44,10 +45,12 @@ class ParamWindow(QMainWindow):
         centralWidget.resize(centralWidget.sizeHint());
 
     def initialize_param_window(self):
+        """Start the creation of the param window for the widgets"""
         self.current_line = 1
         self._createParamList()
 
     def _createSeedSliders(self):
+        """Create the sliders and the line edits for the seed"""
         sizeText = 30
         seedWidget = QWidget()
         layout = QGridLayout()
@@ -102,6 +105,7 @@ class ParamWindow(QMainWindow):
         self.current_line += 1
 
     def _createCenterEllipsoidSliders(self):
+        """Creates the sliders and line edits for the center of the ellipsoid segmentation"""
         sizeText = 30
         seedWidget = QWidget()
         layout = QGridLayout()
@@ -156,6 +160,7 @@ class ParamWindow(QMainWindow):
         self.current_line += 1
 
     def _createAxesEllipsoidSliders(self):
+        """Creates the sliders and line edits for the axes of the ellipsoid segmentation"""
         sizeText = 30
         seedWidget = QWidget()
         layout = QGridLayout()
@@ -211,6 +216,7 @@ class ParamWindow(QMainWindow):
 
 
     def _createSubImageSliders(self):
+        """Creates the line edits for the sub image"""
         sizeText = 30
         subImageWidget = QWidget()
         layout = QGridLayout()
@@ -291,9 +297,11 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(subImageWidget,self.current_line,2)
         self.current_line += 1
     def _createBoolBox(self):
+        """Creates a CheckBox and returns it (for bool parameters)"""
         btn = QCheckBox()
         return btn
     def _createMethodCannyType(self):
+        """Creates the Combo Box for the Distance method calculation for Canny"""
         self.MethCombo = QComboBox()
         self.MethCombo.addItem("TaxiCab")
         self.MethCombo.setCurrentText(self.parameters.methodCanny)
@@ -303,6 +311,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(self.MethCombo,self.current_line,2)
         self.current_line +=1
     def _createSegmType(self):
+        """Creates the Combo Box for the segmentation method"""
         self.SegmCombo = QComboBox()
         self.SegmCombo.addItem("None")
         self.SegmCombo.addItem("ICM")
@@ -320,6 +329,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(self.SegmCombo,self.current_line,2)
         self.current_line +=1
     def _createErrorType(self):
+        """Creates the Combo Box for the error type method"""
         self.ErrorCombo = QComboBox()
         self.ErrorCombo.addItem("None")
         self.ErrorCombo.addItem("Linear Shift")
@@ -331,6 +341,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(self.ErrorCombo,self.current_line,2)
         self.current_line +=1
     def _createFactorFFilling(self):
+        """Creates the slider and the line edit for the factor f (for filling)"""
         btnNew,slider = self._createIntInput(self.parameters.factor_fill_f)
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(100)
@@ -343,6 +354,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createFactorFillingRange(self):
+        """Creates the slider and the line edit for the factor range (for filling)"""
         sizeText = 30
         RangeWidget = QWidget()
         layout = QGridLayout()
@@ -364,6 +376,8 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(RangeWidget,self.current_line,2)
         self.current_line +=1
     def _createIntInput(self,initvalue:float):
+        """Creates a subwidet with a QLineEdit and a QSlider linked in their value.\n
+        Returns the subWidget and the slider"""
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
@@ -380,6 +394,8 @@ class ParamWindow(QMainWindow):
         layout.addWidget(number)
         return subWidget,slider
     def _createAcqValue(self):
+        """Creates the slider and the line edit for the choice of acquisition.\n 
+        -1 will mean all"""
         btnNew,slider = self._createIntInput(self.parameters.SegmAcq)
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(1)
@@ -392,6 +408,8 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createErrorValue(self):
+        """Creates the slider and the line edit for the choice of segmentation for the error computation.\n 
+        -1 will mean all"""
         btnNew,slider = self._createIntInput(self.parameters.ErrorSegm)
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(1)
@@ -405,6 +423,7 @@ class ParamWindow(QMainWindow):
         self.current_line +=1
 
     def _createOrderShiftError(self):
+        """Creates the slider and the line edit for the order of the shift (linear shift error)."""
         btnNew,slider = self._createIntInput(self.parameters.orderShift)
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(1)
@@ -417,6 +436,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createDShiftError(self):
+        """Creates the slider and the line edit for the distance of the shift (linear shift error)."""
         btnNew,slider = self._createIntInput(self.parameters.distanceShift)
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(1)
@@ -430,6 +450,7 @@ class ParamWindow(QMainWindow):
         self.current_line +=1
 
     def _createSigmaCanny(self):
+        """Creates the slider and the line edit for the sigma (Canny)."""
         btnNew,slider = self._createIntInput(self.parameters.sigmaCanny)
         slider.valueChanged.connect(self.update_int)
         self.sliderSigma = slider   
@@ -444,6 +465,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createAlphaICM(self):
+        """Creates the slider and the line edit for the alpha (ICM)."""
         btnNew,slider = self._createIntInput(self.parameters.alphaICM)
         slider.valueChanged.connect(self.update_int)
         self.sliderAlpha = slider   
@@ -458,6 +480,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createCombCanny(self):
+        """Creates the slider and the line edit for the combination (Canny)."""
         btnNew,slider = self._createIntInput(self.parameters.combinationCanny)
         slider.valueChanged.connect(self.update_int)
         slider.setRange(1,3)
@@ -470,6 +493,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createMaxiIterICM(self):
+        """Creates the slider and the line edit for the max iteration of the ICM (ICM)."""
         btnNew,slider = self._createIntInput(self.parameters.max_iter_ICM)
         slider.valueChanged.connect(self.update_int)
         self.sliderMaxIter = slider   
@@ -481,6 +505,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createMaxiIterKMeanICM(self):
+        """Creates the slider and the line edit for the max iteration of the kMean (ICM & KMean)."""
         btnNew,slider = self._createIntInput(self.parameters.max_iter_kmean_ICM)
         slider.valueChanged.connect(self.update_int)
         self.sliderMaxIterKmean = slider   
@@ -492,6 +517,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createStepsFilling(self):
+        """Creates the slider and the line edit for the number of steps (filling)."""
         btnNew,slider = self._createIntInput(self.parameters.steps_filling)
         slider.valueChanged.connect(self.update_int)   
         slider.setRange(0,1000)
@@ -503,6 +529,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createMaxIterFilling(self):
+        """Creates the slider and the line edit for the max iteration (filling)."""
         btnNew,slider = self._createIntInput(self.parameters.max_iter_fill)
         slider.valueChanged.connect(self.update_int)
         self.sliderMaxIterFilling = slider   
@@ -514,6 +541,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createVerboseGraphFill(self):
+        """Creates the slider and the line edit for the return of the graph in filling (filling f)."""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.verbose_graph_fill)
         btnNew.stateChanged.connect(partial(self.set_value_checked_VerboseGraphFill,btnNew))
@@ -522,6 +550,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createSaveBox(self):
+        """Create the bool box for the save segmentation combo box"""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.SaveSegm)
         btnNew.stateChanged.connect(partial(self.set_value_checked_SaveSegm,btnNew))
@@ -530,6 +559,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createStatsBox(self):
+        """Create the bool box for the stats of the segmentation combo box"""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.doStats)
         btnNew.stateChanged.connect(partial(self.set_value_checked_doStats,btnNew))
@@ -538,6 +568,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createCurvesBox(self):
+        """Create the bool box for the TAC computation combo box"""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.doCurves)
         btnNew.stateChanged.connect(partial(self.set_value_checked_doCurves,btnNew))
@@ -546,6 +577,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createCoefficientsBox(self):
+        """Create the bool box for the coefficients combo box"""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.doCoefficients)
         btnNew.stateChanged.connect(partial(self.set_value_checked_doCoefficients,btnNew))
@@ -554,6 +586,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(btnNew,self.current_line,2)
         self.current_line +=1
     def _createThresholdBox(self):
+        """Create the slider and the line edit for the thresholding"""
         btnNew,slider = self._createIntInput(self.parameters.threshold)
         slider.valueChanged.connect(self.update_int)
         self.sliderThresh = slider  
@@ -576,6 +609,7 @@ class ParamWindow(QMainWindow):
         self.generalLayout.addWidget(subWidget,self.current_line,2)
         self.current_line +=1
     def _createParamList(self):
+        """Create all the parameters, depending on the segmentation, error, and Dynesty types"""
         text1 = QLabel("Parameter")
         text2 = QLabel("Values")
         text3 = QLabel("New Values")
@@ -621,26 +655,36 @@ class ParamWindow(QMainWindow):
         self._createThresholdBox()
 
     def MethCombo_Changed(self):
+        """Links the method of distance computation and the combo box in the parameters (Canny)"""
         self.parameters.methodCanny = self.MethCombo.currentText()
     def SegmCombo_Changed(self):
+        """Links the method of segmentation and the combo box in the parameters"""
         self.parameters.SegmType = self.SegmCombo.currentText()
         self.refresh_app()
     def ErrorMethodCombo_Changed(self):
+        """Links the method of error and the combo box in the parameters"""
         self.parameters.ErrorType = self.ErrorCombo.currentText()
         self.refresh_app()
     def set_value_checked_doCoefficients(self,box:QCheckBox):
+        """Links the compute coefficient bool and the combo box in the parameters"""
         self.parameters.doCoefficients = box.isChecked()
     def set_value_checked_doThreshold(self,box:QCheckBox):
+        """Links the compute threshold bool and the combo box in the parameters"""
         self.parameters.doThreshold = box.isChecked()
     def set_value_checked_doStats(self,box:QCheckBox):
+        """Links the compute stats bool and the combo box in the parameters"""
         self.parameters.doStats = box.isChecked()
     def set_value_checked_SaveSegm(self,box:QCheckBox):
+        """Links the save segmentations bool and the combo box in the parameters"""
         self.parameters.SaveSegm = box.isChecked()
     def set_value_checked_VerboseGraphFill(self,box:QCheckBox):
+        """Links the verbose graph bool and the combo box in the parameters (filling)"""
         self.parameters.verbose_graph_fill = box.isChecked()
     def set_value_checked_doCurves(self,box:QCheckBox):
+        """Links the compute curves (TACs) bool and the combo box in the parameters"""
         self.parameters.doCurves = box.isChecked()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
+        """Links the slider and the line edit together"""
         lineedit.setText(str(slider.value()))
         try:
             self.update_seed()
@@ -670,7 +714,7 @@ class ParamWindow(QMainWindow):
         except: pass
     def set_value_line_edit_noSlider(self,lineedit:QLineEdit):
         """
-        Changes the value of the 
+        Updates the parameters accoding to the lineedit
         """
         try:
             lineedit.setText(f"{int(lineedit.text())}")
@@ -678,18 +722,30 @@ class ParamWindow(QMainWindow):
             lineedit.setText("0")
         self.update_subImage()
     def update_center_ellipsoid(self):
+        """
+        When a part of the center of the ellipsoid is changed, updates the parameters
+        """
         self.parameters.centerEllipsoid[0] = self.sliderAxialValueCenter.text()
         self.parameters.centerEllipsoid[1] = self.sliderCoronalValueCenter.text()
         self.parameters.centerEllipsoid[2] = self.sliderSagittalValueCenter.text()
     def update_axes_ellipsoid(self):
+        """
+        When a part of the axes of the ellipsoid is changed, updates the parameters
+        """
         self.parameters.axesEllipsoid[0] = self.sliderAxialValueAxes.text()
         self.parameters.axesEllipsoid[1] = self.sliderCoronalValueAxes.text()
         self.parameters.axesEllipsoid[2] = self.sliderSagittalValueAxes.text()
     def update_seed(self):
+        """
+        When a part of the seed is changed, updates the parameters
+        """
         self.parameters.seed[0] = self.sliderAxialValueSeed.text()
         self.parameters.seed[1] = self.sliderCoronalValueSeed.text()
         self.parameters.seed[2] = self.sliderSagittalValueSeed.text()
     def update_subImage(self):
+        """
+        When a part of the subimage is changed, updates the parameters
+        """
         self.parameters.subImage[0,0] = self.sliderAcqValueSubImMin.text()
         self.parameters.subImage[0,1] = self.sliderAcqValueSubImMax.text()
         self.parameters.subImage[1,0] = self.sliderAxialValueSubImMin.text()
@@ -699,6 +755,9 @@ class ParamWindow(QMainWindow):
         self.parameters.subImage[3,0] = self.sliderSagittalValueSubImMin.text()
         self.parameters.subImage[3,1] = self.sliderSagittalValueSubImMax.text()
     def update_int(self):
+        """
+        Updates all the int parameters when the slider or the associated QLineEdit is changed
+        """
         try:
             self.parameters.SegmAcq = self.sliderSegmAcq.value()
         except: pass
@@ -745,6 +804,9 @@ class ParamWindow(QMainWindow):
             self.parameters.factor_Fill_range[1] = float(self.FactorFRangeValueMax.text())
         except: pass
     def refresh_app(self):
+        """
+        When a different segmentation, error or Dynesty scheme is chosen, update the whole window and only display the parameters of interest
+        """
         if self.generalLayout is not None:
             while self.generalLayout.count():
                 item = self.generalLayout.takeAt(0)

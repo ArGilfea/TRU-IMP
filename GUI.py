@@ -33,13 +33,16 @@ from matplotlib.figure import Figure
 size_Image = 200
 
 class Window(QMainWindow):
-    def _createButtons(self):
-        pass      
+    """
+    Main window of the GUI.
+    """    
     def _createStatusBar(self):
+        """Create a status bar at the bottom of the GUI"""
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)      
         self.statusBar.showMessage("Nothing started")
     def _createInfoParam(self):
+        """Create the dock at the top from where the parameters, the infos and the lauch buttons are"""
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
@@ -58,11 +61,13 @@ class Window(QMainWindow):
         layout.addWidget(btn_segm)
         layout.addWidget(buttonErrors)
         self.generalLayout.addWidget(subWidget,0,3)         
-    def _createExitButton(self,line=7):
+    def _createExitButton(self,line:int=7):
+        """Create an exit button"""
         self.exit = QPushButton("Exit")
         self.exit.clicked.connect(self.close)
         self.generalLayout.addWidget(self.exit,line,3)  
-    def _createExtractDock(self,line=0):
+    def _createExtractDock(self,line:int=0):
+        """Create the dock to enter a line and the buttons to extract, load and, browse the origin of the acquisition"""
         subWidget = QWidget()
         msg_extract = QLabel("Path: ")
         source = QLineEdit()
@@ -87,7 +92,8 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(msg_extract,line,0)  
         self.generalLayout.addWidget(source,line,1)           
         self.generalLayout.addWidget(subWidget,line,2)  
-    def _createSavingDock(self,line=2):
+    def _createSavingDock(self,line:int=2):
+        """Create a button and a dock to save the image directly (removed)"""
         subWidget1 = QWidget()
         subWidget2 = QWidget()
         layout1 = QHBoxLayout()
@@ -114,7 +120,8 @@ class Window(QMainWindow):
         #self.generalLayout.addWidget(msg_save,line,0)  
         #self.generalLayout.addWidget(subWidget1,line,1)  
         self.generalLayout.addWidget(subWidget2,line,2)  
-    def _createImageDisplay(self,line=4):
+    def _createImageDisplay(self,line:int=4):
+        """Create the docks for the 2D images to be shown"""
         self.showFocus = False
         self.showSubImage = False
         self.showLog = False
@@ -143,7 +150,8 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(self.axial,line,1)
         self.generalLayout.addWidget(self.sagittal,line,3)
         self.generalLayout.addWidget(self.coronal,line,2)
-    def _createImageDisplayType(self,line=2):
+    def _createImageDisplayType(self,line:int=2):
+        """Create the button for the combo box of the images\nAlso create the combo box for the choice of the result"""
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
@@ -170,7 +178,8 @@ class Window(QMainWindow):
         layout.addWidget(self.ImageViewCombo)
         layout.addWidget(self.ResultViewCombo)
         self.generalLayout.addWidget(subWidget,line,3)
-    def _createImageDisplayBars(self,line=5):
+    def _createImageDisplayBars(self,line:int=5):
+        """Create the sliders for the 2D images, the 1D images and the TAC."""
         try:
             self.generalLayout.removeWidget(self.slider_widget)
             self.slider_widget.setParent(None)
@@ -289,18 +298,20 @@ class Window(QMainWindow):
         
         layout.addWidget(self.sliderAcqValue,0,2)
         layout.addWidget(self.sliderAxialValue,1,2)
-        layout.addWidget(self.sliderSagittalValue,3,2)
         layout.addWidget(self.sliderCoronalValue,2,2)
+        layout.addWidget(self.sliderSagittalValue,3,2)
         
         self.generalLayout.addWidget(subWidget,line,3)
         self.generalLayout.addWidget(self.slider_widget,line,1)
         self.slider_widget.resize(500,500)
-    def _createTACImage(self,line=5):
+    def _createTACImage(self,line:int=5):
+        """Create an empty image for where the TAC and the results will be"""
         self.TACImage = MplCanvas(self, width=5, height=4, dpi=75)
         self.TACImage.setMinimumSize(size_Image,size_Image)
         self.base_TAC_axes()
         self.generalLayout.addWidget(self.TACImage,line,2)
-    def _create1DImage(self,line = 6):
+    def _create1DImage(self,line:int = 6):
+        """Create the dock for the 1D Image (i.e. the slices)"""
         label = QLabel("Slices")
         self.AxialImage1D = MplCanvas(self,width=5,height=4,dpi=75)
         self.SagittalImage1D = MplCanvas(self,width=5,height=4,dpi=75)
@@ -316,6 +327,7 @@ class Window(QMainWindow):
         self.generalLayout.addWidget(self.SagittalImage1D,line,3)
         self.generalLayout.addWidget(self.CoronalImage1D,line,2)
     def _createErrorMessage(self,message:str=""):
+        """Create an error message and displays it"""
         alert = QMessageBox()
         if message =="":
             alert.setText("An error occurred")
@@ -323,28 +335,33 @@ class Window(QMainWindow):
             alert.setText(message)
         alert.exec()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
+        """Link the slider and the lineedit to the same value"""
         lineedit.setText(str(slider.value()))
         self.update_all()
         return slider.value()
     def set_value_focus(self):
+        """Switch the focus of the image when the box is checked"""
         if self.checkBoxFocus.isChecked() == True:
             self.showFocus = True
         else:
             self.showFocus = False
         self.update_all()
     def set_value_subImage(self):
+        """Switch the subImage view of the image when the box is checked"""
         if self.checkBoxSubImage.isChecked() == True:
             self.showSubImage = True
         else:
             self.showSubImage = False
         self.update_all()
     def set_value_log(self):
+        """Switch the log of the image when the box is checked"""
         if self.checkBoxLog.isChecked() == True:
             self.showLog = True
         else:
             self.showLog = False
         self.update_all()
     def set_value_line_edit(self,slider:QSlider,lineedit:QLineEdit):
+        """Link the slider and the lineedit to the same value"""
         try:
             lineedit.setText(f"{int(lineedit.text())}")
         except:
@@ -355,6 +372,7 @@ class Window(QMainWindow):
             slider.setValue(0)
         self.update_all()
     def combo_box_changed(self):
+        """Change the parameters with respect to the view of the acquisition"""
         self.view = self.ImageViewCombo.currentText()
         if self.view in ["Slice","Flat","Segm. Slice","Segm. Flat"]:
             self.view_range = "All"
@@ -362,9 +380,11 @@ class Window(QMainWindow):
             self.view_range = "Sub"
         self.update_all()
     def combo_box_result_changed(self):
+        """Update the view between partial and full"""
         self.resultView = self.ResultViewCombo.currentText()
         self.update_all()
     def open_parameters(self):
+        "Open a window to show the basic informations of the acquisition"
         try:
             window = ParamWindow(self.parameters,self)
             window.show()
@@ -380,6 +400,9 @@ class Window(QMainWindow):
         except:
             self._createErrorMessage()
     def run_segm(self):
+        """
+        Function to run the segmentations based on the input parameters
+        """
         try:
             initial = time.time()
             if self.parameters.SegmAcq >= 0:
@@ -418,6 +441,9 @@ class Window(QMainWindow):
         except:
             self._createErrorMessage("Unable to run the segmentation")
     def run_errors(self):
+        """
+        Function to run the errors based on the input parameters
+        """
         try:
             initial = time.time()
             if self.parameters.ErrorSegm >= 0:
@@ -429,17 +455,22 @@ class Window(QMainWindow):
                                                     verbose=self.parameters.verbose)
             self.displayStatus(f"{self.parameters.SegmType} errors",initial)
             self.update_segm()
+            if self.parameters.ErrorType != "None":
+                self.parameters._nbError = self.Image.voi_statistics_counter
         except:
             self._createErrorMessage("Unable to run the error bars production")
     def update_all(self):
+        """Main function when something is changed to update all the views"""
         self.update_Result()
         self.update_1D()
         self.update_view()
         self.update_segm()
     def update_segm(self):
+        """Update the segmentation and segmentation error sliders"""
         self.sliderSegm.setMaximum(self.Image.voi_counter-1)
         self.sliderSegmStats.setMaximum(self.Image.voi_statistics_counter-1)
     def update_Result(self):
+        """Update the middle image according to the type of result to be displayed"""
         if self.resultView == "TAC":
             self.update_TAC()
         elif self.resultView == "Dice":
@@ -447,6 +478,7 @@ class Window(QMainWindow):
         elif self.resultView == "Jaccard":
             self.update_Jaccard()
     def update_Dice(self):
+        """Shows the Dice coefficients in the middle image"""
         try:
             self.TACImage.axes.cla()
             im = self.TACImage.axes.pcolormesh(self.Image.dice_all)
@@ -455,6 +487,7 @@ class Window(QMainWindow):
         except:
             pass
     def update_Jaccard(self):
+        """Shows the Jaccard coefficients in the middle image"""
         try:
             self.TACImage.axes.cla()
             im = self.TACImage.axes.pcolormesh(self.Image.jaccard_all)
@@ -463,6 +496,12 @@ class Window(QMainWindow):
         except:
             pass
     def update_TAC(self):
+        """
+        Update the 1D TAC image, in the middle of the GUI, according to the position of the sliders sliders.\n
+        If a subimage view is selected, it will zoom upon the subregion.\n
+        These views are 1D and go along 1 spatial axis.\n
+        For the 1D spatial axes, see update_1D function.
+        """
         try:
             self.TACImage.axes.cla()
             values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
@@ -506,6 +545,12 @@ class Window(QMainWindow):
         except:
             pass
     def update_1D(self):
+        """
+        Update the 1D images, at the bottom of the GUI, according to the position of the three sliders.\n
+        If a subimage view is selected, it will zoom upon the subregion.\n
+        These views are 1D and go along 1 spatial axis.\n
+        For the 1D temporal axis, see update_TAC function.
+        """
         try:
             self.AxialImage1D.axes.cla()
             self.SagittalImage1D.axes.cla()
@@ -541,6 +586,7 @@ class Window(QMainWindow):
         except:
             pass
     def update_sliders(self):
+        """Updates the size of the sliders for the image depending on the view type and the size of the subImage parameters"""
         if self.view_range == "All":
             self.sliderAcq.setMinimum(0);self.sliderAcq.setMaximum(self.Image.nb_acq-1)
             self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice-1)
@@ -553,6 +599,7 @@ class Window(QMainWindow):
             self.sliderSagittal.setMinimum(subI[3,0]);self.sliderSagittal.setMaximum(subI[3,1])
             self.sliderCoronal.setMinimum(subI[2,0]);self.sliderCoronal.setMaximum(subI[2,1])
     def base_TAC_axes(self):
+        """Gives the basic axes details for the result image (center) when they are updated when it is a TAC (error or not)"""
         try:
             self.cb.remove()
         except: pass
@@ -563,12 +610,14 @@ class Window(QMainWindow):
                 self.TACImage.axes.legend()
         except: pass
     def base_coeff_axes(self,mappable):
+        """Gives the basic axes details for the result image (center) when they are updated when it is Dice or Jaccard"""
         try:
             self.cb.remove()
         except: pass
         self.TACImage.axes.set_title(self.resultView)
         self.cb = self.TACImage.fig.colorbar(mappable)
     def base_1D_axes(self):
+        """Sets the basic axes of the 1D slices images (at the bottom)"""
         self.AxialImage1D.axes.set_title("Axial Slice");self.AxialImage1D.axes.grid()
         self.AxialImage1D.axes.set_xlabel("Voxel");self.AxialImage1D.axes.set_ylabel("Signal")
         self.SagittalImage1D.axes.set_title("Sagittal Slice");self.SagittalImage1D.axes.grid()
@@ -576,6 +625,7 @@ class Window(QMainWindow):
         self.CoronalImage1D.axes.set_title("Coronal Slice");self.CoronalImage1D.axes.grid()
         self.CoronalImage1D.axes.set_xlabel("Voxel");self.CoronalImage1D.axes.set_ylabel("Signal")
     def update_view(self):
+        """Updates the top images (2D views) according to the parameters input and the determined view requested"""
         values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
         try: SubI = self.parameters.subImage
         except: pass
@@ -682,20 +732,22 @@ class Window(QMainWindow):
         self.update_sliders()
 
     def setDisplayText(self, text:str):
-        """Set the display's text."""
+        """Set the display's text (unused, part of the basic model used)."""
         self.display.setText(text)
         self.display.setFocus()
     def displayStatus(self,action:str,time_i=time.time()):
+        """Updates the display bar (far bottom)"""
         new_status = f"{action} done in {(time.time()-time_i):.2f}' s at {time.strftime('%H:%M:%S')}"
         self.statusBar.showMessage(new_status)
     def displayText(self):
-        """Get the display's text."""
+        """Get the display's text (unused, part of the basic model used)."""
         return self.display.text()
 
     def clearDisplay(self):
-        """Clear the display."""
+        """Clear the display (unused, part of the basic model used)."""
         self.setDisplayText("")
     def show_infos_acq(self):
+        """Information showed when the info button is pressed"""
         a = f"""Name: {self.Image.name}<br>
                 Description: {self.Image.Description}<br>
                 Total Time: {self.Image.time[-1]:.2f}<br>
@@ -712,11 +764,15 @@ class Window(QMainWindow):
                 """
         return a
     def on_button_clicked_infos(self):
+        """Button to show the information if an image has been loaded"""
         try:
             self._createErrorMessage(self.show_infos_acq())
         except:
             self._createErrorMessage("No file uploaded")
-    def extract_button(self,source):
+    def extract_button(self,source:QLineEdit):
+        """Extract command when the button is pressed according to the QLineEdit. 
+            Will try both methods of extraction to see which one works.
+            Fails if an image is already loaded."""
         initial = time.time()
         try:
             a = self.name
@@ -734,7 +790,9 @@ class Window(QMainWindow):
             self._createImageDisplay()
             self._createImageDisplayBars()
             self.parameters = GUIParameters(self.Image)
-    def load_button(self,source):
+    def load_button(self,source:QLineEdit):
+        """Loads the image according to the given QLineEdit.
+            Will fail if an image is already loaded."""
         initial = time.time()
         try:
             self.parameters = PF.pickle_open(source.text())
@@ -754,12 +812,15 @@ class Window(QMainWindow):
                 except:
                     self._createErrorMessage("Loading is not possible")
     def browse_button_directory(self,source:QLineEdit):
+        """Depleted"""
         text =  QFileDialog.getExistingDirectory()
         source.setText(text+"/")
     def browse_button_file(self,source:QLineEdit):
+        """Opens a browsing system and keeps the selected file (cannot select a folder)"""
         text = QFileDialog.getOpenFileName(self)
         source.setText(text[0])
     def save_button(self,path:QLineEdit,path_name:QLineEdit):
+        """Depleted"""
         initial = time.time()
         if path.text() == "" or path_name.text()=="":
             self._createErrorMessage("Empty path. Please specify where to save.")
@@ -775,6 +836,7 @@ class Window(QMainWindow):
         self.displayStatus("File saved", initial)
 
     def __init__(self):
+        """Initializes the GUI Window"""
         self.BUTTON_SIZE = 40
         self.DISPLAY_HEIGHT = 35
         super().__init__(parent=None)
@@ -795,7 +857,7 @@ class Window(QMainWindow):
         self._create1DImage()
         self._createStatusBar()
         self._createExitButton() 
- 
+
 def evaluateExpression(expression):
     """Evaluate an expression (Model)."""
     try:
@@ -834,7 +896,9 @@ class PySeg:
         self._view.buttonMap["C"].clicked.connect(self._view.clearDisplay)
 
 class MplCanvas(FigureCanvasQTAgg):
+    """Class for the images and the graphs as a widget"""
     def __init__(self, parent=None, width:float=5, height:float=4, dpi:int=75):
+        """Creates an empty figure with axes and fig as parameters"""
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         self.fig = fig

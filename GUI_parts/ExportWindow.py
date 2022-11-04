@@ -32,6 +32,9 @@ class ExportWindow(QMainWindow):
     Class to open an export window to get user's inputs for exporting results
     """
     def __init__(self,parameters:GUIParameters,Image:DicomImage,parent=None):
+        """
+        Initializes the class
+        """
         super().__init__(parent)
         self.setMinimumSize(300, 400)
         self.parameters = parameters
@@ -46,6 +49,9 @@ class ExportWindow(QMainWindow):
         centralWidget.resize(centralWidget.sizeHint())
 
     def initializeParam(self):
+        """
+        Creates all the export parameters that can be chosen
+        """
         self.ExportDicom = False
         self.ExportParam = False
         self.ExportTAC = False
@@ -58,53 +64,92 @@ class ExportWindow(QMainWindow):
         self.ErrorTACTypeSave = "Error TAC Images"
 
     def initialize_export_window(self):
+        """
+        Initializes the export window.\n
+        The current_line parameter allows to dynamically orient the widgets in the window
+        """
         self.current_line = 1
         self._createExportList()
 
     def browse_button_directory(self,source:QLineEdit):
+        """
+        Opens a browse window and allows the user to determine a folder to select.\n
+        The result is passed to the source parameters.
+        """
         text =  QFileDialog.getExistingDirectory()
         source.setText(text+"/")
 
     def _createHeader(self):
+        """
+        Create the header of the window for each column
+        """
         self.generalLayout.addWidget(QLabel("Part"),0,0)
         self.generalLayout.addWidget(QLabel("Save?"),0,1)
         self.generalLayout.addWidget(QLabel("Parameters"),0,2)
         self.generalLayout.addWidget(QLabel("Options"),0,3)
 
     def _createPathDock(self):
+        """
+        Creates the Path dock.\n
+        This makes a line edit and a browse button from which the destination folder is chosen 
+        """
         self.pathName = QLineEdit()
         btn_browse = QPushButton("Browse")
-        self.generalLayout.addWidget(QLabel("Path."),self.current_line,0)
+        self.pathName.setToolTip("Destination folder for the exportation process")
+        btn_browse.setToolTip("Open a local browser to determine the path for the exportation")
+        self.generalLayout.addWidget(QLabel("Path"),self.current_line,0)
         btn_browse.clicked.connect(partial(self.browse_button_directory,self.pathName))
         self.generalLayout.addWidget(self.pathName,self.current_line,2)
         self.generalLayout.addWidget(btn_browse,self.current_line,3)
         self.current_line +=1
 
     def _createHeaderDock(self):
+        """
+        Creates the line edit to input the name of the exported material
+        """
         self.headerName = QLineEdit()
+        self.headerName.setToolTip("""Global name for the exported material.
+A suffix will be added for the specific exported material.""")
         self.generalLayout.addWidget(QLabel("Name"),self.current_line,0)
         self.generalLayout.addWidget(self.headerName,self.current_line,2)
         self.current_line +=1
     def _createDicomSave(self):
+        """
+        Creates the button to determine whether the DicomImage class is saved
+        """
         self.DicomImageButton = QCheckBox()
+        self.DicomImageButton.setToolTip("""Saves the DicomImage class, which contains all the segmentations and results.
+The result will be a pickle (.pkl) file, with a size of at least a few GB.
+This is highly recommended after long computations, as it saves the completed progress,
+allowing to save a huge amount of computing time.""")
         self.DicomImageButton.stateChanged.connect(self.setValueExportDicom)
         self.generalLayout.addWidget(QLabel("DicomImage"),self.current_line,0)
         self.generalLayout.addWidget(self.DicomImageButton,self.current_line,1)
         self.current_line +=1
     def _createParamSave(self):
+        """
+        Creates the button to determine whether the Parameter class is saved
+        """
         self.ParamButton = QCheckBox()
+        self.ParamButton.setToolTip("""Saves the GUIParam class, which contains the parameters used for the segmentations, the errors and the Dynesty analyses.
+The result will be a pickle (.pkl) file, with a small size (few kB).
+This is recommended when many analyses will be run or to keep track of what had been done before.
+Useful for the reproducibility of analyses.""")
         self.ParamButton.stateChanged.connect(self.setValueExportParam)
         self.generalLayout.addWidget(QLabel("Parameters"),self.current_line,0)
         self.generalLayout.addWidget(self.ParamButton,self.current_line,1)
         self.current_line +=1
     def _createTACsSave(self):
+        """
+        Creates the dock to save the TACs computed using the segmentations
+        """
         self.TACButton = QCheckBox()
         self.TACButton.stateChanged.connect(self.setValueTAC)
         self.TACType = QComboBox()
         self.TACType.addItem("TAC Images")
         self.TACType.addItem("Raw Values")
         self.TACType.addItem("All")
-        self.TACButton.setToolTip("Export the specific TAC curve, either via a txt file or the image itself.\n-1 for all of them.")
+        self.TACButton.setToolTip("Export the specific TAC curve, either via a txt file, the image itself (.png), or both.\n-1 for all of them.")
 
         subWidget = QWidget()
         layout = QHBoxLayout()
@@ -116,6 +161,8 @@ class ExportWindow(QMainWindow):
         slider.setTickPosition(QSlider.TicksBothSides)
         slider.setSingleStep(1)
         slider.setValue(-1)
+        slider.setToolTip("If -1, all TACs will be saved")
+        number.setToolTip("If -1, all TACs will be saved")
         number.setFixedWidth(30)
         slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
         number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
@@ -131,6 +178,9 @@ class ExportWindow(QMainWindow):
         self.current_line +=1
 
     def _createSegmFlatSave(self):
+        """
+        Create the dock to save the flats of the segmentations
+        """
         self.SegFlatButton = QCheckBox()
         self.SegFlatButton.stateChanged.connect(self.setValueSegmFlat)
         self.SegFlatType = QComboBox()
@@ -138,7 +188,7 @@ class ExportWindow(QMainWindow):
         self.SegFlatType.addItem("Sagittal")
         self.SegFlatType.addItem("Coronal")
         self.SegFlatType.addItem("All")
-        self.SegFlatButton.setToolTip("Export the specific Segm Flat Images.\n-1 for all of them.")
+        self.SegFlatButton.setToolTip("Export the specific Segm Flat Images, either one type or all 3, to png images.\n-1 for all of them.")
 
         subWidget = QWidget()
         layout = QHBoxLayout()
@@ -150,6 +200,8 @@ class ExportWindow(QMainWindow):
         slider.setTickPosition(QSlider.TicksBothSides)
         slider.setSingleStep(1)
         slider.setValue(-1)
+        slider.setToolTip("If -1, all segmentation flats will be saved")
+        number.setToolTip("If -1, all segmentation flats will be saved")
         number.setFixedWidth(30)
         slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
         number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
@@ -165,27 +217,37 @@ class ExportWindow(QMainWindow):
         self.current_line +=1
 
     def _createDiceSave(self):
+        """
+        Create the button to save the Dice coefficient matrix
+        """
         self.DiceCoeffButton = QCheckBox()
         self.DiceCoeffButton.stateChanged.connect(self.setValueExportDice)
+        self.DiceCoeffButton.setToolTip("Save the Dice coefficient matrix as a graph")
         self.generalLayout.addWidget(QLabel("Dice Coeff."),self.current_line,0)
         self.generalLayout.addWidget(self.DiceCoeffButton,self.current_line,1)
         self.current_line +=1
     def _createJaccardSave(self):
+        """
+        Create the button to save the Jaccard coefficient matrix
+        """
         self.JaccardCoeffButton = QCheckBox()
+        self.JaccardCoeffButton.setToolTip("Save the Jaccard coefficient matrix as a graph")
         self.JaccardCoeffButton.stateChanged.connect(self.setValueExportJaccard)
         self.generalLayout.addWidget(QLabel("Jaccard Coeff."),self.current_line,0)
         self.generalLayout.addWidget(self.JaccardCoeffButton,self.current_line,1)
         self.current_line +=1
 
     def _createErrorTACsSave(self):
+        """
+        Create the dock to save the TACs with errors
+        """
         self.ErrorTACButton = QCheckBox()
         self.ErrorTACButton.stateChanged.connect(self.setValueErrorTAC)
         self.ErrorTACType = QComboBox()
         self.ErrorTACType.addItem("Error TAC Images")
         self.ErrorTACType.addItem("Raw Values")
         self.ErrorTACType.addItem("All")
-        self.ErrorTACButton.setToolTip("Export the specific Error TAC curve, either via a txt file or the image itself.\n-1 for all of them.")
-
+        self.ErrorTACButton.setToolTip("Export the specific Error TAC curve, either via a .txt file, the image itself (.png), or both.\n-1 for all of them.")
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
@@ -199,6 +261,8 @@ class ExportWindow(QMainWindow):
         number.setFixedWidth(30)
         slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
         number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
+        slider.setToolTip("If -1, all TACs with errors will be saved")
+        number.setToolTip("If -1, all TACs with errors will be saved")
         layout.addWidget(slider)
         layout.addWidget(number)
         self.ErrorTACsSaveValues = slider
@@ -210,14 +274,26 @@ class ExportWindow(QMainWindow):
         self.generalLayout.addWidget(self.ErrorTACType,self.current_line,3)
         self.current_line +=1
 
-    def _createExportAll(self):
-        self.saveButton = QPushButton("Export")
+    def _createDynestyResultSave(self):
+        """
+        Saves all the results from Dynesty
+        """
+        pass
 
+    def _createExportAll(self):
+        """
+        Create the Export Button
+        """
+        self.saveButton = QPushButton("Export")
+        self.saveButton.setToolTip("Export the selected choices from above.\nBoxes need to be checked to be exported.")
         self.saveButton.clicked.connect(self.exportInfo)
 
         self.generalLayout.addWidget(self.saveButton,self.current_line,2)
         self.current_line +=1
     def _createExportList(self):
+        """
+        Create the docks for the Export Window
+        """
         self._createHeader()
         self._createPathDock()
         self._createHeaderDock()
@@ -228,30 +304,42 @@ class ExportWindow(QMainWindow):
         self._createDiceSave()
         self._createJaccardSave()
         self._createErrorTACsSave()
+        self._createDynestyResultSave()
 
         self._createExportAll()
 
     def setValueExportDicom(self):
+        """Set the export DicomImage with the checkbox"""
         self.ExportDicom = self.DicomImageButton.isChecked()
     def setValueExportParam(self):
+        """Set the export GUIParam with the checkbox"""
         self.ExportParam = self.ParamButton.isChecked()
     def setValueTAC(self):
+        """Set the export TACs with the checkbox"""
         self.ExportTAC = self.TACButton.isChecked()
     def setValueSegmFlat(self):
+        """Set the export Segmentation Flats with the checkbox"""
         self.ExportSegFlat = self.TACButton.isChecked()
     def setValueExportDice(self):
+        """Set the export Dice Coefficients with the checkbox"""
         self.ExportDice = self.DiceCoeffButton.isChecked()
     def setValueExportJaccard(self):
+        """Set the export Jaccard Coefficients with the checkbox"""
         self.ExportJaccard = self.JaccardCoeffButton.isChecked()
     def setValueErrorTAC(self):
+        """Set the export Error TACs with the checkbox"""
         self.ExportErrorTAC = self.ErrorTACButton.isChecked()
     def TACComboChanged(self):
+        """Set the type of TACs with the checkbox"""
         self.TACTypeSave = self.TACType.currentText()
     def ErrorTACComboChanged(self):
+        """Set the type of Errors with the checkbox"""
         self.ErrorTACTypeSave = self.ErrorTACType.currentText()
     def SegFlatComboChanged(self):
+        """Set the type of Segmentation Flats with the checkbox"""
         self.SegFlatTypeSave = self.SegFlatType.currentText()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
+        """Set the value of slider with the lineedit"""
         lineedit.setText(str(slider.value()))
     def set_value_line_edit(self,slider:QSlider,lineedit:QLineEdit):
         """
@@ -266,6 +354,7 @@ class ExportWindow(QMainWindow):
         except:
             slider.setValue(0)
     def _createErrorMessage(self,message:str=""):
+        """Create an error message. Used when something doesn't work"""
         alert = QMessageBox()
         if message =="":
             alert.setText("An error occurred")
@@ -274,16 +363,19 @@ class ExportWindow(QMainWindow):
         alert.exec()
 
     def exportDicomImageProcess(self):
+        """Exporting of the DicomImage class"""
         if self.pathName.text() != "" and self.headerName.text() != "":
             PF.pickle_save(self.Image,self.pathName.text()+self.headerName.text()+"_DicomImage.pkl")
         else:
             self._createErrorMessage("Unable to Save")
     def exportParamProcess(self):
+        """Exporting of the GUIParam class"""
         if self.pathName.text() != "" and self.headerName.text() != "":
             PF.pickle_save(self.parameters,self.pathName.text()+self.headerName.text()+"_Parameters.pkl")
         else:
             self._createErrorMessage("Unable to Save")
     def exportDiceProcess(self):
+        """Saving of the Dice Coefficients graph"""
         if self.pathName.text() != "" and self.headerName.text() != "":
             fig = plt.figure()
             plt.xlabel("Segm."); plt.ylabel("Segm.");plt.title("Dice Coefficients");plt.grid()
@@ -294,6 +386,7 @@ class ExportWindow(QMainWindow):
         else:
             self._createErrorMessage("Unable to Save")
     def exportJaccardProcess(self):
+        """Saving of the Jaccard Coefficients graph"""
         if self.pathName.text() != "" and self.headerName.text() != "":
             fig = plt.figure()
             plt.xlabel("Segm."); plt.ylabel("Segm.");plt.title("Jaccard Coefficients");plt.grid()
@@ -304,6 +397,7 @@ class ExportWindow(QMainWindow):
         else:
             self._createErrorMessage("Unable to Save")
     def exportTACProcess(self):
+        """Saving of the TACs graphs"""
         if self.pathName.text() != "" and self.headerName.text() != "":
             k = self.TACsSaveValues.value()
             if k == -1:
@@ -326,6 +420,7 @@ class ExportWindow(QMainWindow):
         else:
             self._createErrorMessage("Unable to Save")
     def exportSegFlatProcess(self):
+        """Saving of the Segmentation Flats graphs"""
         if self.pathName.text() != "" and self.headerName.text() != "":
             k = self.SegmFlatSaveValues.value()
             if k == -1:
@@ -356,6 +451,7 @@ class ExportWindow(QMainWindow):
         else:
             self._createErrorMessage("Unable to Save")
     def exportErrorTACProcess(self):
+        """Saving of the TACs with Errors graphs"""
         if self.pathName.text() != "" and self.headerName.text() != "":
             k = self.ErrorTACsSaveValues.value()
             if k == -1:
@@ -379,6 +475,7 @@ class ExportWindow(QMainWindow):
         else:
             self._createErrorMessage("Unable to Save")
     def exportInfo(self):
+        """Activated when clicked on 'Export'. Undertake all the export processes."""
         try:
             if self.ExportDicom:
                 self.exportDicomImageProcess()

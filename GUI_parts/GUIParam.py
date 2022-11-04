@@ -10,6 +10,8 @@ class GUIParameters(object):
     Image -- DicomImage from the class\n
     """
     def __init__(self,Image:DicomImage):
+        """Initialization of the class.\n
+        Only requires the DicomImage, from which it takes the value, without keeping the full image and the segmentations"""
         self._size = np.array([Image.nb_acq,Image.nb_slice,Image.width,Image.length])
         self._nbSeg = Image.voi_counter
         self._nbError = Image.voi_statistics_counter
