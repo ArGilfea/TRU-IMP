@@ -46,24 +46,30 @@ class Window(QMainWindow):
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
-        self.btn = QPushButton("Info")
-        self.btn.clicked.connect(self.on_button_clicked_infos)
-        self.btn.setToolTip("Displays the infos of the current loaded acquisition")
         btn_param = QPushButton("Parameters")
         btn_segm = QPushButton("Segment")
         buttonErrors = QPushButton("ErrorBars")
+        buttonBayesian = QPushButton("Bayesian")
+
+        btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Dynesty analyses")
+        btn_segm.setToolTip("Runs the segmentations according to the selected parameters")
+        buttonErrors.setToolTip("Runs the error bars according to the selected parameters")
+        buttonBayesian.setToolTip("Runs the Bayesian analyses according to the selected parameters")
+
         btn_param.setToolTip("Displays the parameters to resize the acquisition or to set up for the segmentations")
         btn_param.clicked.connect(self.open_parameters)
         btn_segm.clicked.connect(self.run_segm)
         buttonErrors.clicked.connect(self.run_errors)
-        layout.addWidget(btn_param)
-        layout.addWidget(self.btn)  
+        buttonBayesian.clicked.connect(self.run_Bayesian)
+        layout.addWidget(btn_param)  
         layout.addWidget(btn_segm)
         layout.addWidget(buttonErrors)
+        layout.addWidget(buttonBayesian)
         self.generalLayout.addWidget(subWidget,0,3)         
     def _createExitButton(self,line:int=7):
         """Create an exit button"""
         self.exit = QPushButton("Exit")
+        self.exit.setToolTip("Closes the GUI and its dependencies")
         self.exit.clicked.connect(self.close)
         self.generalLayout.addWidget(self.exit,line,3)  
     def _createExtractDock(self,line:int=0):
@@ -74,10 +80,15 @@ class Window(QMainWindow):
         btn_extr = QPushButton("Extract")
         btn_load = QPushButton("Load")
         btn_browse = QPushButton("Browse")
+
+        btn_extr.setToolTip("Extracts the relevant information from a folder containing .dcm files")
+        btn_load.setToolTip("Loads the selected .pkl file")
+        btn_browse.setToolTip("Opens a local browser to select a file")
+
         source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
         source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
         source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
-        source.setText("/Users/philippelaporte/Desktop/Test/Test_Errors_DicomImage.pkl")
+        source.setText("/Users/philippelaporte/Desktop/Test/Fan9_Dyn_DicomImage.pkl")
         
         btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
@@ -100,7 +111,9 @@ class Window(QMainWindow):
         layout2 = QHBoxLayout()
         subWidget1.setLayout(layout1)
         subWidget2.setLayout(layout2)
-
+        self.btn = QPushButton("Info")
+        self.btn.clicked.connect(self.on_button_clicked_infos)
+        self.btn.setToolTip("Displays the infos of the current loaded acquisition")
         msg_save = QLabel("Path: ")
         path = QLineEdit()
         path_name = QLineEdit()
@@ -110,13 +123,14 @@ class Window(QMainWindow):
         btn_browse = QPushButton("Browse")
         btn_browse.clicked.connect(partial(self.browse_button_directory,path))
         btn_export = QPushButton("Export")
+        btn_export.setToolTip("Opens an window to decide what to export")
         btn_export.clicked.connect(self.open_export)
         layout1.addWidget(path)
         layout1.addWidget(path_name)
         #layout2.addWidget(btn_browse)
         #layout2.addWidget(btn_save)
         layout2.addWidget(btn_export)
-
+        layout2.addWidget(self.btn)
         #self.generalLayout.addWidget(msg_save,line,0)  
         #self.generalLayout.addWidget(subWidget1,line,1)  
         self.generalLayout.addWidget(subWidget2,line,2)  
@@ -173,6 +187,9 @@ class Window(QMainWindow):
         self.ResultViewCombo.addItem("TAC")
         self.ResultViewCombo.addItem("Dice")
         self.ResultViewCombo.addItem("Jaccard")
+        self.ResultViewCombo.addItem("Dynesty 1")
+        self.ResultViewCombo.addItem("Dynesty 2")
+        self.ResultViewCombo.addItem("Dynesty 3")
         self.ResultViewCombo.activated[str].connect(self.combo_box_result_changed)
 
         layout.addWidget(self.ImageViewCombo)
@@ -459,6 +476,23 @@ class Window(QMainWindow):
                 self.parameters._nbError = self.Image.voi_statistics_counter
         except:
             self._createErrorMessage("Unable to run the error bars production")
+    def run_Bayesian(self):
+        """
+        Function to run the Bayesian Analyses to extract the coefficients based on the input parameters
+        """
+        try:
+            initial = time.time()
+            if self.parameters.ErrorSegm >= 0:
+                k = np.array([self.parameters.ErrorSegm])
+            else:
+                k=-1
+            self.Image.Bayesian_analyses(key=k,curves = "Errors",method="Dynesty",
+                                        model = "2_Comp_A2",
+                                        verbose = self.parameters.verbose,
+                                        save=True)
+            self.displayStatus(f"{self.parameters.SegmType} errors",initial)
+        except:
+            self._createErrorMessage("Unable to run the Bayesian analyses")
     def update_all(self):
         """Main function when something is changed to update all the views"""
         self.update_Result()
@@ -477,6 +511,12 @@ class Window(QMainWindow):
             self.update_Dice()
         elif self.resultView == "Jaccard":
             self.update_Jaccard()
+        elif self.resultView == "Dynesty 1":
+            self.update_Dynesty(0)
+        elif self.resultView == "Dynesty 2":
+            self.update_Dynesty(1)
+        elif self.resultView == "Dynesty 3":
+            self.update_Dynesty(2)
     def update_Dice(self):
         """Shows the Dice coefficients in the middle image"""
         try:
@@ -492,6 +532,17 @@ class Window(QMainWindow):
             self.TACImage.axes.cla()
             im = self.TACImage.axes.pcolormesh(self.Image.jaccard_all)
             self.base_coeff_axes(im)
+            self.TACImage.draw() 
+        except:
+            pass
+    def update_Dynesty(self,param:int=0):
+        """Shows the Dynesty coefficients in the middle image"""
+        try:
+            self.TACImage.axes.cla()
+            self.TACImage.axes.errorbar(np.arange(self.Image.bayesian_results_avg.shape[0]),
+                                            self.Image.bayesian_results_avg[:,param],
+                                            yerr=[self.Image.bayesian_results_e_down[:,param],self.Image.bayesian_results_e_up[:,param]])
+            self.base_Dynesty_axes()
             self.TACImage.draw() 
         except:
             pass
@@ -616,6 +667,13 @@ class Window(QMainWindow):
         except: pass
         self.TACImage.axes.set_title(self.resultView)
         self.cb = self.TACImage.fig.colorbar(mappable)
+    def base_Dynesty_axes(self):
+        """Gives the basic axes details for the result image (center) when they are updated when it is Dice or Jaccard"""
+        try:
+            self.cb.remove()
+        except: pass
+        self.TACImage.axes.set_title(self.resultView)
+        self.TACImage.axes.grid()
     def base_1D_axes(self):
         """Sets the basic axes of the 1D slices images (at the bottom)"""
         self.AxialImage1D.axes.set_title("Axial Slice");self.AxialImage1D.axes.grid()
@@ -761,6 +819,7 @@ class Window(QMainWindow):
                 Units: {self.Image.units}<br>
                 Segm.: {self.Image.voi_counter}<br>
                 Segm. with Errors: {len(self.Image.voi_statistics_avg)}<br>
+                Bayesian Analyses: {self.Image.bayesian_results_avg.shape[0]}<br>
                 """
         return a
     def on_button_clicked_infos(self):

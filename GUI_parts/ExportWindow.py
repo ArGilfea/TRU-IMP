@@ -62,6 +62,8 @@ class ExportWindow(QMainWindow):
         self.SegFlatTypeSave = "All"
         self.ExportErrorTAC = False
         self.ErrorTACTypeSave = "Error TAC Images"
+        self.ExportDynestyParam = False
+        self.DynestyParamTypeSave = "Dynesty Param"
 
     def initialize_export_window(self):
         """
@@ -278,7 +280,38 @@ Useful for the reproducibility of analyses.""")
         """
         Saves all the results from Dynesty
         """
-        pass
+        self.DynestyParamButton = QCheckBox()
+        self.DynestyParamButton.stateChanged.connect(self.setValueDynestyParam)
+        self.DynestyParamType = QComboBox()
+        self.DynestyParamType.addItem("Dynesty Param")
+        self.DynestyParamType.addItem("Raw Values")
+        self.DynestyParamType.addItem("All")
+        self.DynestyParamButton.setToolTip("Export the specific Dynesty Params, either via a .txt file, the image itself (.png), or both.\n-1 for all of them.")
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+        slider = QSlider(Qt.Horizontal)
+        number = QLineEdit()
+        number.setText(str(-1))
+        slider.setRange(-1,self.Image.bayesian_results_avg.shape[1]-1)
+        slider.setTickPosition(QSlider.TicksBothSides)
+        slider.setSingleStep(1)
+        slider.setValue(-1)
+        number.setFixedWidth(30)
+        slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
+        number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
+        slider.setToolTip("If -1, all Params with errors will be saved")
+        number.setToolTip("If -1, all Params with errors will be saved")
+        layout.addWidget(slider)
+        layout.addWidget(number)
+        self.DynestyParamSaveValues = slider
+        self.DynestyParamType.activated[str].connect(self.DynestyParamComboChanged)
+
+        self.generalLayout.addWidget(QLabel("Dynesty Param"),self.current_line,0)
+        self.generalLayout.addWidget(self.DynestyParamButton,self.current_line,1)
+        self.generalLayout.addWidget(subWidget,self.current_line,2)
+        self.generalLayout.addWidget(self.DynestyParamType,self.current_line,3)
+        self.current_line +=1
 
     def _createExportAll(self):
         """
@@ -329,12 +362,18 @@ Useful for the reproducibility of analyses.""")
     def setValueErrorTAC(self):
         """Set the export Error TACs with the checkbox"""
         self.ExportErrorTAC = self.ErrorTACButton.isChecked()
+    def setValueDynestyParam(self):
+        """Set the export Error TACs with the checkbox"""
+        self.ExportDynestyParam = self.DynestyParamButton.isChecked()
     def TACComboChanged(self):
         """Set the type of TACs with the checkbox"""
         self.TACTypeSave = self.TACType.currentText()
     def ErrorTACComboChanged(self):
         """Set the type of Errors with the checkbox"""
         self.ErrorTACTypeSave = self.ErrorTACType.currentText()
+    def DynestyParamComboChanged(self):
+        """Set the type of Errors with the checkbox"""
+        self.DynestyParamTypeSave = self.DynestyParamType.currentText()
     def SegFlatComboChanged(self):
         """Set the type of Segmentation Flats with the checkbox"""
         self.SegFlatTypeSave = self.SegFlatType.currentText()
@@ -474,6 +513,34 @@ Useful for the reproducibility of analyses.""")
                 np.savetxt(self.pathName.text()+self.headerName.text()+f"_Acq_{k}_Error_TAC.csv",arrayTAC,delimiter=';')
         else:
             self._createErrorMessage("Unable to Save")
+    def exportDynestyParamProcess(self):
+        """Saving of the Dynesty Parameters"""
+        if self.pathName.text() != "" and self.headerName.text() != "":
+            k = self.DynestyParamSaveValues.value()
+            if k == -1:
+                z = np.arange(self.Image.bayesian_results_avg.shape[1])
+            else:
+                z = np.array([k])
+            if self.DynestyParamTypeSave in ["All","Dynesty Param"]:
+                for i in range(z.shape[0]):
+                    fig = plt.figure()
+                    plt.xlabel("Acq"); plt.ylabel("Param");plt.title(f"Dynesty Parameter {z[i]}");plt.grid()
+                    plt.errorbar(np.arange(self.Image.bayesian_results_avg.shape[0]),
+                                self.Image.bayesian_results_avg[:,z[i]],
+                                yerr=[self.Image.bayesian_results_e_down[:,z[i]],
+                                self.Image.bayesian_results_e_up[:,z[i]]])
+                    fig.savefig(self.pathName.text()+self.headerName.text()+f"_Param_{z[i]}_Dynesty_Param.png")
+                    del fig
+            if self.DynestyParamTypeSave in ["All","Raw Values"]:
+                arrayTAC = np.zeros((self.Image.bayesian_results_avg.shape[0],3*z.shape[0]+1))
+                arrayTAC[:,0] = np.arange(self.Image.bayesian_results_avg.shape[0])
+                for i in range(z.shape[0]):
+                    arrayTAC[:,i+1] = self.Image.bayesian_results_avg[:,i]
+                    arrayTAC[:,z.shape[0]+i+1] = self.Image.bayesian_results_e_down[:,i]
+                    arrayTAC[:,2*z.shape[0]+i+1] = self.Image.bayesian_results_e_up[:,i]
+                np.savetxt(self.pathName.text()+self.headerName.text()+f"_Param_{k}_Dynesty_Param.csv",arrayTAC,delimiter=';')
+        else:
+            self._createErrorMessage("Unable to Save")
     def exportInfo(self):
         """Activated when clicked on 'Export'. Undertake all the export processes."""
         try:
@@ -491,6 +558,8 @@ Useful for the reproducibility of analyses.""")
                 self.exportJaccardProcess()
             if self.ExportErrorTAC:
                 self.exportErrorTACProcess()
+            if self.ExportDynestyParam:
+                self.exportDynestyParamProcess()
             self._createErrorMessage("Export Successful")
         except:
             self._createErrorMessage("Unable to Export")

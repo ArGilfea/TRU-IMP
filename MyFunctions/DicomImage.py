@@ -55,6 +55,9 @@ class DicomImage(object):
         self.voi_statistics_counter = 0
         self.voi_statistics_avg = []
         self.voi_statistics_std = []
+        self.bayesian_results_avg = np.array([]) #If breaks, remove np.array
+        self.bayesian_results_e_up = np.array([])
+        self.bayesian_results_e_down = np.array([])
         self.axial_flats = np.zeros((self.nb_acq,self.width,self.length))
         self.coronal_flats = np.zeros((self.nb_acq,self.nb_slice,self.length))
         self.sagittal_flats = np.zeros((self.nb_acq,self.nb_slice,self.width))
@@ -1168,8 +1171,8 @@ class DicomImage(object):
 # This section deals with Bayesian analysis of curves      #
 #                                                          #
 ############################################################
-    def Bayesian_analyses(self,key=-1,curves = 'Average',method='Dynesty',model='2_Comp_A2',
-                            verbose = False):
+    def Bayesian_analyses(self,key = -1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2',
+                            verbose:bool = False,save:bool = True):
         """Takes an array of index for a curve and fit it using a given model and algorithm.
 
         Keyword arguments:\n
@@ -1199,6 +1202,15 @@ class DicomImage(object):
             values[i,:] = value
             errors_up[i,:] = error_up
             errors_down[i,:] = error_down
+            if save:
+                if self.bayesian_results_avg == []:
+                    self.bayesian_results_avg = np.array([value])
+                    self.bayesian_results_e_up = np.array([error_up])
+                    self.bayesian_results_e_down = np.array([error_down])
+                else:
+                    self.bayesian_results_avg = np.append(self.bayesian_results_avg,[value],axis=0)
+                    self.bayesian_results_e_up = np.append(self.bayesian_results_e_up,[error_up],axis=0)
+                    self.bayesian_results_e_down = np.append(self.bayesian_results_e_down,[error_down],axis=0)
         
         return values, errors_up, errors_down
 
