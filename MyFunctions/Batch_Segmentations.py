@@ -128,11 +128,23 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
     print(f"All the segmentations were done in {(time.time() - initial):.2f} s.")
 
-def Canny_Contour_Batch(Image:DicomImage,k,subImage=[-1],combinationCanny=2,
-                        sigma_Canny=5,name_segmentation='',SaveSegm=True,
-                        do_moments=True,do_Stats=True):
+def Canny_Contour_Batch(Image:DicomImage,k,subImage:list=[-1],combinationCanny:int=2,
+                        sigma_Canny:float=5,name_segmentation:str='',SaveSegm:bool=True,
+                        do_moments:bool=True,do_Stats:bool=True):
     """
-    TBA
+    Runs Canny Contour Segmentations on many timeframes. Useful to run everything in a single command.\n
+    The parameters passed for each Canny Contour segmentation will be the same, only the timeframe of interest will vary, according to the
+    array k.    
+    Keyword arguments:\n
+    Image -- Image on which to segment\n
+    k -- timeframes on which to base the static segmentations (must be an array or -1 for all timeframes)\n
+    subimage -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
+    combinationCanny -- combination parameter for the number of necessary 2D Canny on a given voxel to make that voxel part of the 
+    sigma_Canny -- used for the Canny segmentation (default 5)\n
+    name_segmentation -- used to name all the segmentations saved (default '')\n
+    do_moments -- compute the moments of the resulting segmentations (default True)\n
+    do_stats -- compute the mean and std of the segmentations (default True)\n
+    SaveSegm -- save the segmentations in the DicomImage class (default True)\n
     """
     initial = time.time()
     for i in range(k.shape[0]):
@@ -141,9 +153,9 @@ def Canny_Contour_Batch(Image:DicomImage,k,subImage=[-1],combinationCanny=2,
                         do_moments=do_moments,save=SaveSegm,do_stats=do_Stats)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
-def Canny_Fill_Batch(Image:DicomImage,k,subimage=[-1],sigma_Canny=5,combinationCanny=2,
-                    methodCanny="Taxicab",name_segmentation = '',SaveSegm=True,
-                    do_moments=True,do_Stats=True):
+def Canny_Fill_Batch(Image:DicomImage,k,subimage:list=[-1],sigma_Canny:float=5,combinationCanny:int=2,
+                    methodCanny:str="Taxicab",name_segmentation:str = '',SaveSegm:bool=True,
+                    do_moments:bool=True,do_Stats:bool=True):
     """
     Runs Canny Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
@@ -153,7 +165,14 @@ def Canny_Fill_Batch(Image:DicomImage,k,subimage=[-1],sigma_Canny=5,combinationC
     k -- timeframes on which to base the static segmentations (must be an array or -1 for all timeframes)\n
     subimage -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
     sigma_Canny -- used for the Canny segmentation (default 5)\n
+    combinationCanny -- combination parameter for the number of necessary 2D Canny on a given voxel to make that voxel part of the 
+    VOI (default 2)\n
+    methodCanny -- method to compute the distance between two voxels (default 'TaxiCab')\n
     name_segmentation -- used to name all the segmentations saved (default '')\n
+    do_moments -- compute the moments of the resulting segmentations (default True)\n
+    do_stats -- compute the mean and std of the segmentations (default True)\n
+    verbose -- gives the progress of the process (default False)\n
+    SaveSegm -- save the segmentations in the DicomImage class (default True)\n
     """
     initial = time.time()
     for i in range(k.shape[0]):
@@ -163,18 +182,24 @@ def Canny_Fill_Batch(Image:DicomImage,k,subimage=[-1],sigma_Canny=5,combinationC
                                 do_moments=do_moments,do_stats=do_Stats)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
-def ICM_Batch(Image,k,subimage=[-1],alpha=1e1,max_iter_ICM=100,max_iter_kmean_ICM=100,name_segmentation = '',save=True,do_moments=True,
-                    do_stats=True,verbose=False):
+def ICM_Batch(Image,k,subimage:list=[-1],alpha:float=1e1,max_iter_ICM:int=100,max_iter_kmean_ICM:int=100,name_segmentation:str = '',save:bool=True,do_moments:bool=True,
+                    do_stats:bool=True,verbose:bool=False):
     '''
     Runs ICM Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
     array k.
     Keyword arguments:\n
+    Image -- DicomImage class to run the segmentations\n
     k -- timeframes on which to base the static segmentations (must be an array or -1 for all timeframes)\n
     subimage -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
     alpha -- used for the ICM segmentation (default 1e1)\n
     max_iter_ICM -- used for the ICM segmentation (default 100)\n
+    max_iter_kmean_ICM -- used for the kMean in the ICM (default 100)\n
     name_segmentation -- used to name all the segmentations saved (default '')\n
+    do_moments -- compute the moments of the resulting segmentations (default True)\n
+    do_stats -- compute the mean and std of the segmentations (default True)\n
+    verbose -- gives the progress of the process (default False)\n
+    SaveSegm -- save the segmentations in the DicomImage class (default True)\n
     '''
     initial = time.time()
     for i in range(k.shape[0]):
@@ -186,7 +211,11 @@ def ICM_Batch(Image,k,subimage=[-1],alpha=1e1,max_iter_ICM=100,max_iter_kmean_IC
 def kMean_Batch(Image:DicomImage,k:np.ndarray,subimage:np.ndarray=[-1],max_iter_kmean:int=100,saveSegm:bool = True, name_segmentation:str = '', do_moments:bool=True,
                     do_stats:bool=True, verbose:bool=False):
     """
-    TBA
+    Image -- DicomImage class to run the segmentations\n
+    do_moments -- compute the moments of the resulting segmentations (default True)\n
+    do_stats -- compute the mean and std of the segmentations (default True)\n
+    verbose -- gives the progress of the process (default False)\n
+    SaveSegm -- save the segmentations in the DicomImage class (default True)\n
     """
     initial = time.time()
     for i in range(k.shape[0]):
@@ -195,14 +224,15 @@ def kMean_Batch(Image:DicomImage,k:np.ndarray,subimage:np.ndarray=[-1],max_iter_
                         verbose=verbose,name=f"{name_segmentation} kMean acq {k[i]}")
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
-def Filling_Batch_f(Image,k,seed=[[]],subimage=[-1],max_iter_Fill=300,factor_Fill=[0.1,2.8],steps_Fill = 1000,
-                    threshold_fill = 0.99,growth=-1,min_f_growth=0,name_segmentation = '',verbose_graph_fill=False,
-                    SaveSegm=True,do_moments=True,do_stats=True):
+def Filling_Batch_f(Image:DicomImage,k,seed:list=[[]],subimage:list=[-1],max_iter_Fill:int=300,factor_Fill:list=[0.1,2.8],steps_Fill:int = 1000,
+                    threshold_fill:float = 0.99,growth:float=-1,min_f_growth:float=0,name_segmentation:str = '',verbose_graph_fill:bool=False,
+                    SaveSegm:bool=True,do_moments:bool=True,do_stats:bool=True):
     '''
     Runs Filling Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
     array k.
     Keyword arguments:\n
+    Image -- DicomImage class to run the segmentations\n
     segmentation_type -- type of segmentation to run (default all)\n
     seed - seed used for the filling segmentation (default [[]])\n
     k -- timeframes on which to base the static segmentations (must be an array or -1 for all timeframes) (default -1)\n
@@ -232,12 +262,26 @@ def Filling_Batch_f(Image,k,seed=[[]],subimage=[-1],max_iter_Fill=300,factor_Fil
                     SaveSegm=SaveSegm)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
-def Filling_Batch(Image:DicomImage,k:np.ndarray,seed=[[]],subimage = [-1],factor=1,
-                    max_iter_f = 100, 
-                    name_segmentation = '',
-                    SaveSegm=True,do_moments=True,do_stats=True,verbose=False):
+def Filling_Batch(Image:DicomImage,k:np.ndarray,seed:list=[[]],subimage:list = [-1],factor:float=1,
+                    max_iter_f:int = 100, 
+                    name_segmentation:str = '',
+                    SaveSegm:bool=True,do_moments:bool=True,do_stats:bool=True,verbose:bool=False):
     """
-    TBA
+    Runs Filling Segmentation on many timeframes. Useful to run everything in a single command.\n
+    The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
+    array k.
+    Keyword arguments:\n
+    Image -- DicomImage class to run the segmentations\n
+    seed - seed used for the filling segmentation (default [[]])\n
+    k -- timeframes on which to base the static segmentations (must be an array or -1 for all timeframes) (default -1)\n
+    subimage -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
+    max_iter_f -- used for the filling segmentation (default 100)\n
+    factor -- factor used for the filling algorithm (default 1)\n
+    name_segmentation -- used to name all the segmentations saved (default '')\n
+    do_moments -- compute the moments of the resulting segmentations (default True)\n
+    do_stats -- compute the mean and std of the segmentations (default True)\n
+    verbose -- gives the progress of the process (default False)\n
+    SaveSegm -- save the segmentations in the DicomImage class (default True)\n
     """
     initial = time.time()
     for i in range(k.shape[0]):

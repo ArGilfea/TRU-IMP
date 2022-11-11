@@ -531,6 +531,20 @@ class DicomImage(object):
     def VOI_Canny_filled(self,subinfo = [[-1,0],[0,0],[0,0]],acq=0,combination = 2,
                         sigma=1,name='',do_moments = False,method='taxicab',
                         do_stats = False,save=True): #Done in 1.2.0
+        """
+        Computes a segmentation using Canny for the contour, then filling it.
+        Keyword arguments:\n
+        acq -- timeframes on which to base the static segmentations (default 0)\n
+        subinfo -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
+        sigma -- used for the Canny segmentation (default 5)\n
+        combination -- combination parameter for the number of necessary 2D Canny on a given voxel to make that voxel part of the 
+        VOI (default 2)\n
+        method -- method to compute the distance between two voxels (default 'TaxiCab')\n
+        name -- used to name all the segmentations saved (default '')\n
+        do_moments -- compute the moments of the resulting segmentations (default True)\n
+        do_stats -- compute the mean and std of the segmentations (default True)\n
+        save -- save the segmentations in the DicomImage class (default True)\n  
+        """
         if np.sum(subinfo) < -0.5:
             Image = self.Image[int(acq),:,:,:]
         else:
