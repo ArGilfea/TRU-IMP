@@ -12,11 +12,11 @@ from dynesty import plotting as dyplot
 
 class DicomImage(object):
     """
-    TBA
+    Contains an image from Nuclear Medicine with many functions to compute segmentations, statistics, parameters and outputs images.
     """
-    def __init__(self,Image,time = [0],name='',rescaleSlope = [1],rescaleIntercept = [0],
-                voxel_thickness=1,voxel_width=1,voxel_length=1,time_scale='min',
-                flat_images=False,units='',mass = 1,Dose_inj = 0,Description=''):
+    def __init__(self,Image:np.ndarray,time:list = [0],name:str='',rescaleSlope:list = [1],rescaleIntercept:list = [0],
+                voxel_thickness:int=1,voxel_width:int=1,voxel_length:int=1,time_scale:str='min',
+                flat_images:bool=False,units:str='',mass:int = 1,Dose_inj:int = 0,Description:str=''):
         #General Info
         self.version = '4.0.0'
         self.voi_methods = ["Ellipsoid","Threshold","Canny Contour","Canny Filled",
@@ -67,7 +67,7 @@ class DicomImage(object):
                 self.sagittal_flats[i,:,:] = self.sagittal_flat(i)
                 self.coronal_flats[i,:,:] = self.coronal_flat(i)
 
-    def select_acq(self,acq = -1): #Done in 1.1
+    def select_acq(self,acq:int = -1): #Done in 1.1
         """Returns a specific 3D (spatial) volume image, determined by the key input
         
         Keyword arguments:\n
@@ -82,7 +82,14 @@ class DicomImage(object):
 # This section deals with the 2-D images                   #
 #                                                          #
 ############################################################
-    def axial_flat(self,acq=-1,counter=-1,save=False): #Added in 1.1.1
+    def axial_flat(self,acq:int=-1,counter:int=-1,save:bool=False): #Added in 1.1.1
+        """
+        Returns an image flat, either of the image itself or from one segmentation scheme.\n
+        Keyword arguments:\n
+        acq -- acquisition from which to take the flat, if > -1 (default -1)\n
+        acq -- segm. counter from which to take the flat, if > -1 (default -1)\n
+        save -- Save the computed flat image, if from an acq (default False)\n
+        """
         flat_image = np.zeros((self.width,self.length))
         if counter < 0:
             region = self.select_acq(acq)
@@ -96,7 +103,14 @@ class DicomImage(object):
                 for j in range(self.length):
                     flat_image[i,j] = np.sum(self.voi[f"{counter}"][:,i,j])/self.nb_slice
         return flat_image
-    def coronal_flat(self,acq=-1,counter=-1,save=False): #Added in 1.1.1
+    def coronal_flat(self,acq:int=-1,counter:int=-1,save:bool=False): #Added in 1.1.1
+        """
+        Returns an image flat, either of the image itself or from one segmentation scheme.\n
+        Keyword arguments:\n
+        acq -- acquisition from which to take the flat, if > -1 (default -1)\n
+        acq -- segm. counter from which to take the flat, if > -1 (default -1)\n
+        save -- Save the computed flat image, if from an acq (default False)\n
+        """
         flat_image = np.zeros((self.nb_slice,self.length))
         if counter < 0:
             region = self.select_acq(acq)
@@ -110,7 +124,14 @@ class DicomImage(object):
                 for j in range(self.length):
                     flat_image[i,j] = np.sum(self.voi[f"{counter}"][i,:,j])/self.width
         return flat_image
-    def sagittal_flat(self,acq=-1,counter=-1,save=False): #Added in 1.1.1
+    def sagittal_flat(self,acq:int=-1,counter:int=-1,save:bool=False): #Added in 1.1.1
+        """
+        Returns an image flat, either of the image itself or from one segmentation scheme.\n
+        Keyword arguments:\n
+        acq -- acquisition from which to take the flat, if > -1 (default -1)\n
+        acq -- segm. counter from which to take the flat, if > -1 (default -1)\n
+        save -- Save the computed flat image, if from an acq (default False)\n
+        """
         flat_image = np.zeros((self.nb_slice,self.width))
         if counter < 0:
             region = self.select_acq(acq)
@@ -124,7 +145,7 @@ class DicomImage(object):
                 for j in range(self.width):
                     flat_image[i,j] = np.sum(self.voi[f"{counter}"][i,j,:])/self.length
         return flat_image
-    def show_flats(self,acq=-2,key=-2,name=''): #Done in 1.2.1
+    def show_flats(self,acq:int=-2,key:int=-2,name:str=''): #Done in 1.2.1
         """Outputs three flat images in one figure of the three cuts (axial, sagittal and coronal) 
         of a given timeframe or voi.\n
         The specific image flattened and shown is given by the argument which is greater or equal to 0.
@@ -157,7 +178,7 @@ class DicomImage(object):
                 axs[1,0].pcolormesh(self.sagittal_flat(counter = i));axs[1,0].set_title("Sagittal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("y (voxels)")
                 axs[0,1].pcolormesh(self.coronal_flat(counter = i));axs[0,1].set_title("Coronal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("z (voxels)")
                 fig.suptitle(f"VOI {i} {name} {self.voi_name[i]}")                         
-    def show_point(self,point = [-1,0,0,0],star=False,log=False, sub_im = [[-1,-1],[-1,-1],[-1,-1]]): #Done in 1.2.1
+    def show_point(self,point:list = [-1,0,0,0],star:bool=False,log:bool=False, sub_im:list = [[-1,-1],[-1,-1],[-1,-1]]): #Done in 1.2.1
         """Outputs three images in one figure of the three cuts (axial, sagittal and coronal) 
         at a given acquisition and spatial point.\n
         The specific image flattened and shown is given by the argument which is greater or equal to 0.
@@ -200,7 +221,7 @@ class DicomImage(object):
             axs[0,0].plot(point[3],point[2],'*',markersize = 6,color='y') 
             axs[1,0].plot(point[2],point[1],'*',markersize = 6,color='y') 
             axs[0,1].plot(point[3],point[1],'*',markersize = 6,color='y') 
-    def show_curves(self,point = [-1,0,0,0]): #Done in 1.2.1
+    def show_curves(self,point:list = [-1,0,0,0]): #Done in 1.2.1
         """Outputs three images in one figure of the three cuts (axial, sagittal and coronal) 
         at a given acquisition and spatial point.\n
         The specific image flattened and shown is given by the argument which is greater or equal to 0.
@@ -223,7 +244,7 @@ class DicomImage(object):
         axs[1,1].set_xlabel("Time (min)");axs[1,1].set_ylabel(self.units)
         fig.suptitle(f"Six axes around point: {point}")    
     
-    def show_coeff(self,keys=-1,type='Dice',title=''): #Done in 2.0.0
+    def show_coeff(self,keys:int=-1,type:str='Dice',title:str=''): #Done in 2.0.0
         """
         Shows the coefficient of kind 'type' for the segmentations given by 'keys'.\n
         Keyword arguments:\n
@@ -255,7 +276,12 @@ class DicomImage(object):
 # This section deals with image modifications              #
 #                                                          #
 ############################################################
-    def image_cut(self,dim_sub=np.array([[0,0],[0,0],[0,0]])):
+    def image_cut(self,dim_sub:np.ndarray=np.array([[0,0],[0,0],[0,0]])):
+        """
+        Take a spatial sub image from the whole acquisition.\n
+        Keyword arguments:\n
+        dim_sub -- section of the whole image to take (default np.array([[0,0],[0,0],[0,0]]))\n
+        """
         new_image = np.zeros_like(self.Image)
         for t in range(self.nb_acq):
             for i in range(int(dim_sub[0][0]),int(dim_sub[0][1])+1):
@@ -263,7 +289,7 @@ class DicomImage(object):
                     for k in range(int(dim_sub[2][0]),int(dim_sub[2][1])+1):
                         new_image[t,i,j,k] = self.Image[t,i,j,k]
         return new_image
-    def linear_shift(self,shifts=np.array([0,0,0]),counter = -1,save=True,name=''):
+    def linear_shift(self,shifts:np.ndarray=np.array([0,0,0]),counter:int = -1,save:bool=True,name:str=''):
         """
         Shift a given VOI linearly according to the input shifts.\n
         Each voxel of the VOI is shifted linearly along the three axes.\n
@@ -288,7 +314,7 @@ class DicomImage(object):
                 return new_VOI
         else:
             print(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
-    def linear_shifts_error(self,key:int=-1,order=1,d=1,weight=1,verbose=False):#Done in 2.0.0
+    def linear_shifts_error(self,key:int=-1,order=1,d=1,weight=1,verbose:bool=False):#Done in 2.0.0
         """
         This function takes a specific segmentation and shifts it linearly, saving only the results,
         in order to save memory space.
@@ -313,7 +339,7 @@ class DicomImage(object):
         self.voi_statistics_avg.append(np.mean(stats_curves,0))
         self.voi_statistics_std.append(np.std(stats_curves,0))
 
-    def linear_shifts_errors(self,keys:np.ndarray,order=1,d=1,weight=1,verbose=False,verbose_precise=False):#Done in 2.0.0
+    def linear_shifts_errors(self,keys:np.ndarray,order=1,d=1,weight=1,verbose:bool=False,verbose_precise:bool=False):#Done in 2.0.0
         """
         Runs the function linear_shift_errors on a number of segmentations, saving the resulting curves.\n
         The order and weight parameters will be the same for each computation.\n
@@ -338,7 +364,7 @@ class DicomImage(object):
 # This section deals with the adding and removal of VOIs   #
 #                                                          #
 ############################################################
-    def save_VOI(self,VOI,name='',do_stats=True,do_moments=True): #Added in 1.3.1
+    def save_VOI(self,VOI:np.ndarray,name:str='',do_stats:bool=True,do_moments:bool=True): #Added in 1.3.1
         """
         Save the VOI being worked with in the dictionary
         Keyword arguments:\n
@@ -363,7 +389,7 @@ class DicomImage(object):
         else:
             self.voi_statistics.append(np.zeros(self.nb_acq))
     
-    def remove_VOI(self,key = -1): #Done in 1.1
+    def remove_VOI(self,key:int = -1): #Done in 1.1
         """Removes a specific VOI entry to the dictionary of VOIs.
         This will make and fill a gap in the dictionary and other arrays containing
         aspects computed with respect to the VOI.
@@ -394,7 +420,7 @@ class DicomImage(object):
             self.voi_moment_of_inertia = new_moment
             self.voi_statistics = new_stats
                 
-    def duplicate_VOI(self,key = -1): #Done in 1.2.0
+    def duplicate_VOI(self,key:int = -1): #Done in 1.2.0
         """Adds a new VOI entry to the dictionary of VOIs, which will be placed
         at the end. Also copies all other computed aspects, i.e. number of voxels, name,
         moments and statistics.
@@ -411,7 +437,7 @@ class DicomImage(object):
             self.voi_statistics(self.voi_statistics[key])
             self.voi_counter += 1
 
-    def add_VOI_ellipsoid(self,center = np.array([2,2,2]),axes = np.array([1,1,1]),name='',do_moments=False,do_stats=False,save=True): #Done in 1.0
+    def add_VOI_ellipsoid(self,center:np.ndarray = np.array([2,2,2]),axes:np.ndarray = np.array([1,1,1]),name:str='',do_moments:bool=False,do_stats:bool=False,save:bool=True): #Done in 1.0
         """Creates a physical ellipsoid volume of interest (VOI)
         centered at a specific voxel specified by the first row in infos 
         and whose length of the three axes 
@@ -438,9 +464,19 @@ class DicomImage(object):
         else:
             return VOI
 
-    def VOI_threshold(self,acq = 0,key=-1,sigma=1,threshold = 1,
-                        name='',do_moments=False,do_stats=False,save=True): #Done in 1.4.0
-        """
+    def VOI_threshold(self,acq:int = 0,key:int=-1,sigma:float=1,threshold:float = 1,
+                        name:str='',do_moments:bool=False,do_stats:bool=False,save:bool=True): #Done in 1.4.0
+        """Creates a new VOI from a given VOI, by using a threshold. All values over it are kept, the others discarded.
+        
+        Keyword arguments:\n
+        acq -- temporal acquisition to use (default 0)\n
+        key -- segmentation key to use (default -1)\n
+        sigma -- value used for the Gaussian filter to take out asperities (default 1)\n
+        threshold -- threshold value to use, as a fraction of the maximum value (default 1)\n
+        name -- name of the VOI (default '')\n
+        do_moments -- compute the moments of the VOI and store them (default False)\n
+        do_stats -- compute the TACs relative to the VOI (default False)\n
+        save -- Save the VOI if true; otherwise, returns it as an argument (default True)\n
         """
         new_Im = np.zeros_like(self.voi[f"{key}"])
         new_VOI = gaussian_filter(self.voi[f"{key}"],sigma=sigma)
@@ -454,7 +490,7 @@ class DicomImage(object):
             self.save_VOI(new_Im,name=name,do_stats=do_stats,do_moments=do_moments)
         return new_Im        
 
-    def VOI_canny(self,subimage = np.array([]),combination = 2,sigma=1,name='',do_moments = False,save = True,do_stats=False): #Done in 1.2.0
+    def VOI_canny(self,subimage:np.ndarray = np.array([]),combination:int = 2,sigma:float=1,name:str='',do_moments:bool = False,save:bool = True,do_stats:bool=False): #Done in 1.2.0
         """This function creates the contour of a 3D image using Canny edge detection algorithm, with sigma for the Gaussian filter.
         The Canny edge detection algorithm works in 2D, so every 2D plane has to be considered individually.
         The combination options determine how many of the voxels in a given dimension have to be on the 2D contour to be counted.        
@@ -507,9 +543,12 @@ class DicomImage(object):
             return Canny_filled
     #@jit(nopython=True)
     #@jit
-    def VOI_filled(self,seed: np.ndarray = [[-1,-1,-1]],factor = 1,acq=0,sub_im: np.ndarray = [[-1,-1],[-1,-1],[-1,1]],
-        name: str = '',max_iter: int = 100,do_moments: bool = False,save:bool=True,do_stats:bool=False,
-        verbose:bool=True,save_between:bool=False,fraction_f=[-1,0],size_f=[-1,0],voxels_f=[-1,0],counter_save: int = 0): #Done in 1.3.2
+    def VOI_filled(self,seed: np.ndarray = [[-1,-1,-1]],factor:float = 1,
+        acq:int=0,sub_im: np.ndarray = [[-1,-1],[-1,-1],[-1,1]],
+        name: str = '',max_iter: int = 100,do_moments: bool = False,
+        save:bool=True,do_stats:bool=False,
+        verbose:bool=True,save_between:bool=False,fraction_f:np.ndarray=[-1,0],
+        size_f:np.ndarray=[-1,0],voxels_f:np.ndarray=[-1,0],counter_save: int = 0): #Done in 1.3.2
         """
         This function determines a VOI using a filling algorithm, as discussed in TG211.\n
         Keyword arguments:\n
@@ -612,11 +651,15 @@ class DicomImage(object):
             counter_save += 1
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
         return VOI, counter_save
-    def VOI_filled_f(self,seed=[-1,-1,-1],factor = [0,1],steps=5,acq=0,sub_im = [[-1,-1],[-1,-1],[-1,-1]],
-        name='',
-        max_iter = 100,do_moments= False,do_stats=False,verbose=False,verbose_graphs=False,
-        save_between=False,max_number_save=10000,threshold=0.99,fraction_f=[-1,0],size_f=[-1,0],
-        voxels_f=[-1,0],min_f_growth = 0,growth=-1,break_after_f=False): #Done in 1.3.2
+    def VOI_filled_f(self,seed:np.ndarray=[-1,-1,-1],factor:np.ndarray = [0,1],
+        steps:int=5,acq:int=0,sub_im:np.ndarray = [[-1,-1],[-1,-1],[-1,-1]],
+        name:str='',
+        max_iter:int = 100,do_moments:bool= False,do_stats:bool=False,
+        verbose:bool=False,verbose_graphs:bool=False,
+        save_between:bool=False,max_number_save:int=10000,
+        threshold:float=0.99,fraction_f:np.ndarray=[-1,0],size_f:np.ndarray=[-1,0],
+        voxels_f:np.ndarray=[-1,0],
+        min_f_growth:float = 0,growth:float=-1,break_after_f:bool=False): #Done in 1.3.2
         """
         verbose_graphs -- outputs the graphs pertaining to the filling of a the seeded region (default False)\n
         ZZZ\n
@@ -702,8 +745,10 @@ class DicomImage(object):
                     plt.axvline(x=f_range[f-1], color='b', linestyle='-')
         return ratio_range
 
-    def VOI_kMean(self,acq=0,subinfo = [[-1,0],[0,0],[0,0]],max_iter=100,
-                verbose = False,save=True,do_moments= False,do_stats=False,name=''): #Added in 1.3.0
+    def VOI_kMean(self,acq:int=0,subinfo:np.ndarray = [[-1,0],[0,0],[0,0]],
+                max_iter:int=100,
+                verbose:bool = False,save:bool=True,do_moments:bool= False,
+                do_stats:bool=False,name:str=''): #Added in 1.3.0
         """
         This function segments an image using a k-mean algorithm.\n
         Keyword arguments:\n
@@ -761,8 +806,10 @@ class DicomImage(object):
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
         if not save:
             return VOI, mean, var
-    def VOI_ICM(self,acq=0,alpha = 1,subinfo = [[-1,0],[0,0],[0,0]],max_iter=100,max_iter_kmean=100,
-                verbose = False,save=True,do_moments= False,do_stats=False,name=''): #Added in 1.3.0
+    def VOI_ICM(self,acq:int=0,alpha:float = 1,subinfo:list = [[-1,0],[0,0],[0,0]],
+                max_iter:int=100,max_iter_kmean:int=100,
+                verbose:bool = False,save:bool=True,do_moments:bool= False,
+                do_stats:bool=False,name:str=''): #Added in 1.3.0
         """
         This function segments an image using a k-mean algorithm.\n
         Keyword arguments:\n
@@ -829,9 +876,12 @@ class DicomImage(object):
 # This section deals with the statistics of VOIs           #
 #                                                          #
 ############################################################
-    def count_voxels(self,key:int = -1,VOI=-1):
+    def count_voxels(self,key:int = -1,VOI:np.ndarray=-1):
         """
-        Counts the voxels in a segmentation, either one of the saved or a temporary one.
+        Counts the voxels in a segmentation, either one of the saved or a temporary one.\n
+        Keyword arguments:\n
+        key -- segmentation key used to compute the voxels (default -1)\n
+        VOI -- array from which to count the number of voxels (default -1)\n
         """
         voxel = 0
         if isinstance(key,int):
@@ -841,8 +891,12 @@ class DicomImage(object):
             voxel = np.sum(VOI)
         return int(voxel)
 
-    def VOI_statistics(self,key=-1,VOI=[]): #Done in 1.1
+    def VOI_statistics(self,key:int=-1,VOI:np.ndarray=[]): #Done in 1.1
         """
+        Counts the mean value in a segmentation, either one of the saved or a temporary one.\n
+        Keyword arguments:\n
+        key -- segmentation key used to compute the mean (default -1)\n
+        VOI -- array from which to count the number of mean (default -1)\n
         """
         means = np.zeros(self.nb_acq)
         if(key >= 0 and key < self.voi_counter): 
@@ -853,6 +907,12 @@ class DicomImage(object):
                 means[t] = np.sum(np.multiply(self.Image[t,:,:,:],VOI))/self.count_voxels(VOI = VOI)
         return means
     def center_of_mass(self,array,D=3): #Done in 1.2.0
+        """
+        Compute the center of mass of an array.\n
+        Keyword arguments:\n
+        array -- array from which the center of mass is computed \n
+        D -- dimension of the array parameter (default 3)\n
+        """
         if D==3:
             Center = np.zeros(len(array.shape))
             pixel = 0
@@ -880,7 +940,13 @@ class DicomImage(object):
                 pass
                 #print("No voxels in the image, center of mass not determined and set to (0,0)")
         return Center
-    def moment_of_inertia(self,array,center): #Done in 1.2.0
+    def moment_of_inertia(self,array:np.ndarray,center:np.ndarray): #Done in 1.2.0
+        """
+        Compute the moment of inertia (second moment) of a given array.\n
+        Keyword argument:\n
+        array -- array from which the moment is computed \n
+        center -- center of the image (first moment)\n
+        """
         moment = np.zeros(len(array.shape))
         pixel = 0
         for i in range(array.shape[0]):
@@ -897,7 +963,7 @@ class DicomImage(object):
             pass
             #print("No voxels in the image, moment of inertia not determined and set to (0,0,0)")
         return moment
-    def convert_units(self,target:str,origin=''): #Done in 1.2.1
+    def convert_units(self,target:str,origin:str=''): #Done in 1.2.1
         """Gives the correction factor to go from a given units to a target unit.\n
         If no original unit is given, it is supposed to be the one of the Dicom files, stored
         in self.units.\n
@@ -915,7 +981,7 @@ class DicomImage(object):
         else:
             print('Invalid combination of origin and target units, no change made')
             return 1
-    def mean_stats(self,keys=-1,type_stat='TAC'):
+    def mean_stats(self,keys:int=-1,type_stat:str='TAC'):
         """
         Computes the average of selected statistics for VOI. \n
         Useful for combining multiple TACs together and getting the mean.\n
@@ -940,7 +1006,7 @@ class DicomImage(object):
                 output += self.voi_statistics_avg[i]/keys.shape[0]
             else: raise Exception("Invalid choice of statistics")
         return output
-    def std_stats(self,keys=-1,type_stat='TAC'):
+    def std_stats(self,keys:int=-1,type_stat:str='TAC'):
         """
         Computes the standard deviation of selected statistics for VOI. \n
         Useful for combining multiple TACs together and getting the std.\n
@@ -969,7 +1035,7 @@ class DicomImage(object):
             else: raise Exception("Invalid choice of statistics")
         return mean,output**(1/2),output2
 
-    def curve_common_vol(self,keys=-1):#Done in 2.0.0
+    def curve_common_vol(self,keys:int=-1):#Done in 2.0.0
         """
         Returns the common volume and the associated TAC for a list of segmentations.\n
         Keyword arguments:\n
@@ -988,7 +1054,7 @@ class DicomImage(object):
             voi_common = voi_common * self.voi[f"{keys[i]}"]
         return self.count_voxels(VOI=voi_common),self.VOI_statistics(VOI=voi_common)
 
-    def sorensen_dice_coefficients(self,keys):#Added in 1.4.0
+    def sorensen_dice_coefficients(self,keys:np.ndarray):#Added in 1.4.0
         """
         Computes the Sørensen-Dice coefficient for two segmentations.\n
         The result is between 0 and 1.\n
@@ -1008,7 +1074,7 @@ class DicomImage(object):
         if Dice <0 or Dice > 1:
             raise Exception(f"Dice is out of bound [0,1], with {Dice}\n Keys = {keys.shape[0]},Inter = {np.sum(intersection)}, denom = {denominator}")
         return Dice
-    def jaccard_index(self,key1,key2):#Added in 1.4.0
+    def jaccard_index(self,key1:int,key2:int):#Added in 1.4.0
         """
         Computes the Jaccard index for two segmentations.\n
         The result is between 0 and 1.\n
@@ -1051,7 +1117,7 @@ class DicomImage(object):
 # This section deals with pharmacokinetic models           #
 #                                                          #
 ############################################################
-    def model_three_compartment_A1(self,t,param): #Added in 3.0.0
+    def model_three_compartment_A1(self,t:np.ndarray,param:np.ndarray): #Added in 3.0.0
         """Model of the first compartment in a two_compartment model.\n
         Form: A_1(t) = A_0 e^(-k_1/V_1 t)\n
 
@@ -1059,7 +1125,7 @@ class DicomImage(object):
         param -- list of parameters [A_0,k_1/V1]
         """
         return param[0]*(np.exp(-param[1]*t)-np.exp(-param[2]*t))
-    def model_three_compartment_A2(self,t,param): #Added in 3.0.0
+    def model_three_compartment_A2(self,t:np.ndarray,param:np.ndarray): #Added in 3.0.0
         """Model of the second compartment in a two_compartment model\n
         Form: A_2(t) = A_0 (k_1V_2/(k_1V_2-k_2V_1))[e^(-k_2/V_2 t)-e^(-k_1/V_1 t)]\n
 
@@ -1067,7 +1133,7 @@ class DicomImage(object):
         param -- list of parameters [A_0,k_1,k_2/V2]
         """
         return param[0]*(np.exp(-param[1]*t)-np.exp(-param[2]*t))
-    def model_three_compartment_A2_pause(self,t,param): #Added in 3.0.0
+    def model_three_compartment_A2_pause(self,t:np.ndarray,param:np.ndarray): #Added in 3.0.0
         """Model of the second compartment in a two_compartment model\n
         Form: A_2(t) = A_0 (k_1V_2/(k_1V_2-k_2V_1))[e^(-k_2/V_2 t)-e^(-k_1/V_1 t)]\n
         This model includes a pause, during which there is no change anymore (bubble in the tube)\n
@@ -1089,7 +1155,7 @@ class DicomImage(object):
 # This section deals with methods of fitting               #
 #                                                          #
 ############################################################
-    def Fit_SOC(self,y_data,e_data,model,ndim=3,keep_im_open=False):
+    def Fit_SOC(self,y_data:np.ndarray,e_data:np.ndarray,model,ndim:int=3,keep_im_open:bool=False):
         '''
         Use scipy.optimize.curve_fit to fit a given curve to a certain model.\n
         Keyword arguments:\n
@@ -1107,7 +1173,7 @@ class DicomImage(object):
         except RuntimeError:
             print(f"Error for a fitting, setting all to 0")
             return np.zeros(ndim),np.zeros(ndim),np.zeros(ndim)
-    def Fit_Dynesty(self,y_data,e_data,model,ndim=3,keep_im_open=False):
+    def Fit_Dynesty(self,y_data:np.ndarray,e_data:np.ndarray,model,ndim:int=3,keep_im_open:bool=False):
         '''
         Use Dynesty to fit a given curve to a certain model.\n
         Keyword arguments:\n
@@ -1147,6 +1213,7 @@ class DicomImage(object):
 #                                                          #
 ############################################################
     def loglike(self,param,data_t,data_f,data_e):
+        """Log likelihood used for Dynesty"""
         prob = 0
         #First compute the model with the parameters
         m = self.model(data_t,param)
@@ -1155,12 +1222,14 @@ class DicomImage(object):
             prob += np.log(2*np.pi*data_e[j])/2-((m[j]-data_f[j])/data_e[j])**2
         return prob
     def prior_transform_L(self,param_unif_0_1,param_limit):
+        """Linear Prior Transform used for Dynesty"""
         #Linear Prior
         param = np.ones_like(param_unif_0_1)
         for i in range(param.shape[0]):
             param[i] = param_unif_0_1[i]*(param_limit[i,1]-param_limit[i,0])+param_limit[i,0]
         return param
     def prior_transform_J(self,param_unif_0_1,param_limit):
+        """Jeffrey Prior Transform used for Dynesty (log10)"""
         #Jeffrey Prior
         param = np.ones_like(param_unif_0_1)
         for i in range(param.shape[0]):
@@ -1214,7 +1283,7 @@ class DicomImage(object):
         
         return values, errors_up, errors_down
 
-    def Bayesian_analysis(self,key=-1,curves = 'Average',method='Dynesty',model='2_Comp_A2'):
+    def Bayesian_analysis(self,key:int=-1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2'):
         """Takes an index for a curve and fit it using a given model and algorithm.
 
         Keyword arguments:\n
@@ -1267,7 +1336,8 @@ class DicomImage(object):
 # This section deals with the metrics                      #
 #                                                          #
 ############################################################
-    def taxi_cab_distance(self,p1,p2): #Done in 1.2.0
+    def taxi_cab_distance(self,p1:np.ndarray,p2:np.ndarray): #Done in 1.2.0
+        """Computes the taxi cab distance between two points p1 and p2"""
         p1 = np.array(p1)
         p2 = np.array(p2)
         dist = 0
@@ -1380,7 +1450,7 @@ class DicomImage(object):
 # This section deals with neighbours                       #
 #                                                          #
 ############################################################
-    def check_neighbours(self,VOI,seed=[-1,-1,-1],precise=True):  
+    def check_neighbours(self,VOI:np.ndarray,seed:list=[-1,-1,-1],precise:bool=True):  
         """
         This function checks to see whether any adjacent voxel is in the VOI. The neighbours checked are 1st degree.\n
         This function takes for granted that the image is 3-D. It also checks whether the voxel of
@@ -1462,7 +1532,7 @@ class DicomImage(object):
             if (VOI[i-1,j,k]+VOI[i+1,j,k]+VOI[i,j-1,k]+VOI[i,j+1,k]+VOI[i,j,k-1]+VOI[i,j,k+1]>0.5): return True
             else: return False
 
-    def count_neighbours_other_class(self,VOI,seed,classValue,precise = True):
+    def count_neighbours_other_class(self,VOI:np.ndarray,seed:np.ndarray,classValue:int,precise:bool = True):
         """
         Count the number of neighbours whose class is not the same as the seed.\n
         The neighbours checked are 1st degree.\n

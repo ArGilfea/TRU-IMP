@@ -11,10 +11,24 @@ from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 
 def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
-                path_in='',name_in='',path_out = '',name_out='',saveResult:bool = False,
+                path_in:str='',name_in:str='',path_out:str = '',name_out:str='',saveResult:bool = False,
                 verbose:bool=False,order=1,d=1,weight=1):
     """
     TBA
+    Keyword arguments:\n
+    Image -- DicomImage class used\n
+    error_type -- method to compute the error (default "None")\n
+    k -- segmentation for which to compute the errors. -1 for all (default -1)\n
+    path_in -- path from where to get the image, as a DicomImage class (default '')\n    
+    name_in -- name of the DicomImage opened (default '')\n
+    path_out -- path to save the result, as long as save is True (default '')\n    
+    name_out -- name of the new DicomImage saved (if save is set to True).
+            That name will be appended to name_in (default '')\n
+    saveResult -- Save the new DicomImage class as a pickle file (default False)\n
+    order -- linear shift order (default 1)\n
+    d -- distance of the shift (default 1)\n
+    weight -- weight for each axis, if compounded [TBA] (default 1)\n
+    verbose -- outputs the progress (default False)\n
     """
     initial = time.time()
     try: 
@@ -43,4 +57,14 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
     print(f"All the errors were computed in {(time.time() - initial):.2f} s.")
 
 def Linear_Shift_Errors_Batch(Image:DicomImage,k:np.ndarray,order=1,d=1,weight=1,verbose:bool=True):
+    """
+    Compute the linear errors of the curves based upon the given parameters.\n
+    Keyword arguments:\n
+    Image -- DicomImage class used\n
+    k -- segmentation for which to compute the errors. -1 for all (default -1)\n
+    order -- linear shift order (default 1)\n
+    d -- distance of the shift (default 1)\n
+    weight -- weight for each axis, if compounded [TBA] (default 1)\n
+    verbose -- outputs the progress (default False)\n
+    """
     Image.linear_shifts_errors(keys=k,order=order,d=d,weight=weight,verbose=verbose)

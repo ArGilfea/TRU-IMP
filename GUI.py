@@ -187,9 +187,7 @@ class Window(QMainWindow):
         self.ResultViewCombo.addItem("TAC")
         self.ResultViewCombo.addItem("Dice")
         self.ResultViewCombo.addItem("Jaccard")
-        self.ResultViewCombo.addItem("Dynesty 1")
-        self.ResultViewCombo.addItem("Dynesty 2")
-        self.ResultViewCombo.addItem("Dynesty 3")
+        self.ResultViewCombo.addItem("Dynesty")
         self.ResultViewCombo.activated[str].connect(self.combo_box_result_changed)
 
         layout.addWidget(self.ImageViewCombo)
@@ -215,6 +213,7 @@ class Window(QMainWindow):
         self.sliderCoronal = QSlider(Qt.Horizontal)
         self.sliderSegm = QSlider(Qt.Horizontal)
         self.sliderSegmStats = QSlider(Qt.Horizontal)
+        self.sliderBayesian = QSlider(Qt.Horizontal)
         try:
             self.sliderAcq.setMinimum(0);self.sliderAcq.setMaximum(self.Image.nb_acq-1)
             self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice-1)
@@ -222,6 +221,7 @@ class Window(QMainWindow):
             self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length-1)
             self.sliderSegm.setMinimum(-1);self.sliderSegm.setMaximum(self.Image.voi_counter-1)
             self.sliderSegmStats.setMinimum(-1);self.sliderSegmStats.setMaximum(self.Image.voi_statistics_counter-1)
+            self.sliderBayesian.setMinimum(-1);self.sliderBayesian.setMaximum(self.Image.bayesian_results_avg.shape[1]-1)
         except:
             pass
         self.sliderAcq.setTickPosition(QSlider.TicksBothSides)
@@ -230,12 +230,14 @@ class Window(QMainWindow):
         self.sliderCoronal.setTickPosition(QSlider.TicksBothSides)
         self.sliderSegm.setTickPosition(QSlider.TicksBothSides)
         self.sliderSegmStats.setTickPosition(QSlider.TicksBothSides)
+        self.sliderBayesian.setTickPosition(QSlider.TicksBothSides)
         self.sliderAcq.setSingleStep(1)
         self.sliderAxial.setSingleStep(1)
         self.sliderSagittal.setSingleStep(1)
         self.sliderCoronal.setSingleStep(1)
         self.sliderSegm.setSingleStep(1)
         self.sliderSegmStats.setSingleStep(1)
+        self.sliderBayesian.setSingleStep(1)
         layout.addWidget(self.sliderAcq,0,1)
         layout.addWidget(self.sliderAxial,1,1)
         layout.addWidget(self.sliderSagittal,3,1)
@@ -247,6 +249,7 @@ class Window(QMainWindow):
         self.CoronalValueHeader = QLabel("Cor:")
         self.SegmValueHeader = QLabel("Segm:")
         SegmStatsValueHeader = QLabel("Segm. Errors:")
+        BayesianValueHeader = QLabel("Bay. Values:")
         self.checkBoxMsgSubImage = QLabel("Sub Image:")
         self.checkBoxMsgFocus = QLabel("Focus:")
 
@@ -256,6 +259,7 @@ class Window(QMainWindow):
         self.sliderCoronalValue = QLineEdit()
         self.sliderSegmValue = QLineEdit()
         self.sliderSegmStatsValue = QLineEdit()
+        self.sliderBayesianValue = QLineEdit()
         self.checkBoxFocus = QCheckBox()
         self.checkBoxSubImage = QCheckBox()
         self.checkBoxLog = QCheckBox()
@@ -265,6 +269,7 @@ class Window(QMainWindow):
         self.sliderCoronalValue.setFixedWidth(sizeText)
         self.sliderSegmValue.setFixedWidth(sizeText)
         self.sliderSegmStatsValue.setFixedWidth(sizeText)
+        self.sliderBayesianValue.setFixedWidth(sizeText)
         try:
             self.sliderAcqValue.setText(f"{self.set_value_slider(self.sliderAcq,self.sliderAcqValue)}")
             self.sliderAxialValue.setText(f"{self.set_value_slider(self.sliderAxial,self.sliderAxialValue)}")
@@ -272,18 +277,21 @@ class Window(QMainWindow):
             self.sliderCoronalValue.setText(f"{self.set_value_slider(self.sliderCoronal,self.sliderCoronalValue)}")
             self.sliderSegmValue.setText(f"{self.set_value_slider(self.sliderSegm,self.sliderSegmValue)}")
             self.sliderSegmStatsValue.setText(f"{self.set_value_slider(self.sliderSegmStats,self.sliderSegmStatsValue)}")
+            self.sliderBayesianValue.setText(f"{self.set_value_slider(self.sliderBayesian,self.sliderBayesianValue)}")
             self.sliderAcqValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAcq,self.sliderAcqValue))
             self.sliderAxialValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAxial,self.sliderAxialValue))
             self.sliderSagittalValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSagittal,self.sliderSagittalValue))
             self.sliderCoronalValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderCoronal,self.sliderCoronalValue))
             self.sliderSegmValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSegm,self.sliderSegmValue))
             self.sliderSegmStatsValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSegmStats,self.sliderSegmStatsValue))
+            self.sliderBayesianValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderBayesian,self.sliderBayesianValue))
             self.sliderAcq.valueChanged.connect(partial(self.set_value_slider,self.sliderAcq,self.sliderAcqValue))
             self.sliderAxial.valueChanged.connect(partial(self.set_value_slider,self.sliderAxial,self.sliderAxialValue))
             self.sliderSagittal.valueChanged.connect(partial(self.set_value_slider,self.sliderSagittal,self.sliderSagittalValue))
             self.sliderCoronal.valueChanged.connect(partial(self.set_value_slider,self.sliderCoronal,self.sliderCoronalValue))
             self.sliderSegm.valueChanged.connect(partial(self.set_value_slider,self.sliderSegm,self.sliderSegmValue))
             self.sliderSegmStats.valueChanged.connect(partial(self.set_value_slider,self.sliderSegmStats,self.sliderSegmStatsValue))
+            self.sliderBayesian.valueChanged.connect(partial(self.set_value_slider,self.sliderBayesian,self.sliderBayesianValue))
             self.checkBoxFocus.stateChanged.connect(self.set_value_focus)
             self.checkBoxSubImage.stateChanged.connect(self.set_value_subImage)
             self.checkBoxLog.stateChanged.connect(self.set_value_log)
@@ -295,8 +303,8 @@ class Window(QMainWindow):
         sublayout.addWidget(self.checkBoxFocus,0,1)
         sublayout.addWidget(self.checkBoxMsgSubImage,0,2)
         sublayout.addWidget(self.checkBoxSubImage,0,3)
-        sublayout.addWidget(checkBoxMsglog,1,0)
-        sublayout.addWidget(self.checkBoxLog,1,1)
+        sublayout.addWidget(checkBoxMsglog,0,4)
+        sublayout.addWidget(self.checkBoxLog,0,5)
         subWidget.setMinimumHeight(40)
         subWidget.setContentsMargins(0,0,0,0)
 
@@ -307,6 +315,10 @@ class Window(QMainWindow):
         sublayout.addWidget(SegmStatsValueHeader,3,0)
         sublayout.addWidget(self.sliderSegmStats,3,1)
         sublayout.addWidget(self.sliderSegmStatsValue,3,2)
+
+        sublayout.addWidget(BayesianValueHeader,4,0)
+        sublayout.addWidget(self.sliderBayesian,4,1)
+        sublayout.addWidget(self.sliderBayesianValue,4,2)
 
         layout.addWidget(self.AcqValueHeader,0,0)
         layout.addWidget(self.AxialValueHeader,1,0)
@@ -511,12 +523,8 @@ class Window(QMainWindow):
             self.update_Dice()
         elif self.resultView == "Jaccard":
             self.update_Jaccard()
-        elif self.resultView == "Dynesty 1":
-            self.update_Dynesty(0)
-        elif self.resultView == "Dynesty 2":
-            self.update_Dynesty(1)
-        elif self.resultView == "Dynesty 3":
-            self.update_Dynesty(2)
+        elif self.resultView == "Dynesty":
+            self.update_Dynesty(self.sliderBayesian.value())
     def update_Dice(self):
         """Shows the Dice coefficients in the middle image"""
         try:
@@ -538,10 +546,15 @@ class Window(QMainWindow):
     def update_Dynesty(self,param:int=0):
         """Shows the Dynesty coefficients in the middle image"""
         try:
+            if param == -1:
+                k = np.arange(self.Image.bayesian_results_avg.shape[1])
+            else:
+                k = np.array([param])
             self.TACImage.axes.cla()
-            self.TACImage.axes.errorbar(np.arange(self.Image.bayesian_results_avg.shape[0]),
-                                            self.Image.bayesian_results_avg[:,param],
-                                            yerr=[self.Image.bayesian_results_e_down[:,param],self.Image.bayesian_results_e_up[:,param]])
+            for i in range(k.shape[0]):
+                self.TACImage.axes.errorbar(np.arange(self.Image.bayesian_results_avg.shape[0]),
+                                                self.Image.bayesian_results_avg[:,k[i]],
+                                                yerr=[self.Image.bayesian_results_e_down[:,k[i]],self.Image.bayesian_results_e_up[:,k[i]]])
             self.base_Dynesty_axes()
             self.TACImage.draw() 
         except:
