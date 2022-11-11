@@ -55,9 +55,10 @@ class DicomImage(object):
         self.voi_statistics_counter = 0
         self.voi_statistics_avg = []
         self.voi_statistics_std = []
-        self.bayesian_results_avg = np.array([]) #If breaks, remove np.array
-        self.bayesian_results_e_up = np.array([])
-        self.bayesian_results_e_down = np.array([])
+        self.bayesian_results_avg = [] #If breaks, remove np.array
+        self.bayesian_results_e_up = []
+        self.bayesian_results_e_down = []
+        self.bayesian_counter = 0
         self.axial_flats = np.zeros((self.nb_acq,self.width,self.length))
         self.coronal_flats = np.zeros((self.nb_acq,self.nb_slice,self.length))
         self.sagittal_flats = np.zeros((self.nb_acq,self.nb_slice,self.width))
@@ -1294,7 +1295,7 @@ class DicomImage(object):
                     self.bayesian_results_avg = np.append(self.bayesian_results_avg,[value],axis=0)
                     self.bayesian_results_e_up = np.append(self.bayesian_results_e_up,[error_up],axis=0)
                     self.bayesian_results_e_down = np.append(self.bayesian_results_e_down,[error_down],axis=0)
-        
+        self.bayesian_counter = self.bayesian_results_avg.shape[1]
         return values, errors_up, errors_down
 
     def Bayesian_analysis(self,key:int=-1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2'):

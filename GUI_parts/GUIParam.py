@@ -53,6 +53,7 @@ class GUIParameters(object):
         self.distanceShift = 1
         self.weightShift = 1
 
+        self.BayesianAcq = -1
         self.BayesianType = "None"
         self.ModelBayesian = "None"
         self.CurveTypeBayesian = "Average"

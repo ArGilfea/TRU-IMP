@@ -474,6 +474,21 @@ class ParamWindow(QMainWindow):
         self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
         self.current_line_Error +=1
 
+    def _createBayesianValue(self):
+        """Creates the slider and the line edit for the choice of segmentation for the error computation.\n 
+        -1 will mean all"""
+        btnNew,slider = self._createIntInput(self.parameters.BayesianAcq)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(1)
+        slider.setRange(-1,self.parameters._nbError-1)
+        slider.setValue(self.parameters.BayesianAcq)
+        self.sliderBayesianAcq = slider   
+
+        self.generalLayoutBayesian.addWidget(QLabel("Seg. Error"),self.current_line_Bayesian,0)
+        self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.BayesianAcq}"),self.current_line_Bayesian,1)
+        self.generalLayoutBayesian.addWidget(btnNew,self.current_line_Bayesian,2)
+        self.current_line_Bayesian +=1
+
     def _createOrderShiftError(self):
         """Creates the slider and the line edit for the order of the shift (linear shift error)."""
         btnNew,slider = self._createIntInput(self.parameters.orderShift)
@@ -751,6 +766,7 @@ class ParamWindow(QMainWindow):
         if self.parameters.ErrorType == "Linear Shift":
             self._createOrderShiftError()
             self._createDShiftError()
+        self._createBayesianValue()
         self._createSaveBox()
         self._createVerbose()
         self._createStatsBox()
@@ -911,6 +927,9 @@ class ParamWindow(QMainWindow):
         except: pass
         try:
             self.parameters.ErrorSegm = self.sliderErrorAcq.value()
+        except: pass
+        try:
+            self.parameters.BayesianAcq = self.sliderBayesianAcq.value()
         except: pass
         try:
             self.parameters.orderShift = self.sliderErrorOrderShift.value()

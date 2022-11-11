@@ -221,7 +221,9 @@ class Window(QMainWindow):
             self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length-1)
             self.sliderSegm.setMinimum(-1);self.sliderSegm.setMaximum(self.Image.voi_counter-1)
             self.sliderSegmStats.setMinimum(-1);self.sliderSegmStats.setMaximum(self.Image.voi_statistics_counter-1)
-            self.sliderBayesian.setMinimum(-1);self.sliderBayesian.setMaximum(self.Image.bayesian_results_avg.shape[1]-1)
+            try:
+                self.sliderBayesian.setMinimum(-1);self.sliderBayesian.setMaximum(self.Image.bayesian_results_avg.shape[1]-1)
+            except: pass
         except:
             pass
         self.sliderAcq.setTickPosition(QSlider.TicksBothSides)
@@ -494,8 +496,8 @@ class Window(QMainWindow):
         """
         try:
             initial = time.time()
-            if self.parameters.ErrorSegm >= 0:
-                k = np.array([self.parameters.ErrorSegm])
+            if self.parameters.BayesianAcq >= 0:
+                k = np.array([self.parameters.BayesianAcq])
             else:
                 k=-1
             self.Image.Bayesian_analyses(key=k,curves = self.parameters.CurveTypeBayesian,method=self.parameters.BayesianType,
@@ -503,6 +505,7 @@ class Window(QMainWindow):
                                         verbose = self.parameters.verbose,
                                         save=True)
             self.displayStatus(f"{self.parameters.BayesianType} Bayesian analyses",initial)
+            self.update_segm()
         except:
             self._createErrorMessage("Unable to run the Bayesian analyses")
     def update_all(self):
@@ -515,6 +518,7 @@ class Window(QMainWindow):
         """Update the segmentation and segmentation error sliders"""
         self.sliderSegm.setMaximum(self.Image.voi_counter-1)
         self.sliderSegmStats.setMaximum(self.Image.voi_statistics_counter-1)
+        self.sliderBayesian.setMaximum(self.Image.bayesian_counter-1)
     def update_Result(self):
         """Update the middle image according to the type of result to be displayed"""
         if self.resultView == "TAC":
@@ -832,7 +836,7 @@ class Window(QMainWindow):
                 Units: {self.Image.units}<br>
                 Segm.: {self.Image.voi_counter}<br>
                 Segm. with Errors: {len(self.Image.voi_statistics_avg)}<br>
-                Bayesian Analyses: {self.Image.bayesian_results_avg.shape[0]}<br>
+                Bayesian analyses: {self.Image.bayesian_counter}<br>
                 """
         return a
     def on_button_clicked_infos(self):
