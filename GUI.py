@@ -470,7 +470,7 @@ class Window(QMainWindow):
             MyFunctions.Batch_Errors.Batch_Errors(Image=self.Image,error_type=self.parameters.ErrorType,k=k,
                                                     order=self.parameters.orderShift,d=self.parameters.distanceShift,
                                                     verbose=self.parameters.verbose)
-            self.displayStatus(f"{self.parameters.SegmType} errors",initial)
+            self.displayStatus(f"{self.parameters.ErrorType} errors",initial)
             self.update_segm()
             if self.parameters.ErrorType != "None":
                 self.parameters._nbError = self.Image.voi_statistics_counter
@@ -486,11 +486,11 @@ class Window(QMainWindow):
                 k = np.array([self.parameters.ErrorSegm])
             else:
                 k=-1
-            self.Image.Bayesian_analyses(key=k,curves = "Errors",method="Dynesty",
-                                        model = "2_Comp_A2",
+            self.Image.Bayesian_analyses(key=k,curves = self.parameters.CurveTypeBayesian,method=self.parameters.BayesianType,
+                                        model = self.parameters.ModelBayesian,
                                         verbose = self.parameters.verbose,
                                         save=True)
-            self.displayStatus(f"{self.parameters.SegmType} errors",initial)
+            self.displayStatus(f"{self.parameters.BayesianType} Bayesian analyses",initial)
         except:
             self._createErrorMessage("Unable to run the Bayesian analyses")
     def update_all(self):

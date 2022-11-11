@@ -35,18 +35,34 @@ class ParamWindow(QMainWindow):
         """Initializes the ParamWindow with the GUI Parameters"""
         super().__init__(parent)
         self.setMinimumSize(300, 750)
+        self.tabs = QTabWidget()
         self.parameters = parameters
         self.setWindowTitle("Parameters")
-        self.generalLayout = QGridLayout()
-        centralWidget = QWidget(self)
-        centralWidget.setLayout(self.generalLayout)
-        self.setCentralWidget(centralWidget)
+        self.generalLayoutSegm = QGridLayout()
+        self.generalLayoutError = QGridLayout()
+        self.generalLayoutBayesian = QGridLayout()
+        centralWidgetSegm = QWidget(self)
+        centralWidgetErrors = QWidget(self)
+        centralWidgetBayesian = QWidget(self)
+        centralWidgetSegm.setLayout(self.generalLayoutSegm)
+        centralWidgetErrors.setLayout(self.generalLayoutError)
+        centralWidgetBayesian.setLayout(self.generalLayoutBayesian)
+        self.layout = QVBoxLayout()
+        
+        
+        #centralWidgetSegm.resize(centralWidgetSegm.sizeHint());
+        self.tabs.addTab(centralWidgetSegm,"Segm.")
+        self.tabs.addTab(centralWidgetErrors,"Errors.")
+        self.tabs.addTab(centralWidgetBayesian,"Bayesian.")
+        self.setCentralWidget(self.tabs)
+        self.setLayout(self.layout)
         self.initialize_param_window()
-        centralWidget.resize(centralWidget.sizeHint());
 
     def initialize_param_window(self):
         """Start the creation of the param window for the widgets"""
-        self.current_line = 1
+        self.current_line_Segm = 1
+        self.current_line_Error = 1
+        self.current_line_Bayesian = 1
         self._createParamList()
 
     def _createSeedSliders(self):
@@ -99,10 +115,10 @@ class ParamWindow(QMainWindow):
         layout.addWidget(self.sliderCoronalValueSeed,2,2)
         layout.addWidget(self.sliderSagittalValueSeed,3,2)
         
-        self.generalLayout.addWidget(QLabel("Seed"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.seed}"),self.current_line,1)
-        self.generalLayout.addWidget(seedWidget,self.current_line,2)
-        self.current_line += 1
+        self.generalLayoutSegm.addWidget(QLabel("Seed"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.seed}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(seedWidget,self.current_line_Segm,2)
+        self.current_line_Segm += 1
 
     def _createCenterEllipsoidSliders(self):
         """Creates the sliders and line edits for the center of the ellipsoid segmentation"""
@@ -154,10 +170,10 @@ class ParamWindow(QMainWindow):
         layout.addWidget(self.sliderCoronalValueCenter,2,2)
         layout.addWidget(self.sliderSagittalValueCenter,3,2)
         
-        self.generalLayout.addWidget(QLabel("Center Ellips."),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.centerEllipsoid}"),self.current_line,1)
-        self.generalLayout.addWidget(seedWidget,self.current_line,2)
-        self.current_line += 1
+        self.generalLayoutSegm.addWidget(QLabel("Center Ellips."),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.centerEllipsoid}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(seedWidget,self.current_line_Segm,2)
+        self.current_line_Segm += 1
 
     def _createAxesEllipsoidSliders(self):
         """Creates the sliders and line edits for the axes of the ellipsoid segmentation"""
@@ -209,10 +225,10 @@ class ParamWindow(QMainWindow):
         layout.addWidget(self.sliderCoronalValueAxes,2,2)
         layout.addWidget(self.sliderSagittalValueAxes,3,2)
         
-        self.generalLayout.addWidget(QLabel("Axes Ellips."),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.axesEllipsoid}"),self.current_line,1)
-        self.generalLayout.addWidget(seedWidget,self.current_line,2)
-        self.current_line += 1
+        self.generalLayoutSegm.addWidget(QLabel("Axes Ellips."),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.axesEllipsoid}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(seedWidget,self.current_line_Segm,2)
+        self.current_line_Segm += 1
 
 
     def _createSubImageSliders(self):
@@ -292,10 +308,10 @@ class ParamWindow(QMainWindow):
         layout.addWidget(self.sliderSagittalValueSubImMin,3,2)
         layout.addWidget(self.sliderSagittalValueSubImMax,3,3)
 
-        self.generalLayout.addWidget(QLabel("SubImage"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.subImage}"),self.current_line,1)
-        self.generalLayout.addWidget(subImageWidget,self.current_line,2)
-        self.current_line += 1
+        self.generalLayoutSegm.addWidget(QLabel("SubImage"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.subImage}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(subImageWidget,self.current_line_Segm,2)
+        self.current_line_Segm += 1
     def _createBoolBox(self):
         """Creates a CheckBox and returns it (for bool parameters)"""
         btn = QCheckBox()
@@ -306,10 +322,10 @@ class ParamWindow(QMainWindow):
         self.MethCombo.addItem("TaxiCab")
         self.MethCombo.setCurrentText(self.parameters.methodCanny)
         self.MethCombo.activated[str].connect(self.MethCombo_Changed)
-        self.generalLayout.addWidget(QLabel("Method Canny"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.methodCanny}"),self.current_line,1)
-        self.generalLayout.addWidget(self.MethCombo,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Method Canny"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.methodCanny}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(self.MethCombo,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createSegmType(self):
         """Creates the Combo Box for the segmentation method"""
         self.SegmCombo = QComboBox()
@@ -324,10 +340,10 @@ class ParamWindow(QMainWindow):
         self.SegmCombo.addItem("Filling f (very slow)")
         self.SegmCombo.setCurrentText(self.parameters.SegmType)
         self.SegmCombo.activated[str].connect(self.SegmCombo_Changed)
-        self.generalLayout.addWidget(QLabel("Segm. Method"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.SegmType}"),self.current_line,1)
-        self.generalLayout.addWidget(self.SegmCombo,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Segm. Method"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.SegmType}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(self.SegmCombo,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createErrorType(self):
         """Creates the Combo Box for the error type method"""
         self.ErrorCombo = QComboBox()
@@ -336,10 +352,46 @@ class ParamWindow(QMainWindow):
 
         self.ErrorCombo.setCurrentText(self.parameters.ErrorType)
         self.ErrorCombo.activated[str].connect(self.ErrorMethodCombo_Changed)
-        self.generalLayout.addWidget(QLabel("Error Method"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.ErrorType}"),self.current_line,1)
-        self.generalLayout.addWidget(self.ErrorCombo,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutError.addWidget(QLabel("Error Method"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel(f"{self.parameters.ErrorType}"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(self.ErrorCombo,self.current_line_Error,2)
+        self.current_line_Error +=1
+    def _createBayesianType(self):
+        """Creates the Combo Box for the bayesian analysis"""
+        self.BayesianCombo = QComboBox()
+        self.BayesianCombo.addItem("None")
+        self.BayesianCombo.addItem("Dynesty")
+        self.BayesianCombo.addItem("scipy")
+
+        self.ModelCombo = QComboBox()
+        self.ModelCombo.addItem("None")
+        self.ModelCombo.addItem("2_Comp_A1")
+        self.ModelCombo.addItem("2_Comp_A2")
+        self.ModelCombo.addItem("2_Comp_A2_Pause")
+
+        self.CurvesCombo = QComboBox()
+        self.CurvesCombo.addItem("Average")
+        self.CurvesCombo.addItem("Errors")
+
+        self.BayesianCombo.setCurrentText(self.parameters.BayesianType)
+        self.BayesianCombo.activated[str].connect(self.BayesianMethodCombo_Changed)
+        self.ModelCombo.setCurrentText(self.parameters.ModelBayesian)
+        self.ModelCombo.activated[str].connect(self.ModelBayesianMethodCombo_Changed)
+        self.CurvesCombo.setCurrentText(self.parameters.CurveTypeBayesian)
+        self.CurvesCombo.activated[str].connect(self.CurvesBayesianMethodCombo_Changed)
+
+        self.generalLayoutBayesian.addWidget(QLabel("Bayesian Method"),self.current_line_Bayesian,0)
+        self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.BayesianType}"),self.current_line_Bayesian,1)
+        self.generalLayoutBayesian.addWidget(self.BayesianCombo,self.current_line_Bayesian,2)
+        self.current_line_Bayesian +=1
+        self.generalLayoutBayesian.addWidget(QLabel("Bayesian Model"),self.current_line_Bayesian,0)
+        self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.ModelBayesian}"),self.current_line_Bayesian,1)
+        self.generalLayoutBayesian.addWidget(self.ModelCombo,self.current_line_Bayesian,2)
+        self.current_line_Bayesian +=1
+        self.generalLayoutBayesian.addWidget(QLabel("Bayesian Model"),self.current_line_Bayesian,0)
+        self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.CurveTypeBayesian}"),self.current_line_Bayesian,1)
+        self.generalLayoutBayesian.addWidget(self.CurvesCombo,self.current_line_Bayesian,2)
+        self.current_line_Bayesian +=1
     def _createFactorFFilling(self):
         """Creates the slider and the line edit for the factor f (for filling)"""
         btnNew,slider = self._createIntInput(self.parameters.factor_fill_f)
@@ -349,10 +401,10 @@ class ParamWindow(QMainWindow):
         slider.setValue(100*self.parameters.factor_fill_f)
 
         self.sliderFactorF = slider   
-        self.generalLayout.addWidget(QLabel("Factor Filling"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.factor_fill_f}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Factor Filling"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.factor_fill_f}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createFactorFillingRange(self):
         """Creates the slider and the line edit for the factor range (for filling)"""
         sizeText = 30
@@ -371,10 +423,10 @@ class ParamWindow(QMainWindow):
         self.FactorFRangeValueMin.editingFinished.connect(self.update_int)
         self.FactorFRangeValueMax.editingFinished.connect(self.update_int)
 
-        self.generalLayout.addWidget(QLabel("Factor Filling Range"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.factor_Fill_range}"),self.current_line,1)
-        self.generalLayout.addWidget(RangeWidget,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Factor Filling Range"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.factor_Fill_range}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(RangeWidget,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createIntInput(self,initvalue:float):
         """Creates a subwidet with a QLineEdit and a QSlider linked in their value.\n
         Returns the subWidget and the slider"""
@@ -403,10 +455,10 @@ class ParamWindow(QMainWindow):
         slider.setValue(self.parameters.SegmAcq)
         self.sliderSegmAcq = slider   
 
-        self.generalLayout.addWidget(QLabel("Acq. Segm."),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.SegmAcq}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Acq. Segm."),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.SegmAcq}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createErrorValue(self):
         """Creates the slider and the line edit for the choice of segmentation for the error computation.\n 
         -1 will mean all"""
@@ -417,10 +469,10 @@ class ParamWindow(QMainWindow):
         slider.setValue(self.parameters.ErrorSegm)
         self.sliderErrorAcq = slider   
 
-        self.generalLayout.addWidget(QLabel("Seg. Error"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.ErrorSegm}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutError.addWidget(QLabel("Seg. Error"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel(f"{self.parameters.ErrorSegm}"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
+        self.current_line_Error +=1
 
     def _createOrderShiftError(self):
         """Creates the slider and the line edit for the order of the shift (linear shift error)."""
@@ -431,10 +483,10 @@ class ParamWindow(QMainWindow):
         slider.setValue(self.parameters.orderShift)
         self.sliderErrorOrderShift = slider   
 
-        self.generalLayout.addWidget(QLabel("Order"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.orderShift}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutError.addWidget(QLabel("Order"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel(f"{self.parameters.orderShift}"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
+        self.current_line_Error +=1
     def _createDShiftError(self):
         """Creates the slider and the line edit for the distance of the shift (linear shift error)."""
         btnNew,slider = self._createIntInput(self.parameters.distanceShift)
@@ -444,10 +496,10 @@ class ParamWindow(QMainWindow):
         slider.setValue(self.parameters.distanceShift)
         self.sliderErrorDistanceShift = slider   
 
-        self.generalLayout.addWidget(QLabel("Distance"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.distanceShift}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutError.addWidget(QLabel("Distance"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel(f"{self.parameters.distanceShift}"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
+        self.current_line_Error +=1
 
     def _createSigmaCanny(self):
         """Creates the slider and the line edit for the sigma (Canny)."""
@@ -460,10 +512,10 @@ class ParamWindow(QMainWindow):
         except:
             slider.setValue(0)
         slider.setTickInterval(1000)
-        self.generalLayout.addWidget(QLabel("Sigma Canny"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.sigmaCanny}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Sigma Canny"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.sigmaCanny}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createAlphaICM(self):
         """Creates the slider and the line edit for the alpha (ICM)."""
         btnNew,slider = self._createIntInput(self.parameters.alphaICM)
@@ -475,10 +527,10 @@ class ParamWindow(QMainWindow):
         except:
             slider.setValue(0)
         slider.setTickInterval(1000)
-        self.generalLayout.addWidget(QLabel("Alpha ICM"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.alphaICM}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Alpha ICM"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.alphaICM}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createCombCanny(self):
         """Creates the slider and the line edit for the combination (Canny)."""
         btnNew,slider = self._createIntInput(self.parameters.combinationCanny)
@@ -488,10 +540,10 @@ class ParamWindow(QMainWindow):
         slider.setValue(self.parameters.combinationCanny)
         self.sliderComb = slider   
 
-        self.generalLayout.addWidget(QLabel("Comb. Canny"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.combinationCanny}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Comb. Canny"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.combinationCanny}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createMaxiIterICM(self):
         """Creates the slider and the line edit for the max iteration of the ICM (ICM)."""
         btnNew,slider = self._createIntInput(self.parameters.max_iter_ICM)
@@ -500,10 +552,10 @@ class ParamWindow(QMainWindow):
         slider.setRange(1,10000)
         slider.setTickInterval(1000)
         slider.setValue(self.parameters.max_iter_ICM)
-        self.generalLayout.addWidget(QLabel("Max. Iter."),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.max_iter_ICM}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Max. Iter."),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.max_iter_ICM}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createMaxiIterKMeanICM(self):
         """Creates the slider and the line edit for the max iteration of the kMean (ICM & KMean)."""
         btnNew,slider = self._createIntInput(self.parameters.max_iter_kmean_ICM)
@@ -512,10 +564,10 @@ class ParamWindow(QMainWindow):
         slider.setRange(1,10000)
         slider.setTickInterval(1000)
         slider.setValue(self.parameters.max_iter_kmean_ICM)
-        self.generalLayout.addWidget(QLabel("Max. Iter K Mean"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.max_iter_kmean_ICM}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Max. Iter K Mean"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.max_iter_kmean_ICM}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createStepsFilling(self):
         """Creates the slider and the line edit for the number of steps (filling)."""
         btnNew,slider = self._createIntInput(self.parameters.steps_filling)
@@ -524,10 +576,10 @@ class ParamWindow(QMainWindow):
         slider.setTickInterval(100)
         slider.setValue(self.parameters.steps_filling)
         self.sliderStepsFilling = slider
-        self.generalLayout.addWidget(QLabel("Steps Filling"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.steps_filling}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Steps Filling"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.steps_filling}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createMaxIterFilling(self):
         """Creates the slider and the line edit for the max iteration (filling)."""
         btnNew,slider = self._createIntInput(self.parameters.max_iter_fill)
@@ -536,59 +588,102 @@ class ParamWindow(QMainWindow):
         slider.setRange(1,1000)
         slider.setTickInterval(100)
         slider.setValue(self.parameters.max_iter_fill)
-        self.generalLayout.addWidget(QLabel("Max. Iter Filling"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.max_iter_fill}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Max. Iter Filling"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.max_iter_fill}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createVerboseGraphFill(self):
         """Creates the slider and the line edit for the return of the graph in filling (filling f)."""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.verbose_graph_fill)
         btnNew.stateChanged.connect(partial(self.set_value_checked_VerboseGraphFill,btnNew))
-        self.generalLayout.addWidget(QLabel("Graph Filling"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.verbose_graph_fill}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        btnNew.setToolTip("Outputs the graph in the filling f process")
+        self.generalLayoutSegm.addWidget(QLabel("Graph Filling"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.verbose_graph_fill}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+    def _createVerbose(self):
+        """Creates the slider and the line edit for the return of the graph in filling (filling f)."""
+        btnNew = self._createBoolBox()
+        btnNew.setChecked(self.parameters.verbose)
+        btnNew.stateChanged.connect(partial(self.set_value_checked_Verbose,btnNew))
+        btnNew.setToolTip("Outputs steps in the process")
+        btnNew2 = self._createBoolBox()
+        btnNew2.setChecked(self.parameters.verbose)
+        btnNew2.stateChanged.connect(partial(self.set_value_checked_Verbose,btnNew))
+        btnNew2.setToolTip("Outputs steps in the process")
+        btnNew3 = self._createBoolBox()
+        btnNew3.setChecked(self.parameters.verbose)
+        btnNew3.stateChanged.connect(partial(self.set_value_checked_Verbose,btnNew))
+        btnNew3.setToolTip("Outputs steps in the process")
+        self.generalLayoutSegm.addWidget(QLabel("Verbose"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.verbose}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+        self.generalLayoutError.addWidget(QLabel("Verbose"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel(f"{self.parameters.verbose}"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(btnNew2,self.current_line_Error,2)
+        self.current_line_Error +=1
+        self.generalLayoutBayesian.addWidget(QLabel("Verbose"),self.current_line_Bayesian,0)
+        self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.verbose}"),self.current_line_Bayesian,1)
+        self.generalLayoutBayesian.addWidget(btnNew3,self.current_line_Bayesian,2)
+        self.current_line_Bayesian +=1
     def _createSaveBox(self):
         """Create the bool box for the save segmentation combo box"""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.SaveSegm)
         btnNew.stateChanged.connect(partial(self.set_value_checked_SaveSegm,btnNew))
         btnNew.setToolTip("Save the resulting segmentations. If set to False, the segmentations' results will not be kept and will be lost.")
-        self.generalLayout.addWidget(QLabel("Save"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.SaveSegm}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        btnNew2 = self._createBoolBox()
+        btnNew2.setChecked(self.parameters.SaveSegm)
+        btnNew2.stateChanged.connect(partial(self.set_value_checked_SaveSegm,btnNew))
+        btnNew2.setToolTip("Save the resulting segmentations. If set to False, the segmentations' results will not be kept and will be lost.")
+        btnNew3 = self._createBoolBox()
+        btnNew3.setChecked(self.parameters.SaveSegm)
+        btnNew3.stateChanged.connect(partial(self.set_value_checked_SaveSegm,btnNew))
+        btnNew3.setToolTip("Save the resulting segmentations. If set to False, the segmentations' results will not be kept and will be lost.")
+        self.generalLayoutSegm.addWidget(QLabel("Save"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.SaveSegm}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+        #self.generalLayoutError.addWidget(QLabel("Save"),self.current_line_Error,0)
+        #self.generalLayoutError.addWidget(QLabel(f"{self.parameters.SaveSegm}"),self.current_line_Error,1)
+        #self.generalLayoutError.addWidget(btnNew2,self.current_line_Error,2)
+        #self.current_line_Error +=1
+        #self.generalLayoutBayesian.addWidget(QLabel("Save"),self.current_line_Bayesian,0)
+        #self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.SaveSegm}"),self.current_line_Bayesian,1)
+        #self.generalLayoutBayesian.addWidget(btnNew3,self.current_line_Bayesian,2)
+        #self.current_line_Bayesian +=1
     def _createStatsBox(self):
         """Create the bool box for the stats of the segmentation combo box"""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.doStats)
         btnNew.stateChanged.connect(partial(self.set_value_checked_doStats,btnNew))
         btnNew.setToolTip("Compute the averages of the segmentations. Also computes the second moment.")
-        self.generalLayout.addWidget(QLabel("Stats"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.doStats}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Stats"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.doStats}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createCurvesBox(self):
         """Create the bool box for the TAC computation combo box"""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.doCurves)
         btnNew.stateChanged.connect(partial(self.set_value_checked_doCurves,btnNew))
         btnNew.setToolTip("Compute the TACs of the segmentations.")
-        self.generalLayout.addWidget(QLabel("Curves"),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.doCurves}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Curves"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.doCurves}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createCoefficientsBox(self):
         """Create the bool box for the coefficients combo box"""
         btnNew = self._createBoolBox()
         btnNew.setChecked(self.parameters.doCoefficients)
         btnNew.stateChanged.connect(partial(self.set_value_checked_doCoefficients,btnNew))
         btnNew.setToolTip("Compute the Dice and Jaccard coefficients for the segmentations.")
-        self.generalLayout.addWidget(QLabel("Coeff."),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.doCoefficients}"),self.current_line,1)
-        self.generalLayout.addWidget(btnNew,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Coeff."),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.doCoefficients}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createThresholdBox(self):
         """Create the slider and the line edit for the thresholding"""
         btnNew,slider = self._createIntInput(self.parameters.threshold)
@@ -608,21 +703,25 @@ class ParamWindow(QMainWindow):
         btnThresh.stateChanged.connect(partial(self.set_value_checked_doThreshold,btnThresh))
         layout.addWidget(btnThresh)
         layout.addWidget(btnNew)
-        self.generalLayout.addWidget(QLabel("Thresh."),self.current_line,0)
-        self.generalLayout.addWidget(QLabel(f"{self.parameters.doThreshold}, {self.parameters.threshold}"),self.current_line,1)
-        self.generalLayout.addWidget(subWidget,self.current_line,2)
-        self.current_line +=1
+        self.generalLayoutSegm.addWidget(QLabel("Thresh."),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.doThreshold}, {self.parameters.threshold}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(subWidget,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createParamList(self):
         """Create all the parameters, depending on the segmentation, error, and Dynesty types"""
-        text1 = QLabel("Parameter")
-        text2 = QLabel("Values")
-        text3 = QLabel("New Values")
-        self.generalLayout.addWidget(text1,0,0)
-        self.generalLayout.addWidget(text2,0,1)
-        self.generalLayout.addWidget(text3,0,2)
-        
+        self.generalLayoutSegm.addWidget(QLabel("Parameter"),0,0)
+        self.generalLayoutSegm.addWidget(QLabel("Values"),0,1)
+        self.generalLayoutSegm.addWidget(QLabel("New Values"),0,2)
+        self.generalLayoutError.addWidget(QLabel("Parameter"),0,0)
+        self.generalLayoutError.addWidget(QLabel("Values"),0,1)
+        self.generalLayoutError.addWidget(QLabel("New Values"),0,2)
+        self.generalLayoutBayesian.addWidget(QLabel("Parameter"),0,0)
+        self.generalLayoutBayesian.addWidget(QLabel("Values"),0,1)
+        self.generalLayoutBayesian.addWidget(QLabel("New Values"),0,2)
+
         self._createSegmType()
         self._createErrorType()
+        self._createBayesianType()
         self._createSubImageSliders()
         self._createAcqValue()
 
@@ -653,6 +752,7 @@ class ParamWindow(QMainWindow):
             self._createOrderShiftError()
             self._createDShiftError()
         self._createSaveBox()
+        self._createVerbose()
         self._createStatsBox()
         self._createCurvesBox()
         self._createCoefficientsBox()
@@ -661,32 +761,55 @@ class ParamWindow(QMainWindow):
     def MethCombo_Changed(self):
         """Links the method of distance computation and the combo box in the parameters (Canny)"""
         self.parameters.methodCanny = self.MethCombo.currentText()
+        self.refresh_app()
     def SegmCombo_Changed(self):
         """Links the method of segmentation and the combo box in the parameters"""
         self.parameters.SegmType = self.SegmCombo.currentText()
         self.refresh_app()
     def ErrorMethodCombo_Changed(self):
-        """Links the method of error and the combo box in the parameters"""
+        """Links the method of Bayesian analysis and the combo box in the parameters"""
         self.parameters.ErrorType = self.ErrorCombo.currentText()
+        self.refresh_app()
+    def BayesianMethodCombo_Changed(self):
+        """Links the model of Bayesian analysis and the combo box in the parameters"""
+        self.parameters.BayesianType = self.BayesianCombo.currentText()
+        self.refresh_app()
+    def ModelBayesianMethodCombo_Changed(self):
+        """Links the method of error and the combo box in the parameters"""
+        self.parameters.ModelBayesian = self.ModelCombo.currentText()
+        self.refresh_app()
+    def CurvesBayesianMethodCombo_Changed(self):
+        """Links the method of error and the combo box in the parameters"""
+        self.parameters.CurveTypeBayesian = self.CurvesCombo.currentText()
         self.refresh_app()
     def set_value_checked_doCoefficients(self,box:QCheckBox):
         """Links the compute coefficient bool and the combo box in the parameters"""
         self.parameters.doCoefficients = box.isChecked()
+        self.refresh_app()
     def set_value_checked_doThreshold(self,box:QCheckBox):
         """Links the compute threshold bool and the combo box in the parameters"""
         self.parameters.doThreshold = box.isChecked()
+        self.refresh_app()
     def set_value_checked_doStats(self,box:QCheckBox):
         """Links the compute stats bool and the combo box in the parameters"""
         self.parameters.doStats = box.isChecked()
+        self.refresh_app()
     def set_value_checked_SaveSegm(self,box:QCheckBox):
         """Links the save segmentations bool and the combo box in the parameters"""
         self.parameters.SaveSegm = box.isChecked()
+        self.refresh_app()
     def set_value_checked_VerboseGraphFill(self,box:QCheckBox):
         """Links the verbose graph bool and the combo box in the parameters (filling)"""
         self.parameters.verbose_graph_fill = box.isChecked()
+        self.refresh_app()
+    def set_value_checked_Verbose(self,box:QCheckBox):
+        """Links the verbose bool and the combo box in the parameters"""
+        self.parameters.verbose = box.isChecked()
+        self.refresh_app()
     def set_value_checked_doCurves(self,box:QCheckBox):
         """Links the compute curves (TACs) bool and the combo box in the parameters"""
         self.parameters.doCurves = box.isChecked()
+        self.refresh_app()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
         """Links the slider and the line edit together"""
         lineedit.setText(str(slider.value()))
@@ -811,9 +934,21 @@ class ParamWindow(QMainWindow):
         """
         When a different segmentation, error or Dynesty scheme is chosen, update the whole window and only display the parameters of interest
         """
-        if self.generalLayout is not None:
-            while self.generalLayout.count():
-                item = self.generalLayout.takeAt(0)
+        if self.generalLayoutSegm is not None:
+            while self.generalLayoutSegm.count():
+                item = self.generalLayoutSegm.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+        if self.generalLayoutError is not None:
+            while self.generalLayoutError.count():
+                item = self.generalLayoutError.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+        if self.generalLayoutBayesian is not None:
+            while self.generalLayoutBayesian.count():
+                item = self.generalLayoutBayesian.takeAt(0)
                 widget = item.widget()
                 if widget is not None:
                     widget.deleteLater()

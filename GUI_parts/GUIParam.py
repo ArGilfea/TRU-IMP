@@ -33,7 +33,7 @@ class GUIParameters(object):
         self.max_iter_kmean_ICM = 100
         self.sigmaCanny = 1
         self.combinationCanny = 2
-        self.methodCanny = "Taxicab"
+        self.methodCanny = "TaxiCab"
         self.steps_filling = 1000
         self.max_iter_fill = 300
         self.factor_Fill_range = [0.1,2.8]
@@ -53,4 +53,7 @@ class GUIParameters(object):
         self.distanceShift = 1
         self.weightShift = 1
 
+        self.BayesianType = "None"
+        self.ModelBayesian = "None"
+        self.CurveTypeBayesian = "Average"
         del Image
