@@ -556,9 +556,7 @@ class DicomImage(object):
             self.save_VOI(Canny_filled,name=name,do_stats=do_stats,do_moments=do_moments)
         else:
             return Canny_filled
-    #@jit(nopython=True)
-    #@jit
-    def VOI_filled(self,seed: np.ndarray = [[-1,-1,-1]],factor:float = 1,
+    def VOI_filled_noNumba(self,seed: np.ndarray = [[-1,-1,-1]],factor:float = 1,
         acq:int=0,sub_im: np.ndarray = [[-1,-1],[-1,-1],[-1,1]],
         name: str = '',max_iter: int = 100,do_moments: bool = False,
         save:bool=True,do_stats:bool=False,
@@ -586,15 +584,25 @@ class DicomImage(object):
         """
         seed = np.array(seed)
         sub_im = np.array(sub_im)
-        if (seed[0,0]==-1):
-            raise Exception("Seed argument must be a 3-array within the image, ex. [0,0,0]")
+        try:
+            if (seed[0,0]==-1):
+                raise Exception("Seed argument must be a 3-array within the image, ex. [0,0,0]")
+        except:
+            if (seed[0]==-1):
+                raise Exception("Seed argument must be a 3-array within the image, ex. [0,0,0]") 
         subimage = self.select_acq(acq = acq)
         VOI = np.zeros_like(subimage)
         VOI_old = np.zeros_like(subimage)
-        for i in range(seed.shape[0]):
-            VOI[seed[i,0],seed[i,1],seed[i,2]] = 1
+        try:
+            for i in range(seed.shape[0]):
+                VOI[seed[i,0],seed[i,1],seed[i,2]] = 1
+        except:
+            VOI[seed[0],seed[1],seed[2]] = 1
         iteration = 0
-        range_im = np.array([[np.max(seed[:,0])-1,np.max(seed[:,0]+1)],[np.max(seed[:,1])-1,np.max(seed[:,1])+1],[np.max(seed[:,2])-1,np.max(seed[:,2])+1]])
+        try:
+            range_im = np.array([[np.max(seed[:,0])-1,np.max(seed[:,0]+1)],[np.max(seed[:,1])-1,np.max(seed[:,1])+1],[np.max(seed[:,2])-1,np.max(seed[:,2])+1]])
+        except:
+            range_im = np.array([[np.max(seed[0])-1,np.max(seed[0]+1)],[np.max(seed[1])-1,np.max(seed[1])+1],[np.max(seed[2])-1,np.max(seed[2])+1]])
         if sub_im[0,0] == -1:
             min_i = 0
         else:
@@ -628,7 +636,6 @@ class DicomImage(object):
             if iteration == 1:
                 region_std = np.abs(region_mean)
             if (verbose and iteration%5==0) or (verbose and iteration==1):
-                #print(f"Iter: {iteration}, x={region_mean:.5e}, std={region_std:.5e}, voxels ={np.sum(VOI_old):.8e}")
                 print("Iter:", iteration,", x=",region_mean,", std=",region_std,", voxels =",np.sum(VOI_old))
             for i in range(range_im_tmp[0,0],range_im_tmp[0,1]+1):
                 for j in range(range_im_tmp[1,0],range_im_tmp[1,1]+1):
@@ -666,6 +673,109 @@ class DicomImage(object):
             counter_save += 1
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
         return VOI, counter_save
+    def VOI_filled(self,seed: np.ndarray = [[-1,-1,-1]],factor:float = 1,
+        acq:int=0,sub_im: np.ndarray = [[-1,-1],[-1,-1],[-1,1]],
+        name: str = '',max_iter: int = 100,do_moments: bool = False,
+        save:bool=True,do_stats:bool=False,
+        verbose:bool=True,save_between:bool=False,fraction_f:np.ndarray=[-1,0],
+        size_f:np.ndarray=[-1,0],voxels_f:np.ndarray=[-1,0],counter_save: int = 0,
+        loop = 0): #Done in 1.3.2
+        """
+        This function determines a VOI using a filling algorithm, as discussed in TG211.\n
+        Keyword arguments:\n
+        seed -- image on which to apply the Canny edge algorithm (default [], i.e. all the 3D volume)\n
+        factor -- value f for the seed growing algorithm\n
+        acq -- time acquisition on which to do the segmentation (default 0)\n
+        sub_im -- if different than default, restricted region over which to fill (default [[-1,-1],[-1,-1],[-1,1]])\n
+        name -- name of the VOI (default '')\n
+        max_iter -- number of loops before aborting by force the program (default 100)\n
+        do_moments -- compute the moments of the VOI and store them (default False)\n
+        save -- add the VOI to the dictionary of VOIs, with relevant infos (default True); if False, return instead the VOI alone\n
+        do_stats -- compute the TACs relative to the VOI (default False)\n
+        verbose -- outputs information along the computing, to follow progression (default false)\n
+        save -- add the VOI to the dictionary of VOIs, with relevant infos (default False). Useful for VOI_filled_f, to save all intermediate VOIs\n
+        save_between -- allows to save VOIs according to other parameters, such as size of VOI (default = False)\n
+        fraction_f -- saves the VOI if the VOI's fraction (with respect to the full image) is within a specific range (default [-1,0])\n
+        size_f -- saves the VOI if the VOI's size (in actual units) is within a specific range (default [-1,0])\n
+        voxels_f -- saves the VOI if the VOI's number of voxels is within a specific range (default [-1,0])\n
+        counter_save -- used to determine whether to save the segmentation or not (c.f. VOI_filled_f) (default 0)\n
+        """
+        seed = np.array(seed)
+        sub_im = np.array(sub_im)
+        try:
+            if (seed[0,0]==-1):
+                raise Exception("Seed argument must be a 3-array within the image, ex. [0,0,0]")
+        except:
+            if (seed[0]==-1):
+                raise Exception("Seed argument must be a 3-array within the image, ex. [0,0,0]")            
+        subimage = self.select_acq(acq = acq)
+        VOI = np.zeros_like(subimage)
+        VOI_old = np.zeros_like(subimage)
+        try:
+            for i in range(seed.shape[0]):
+                VOI[seed[i,0],seed[i,1],seed[i,2]] = 1
+        except:
+            VOI[seed[0],seed[1],seed[2]] = 1
+        iteration = 0
+        try:
+            range_im = np.array([[np.max(seed[:,0])-1,np.max(seed[:,0]+1)],[np.max(seed[:,1])-1,np.max(seed[:,1])+1],[np.max(seed[:,2])-1,np.max(seed[:,2])+1]])
+        except:
+            range_im = np.array([[np.max(seed[0])-1,np.max(seed[0]+1)],[np.max(seed[1])-1,np.max(seed[1])+1],[np.max(seed[2])-1,np.max(seed[2])+1]])
+        if sub_im[0,0] == -1:
+            min_i = 0
+        else:
+            min_i = np.max([sub_im[0,0],0])
+        if sub_im[0,1] == -1:
+            max_i = self.nb_slice
+        else:
+            max_i = np.min([sub_im[0,1],self.nb_slice])
+        if sub_im[1,0] == -1:
+            min_j = 0
+        else:
+            min_j = np.max([sub_im[1,0],0])
+        if sub_im[1,1] == -1:
+            max_j = self.width
+        else:
+            max_j = np.min([sub_im[1,1],self.width])
+        if sub_im[2,0] == -1:
+            min_k = 0
+        else:
+            min_k = np.max([sub_im[2,0],0])
+        if sub_im[2,1] == -1:
+            max_k = self.length
+        else:
+            max_k = np.min([sub_im[2,1],self.length])
+        while(iteration<max_iter and (not (VOI==VOI_old).all())): #As long as the images are different
+            VOI_old = np.copy(VOI)
+            range_im_tmp = range_im
+            iteration += 1
+            region_mean = np.sum(np.multiply(VOI,subimage))/np.sum(VOI)
+            region_std = (np.sum(np.multiply(VOI,(subimage-region_mean)**2))/np.sum(VOI))**(1/2)
+            if iteration == 1:
+                region_std = np.abs(region_mean)
+            if (verbose and iteration%5==0) or (verbose and iteration==1):
+                #print(f"Iter: {iteration}, x={region_mean:.5e}, std={region_std:.5e}, voxels ={np.sum(VOI_old):.8e}")
+                print("Iter:", iteration,", x=",region_mean,", std=",region_std,", voxels =",np.sum(VOI_old))
+            ### Numba
+            ###
+            VOI, range_im = loop(VOI,VOI_old,range_im,range_im_tmp,region_mean,region_std,factor,subimage,min_i,min_j,min_k,max_i,max_j,max_k)
+        size_VOI = np.sum(VOI)
+        fraction_VOI = np.sum(VOI)/(self.nb_acq*self.width*self.length)
+        if fraction_VOI >= fraction_f[0] and fraction_VOI <= fraction_f[1]:
+            #print(f"Saving VOI with f = {factor}, for size = {fraction_VOI} is within the range [{fraction_f[0]},{fraction_f[1]}].")
+            save_between = True
+        if size_VOI*self.voxel_volume/1000 >= size_f[0] and size_VOI*self.voxel_volume/1000 <= size_f[1]:
+            #print(f"Saving VOI with f = {factor}, for size = {size_VOI*self.voxel_volume/1000} is within the range [{size_f[0]},{size_f[1]}].")
+            save_between = True
+        if size_VOI >= voxels_f[0] and size_VOI <= voxels_f[1]:
+            #print(f"Saving VOI with f = {factor:.3f}, for size = {size_VOI} is within the range [{voxels_f[0]:.3f},{voxels_f[1]:.3f}].")
+            save_between = True
+        if verbose:
+            print('Stopped the filling at iter', {iteration},', while the max_iter was ',{max_iter})
+        if save or save_between:
+            counter_save += 1
+            self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
+        return VOI, counter_save
     def VOI_filled_f(self,seed:np.ndarray=[-1,-1,-1],factor:np.ndarray = [0,1],
         steps:int=5,acq:int=0,sub_im:np.ndarray = [[-1,-1],[-1,-1],[-1,-1]],
         name:str='',
@@ -674,10 +784,13 @@ class DicomImage(object):
         save_between:bool=False,max_number_save:int=10000,
         threshold:float=0.99,fraction_f:np.ndarray=[-1,0],size_f:np.ndarray=[-1,0],
         voxels_f:np.ndarray=[-1,0],
-        min_f_growth:float = 0,growth:float=-1,break_after_f:bool=False): #Done in 1.3.2
+        min_f_growth:float = 0,growth:float=-1,break_after_f:bool=False,
+        numba = True): #Done in 1.3.2
         """
+        Segment by filling over a range of f to determine which is best.
+        Keyword parameters:\n
+        steps -- number of separations for the factor parameter (default 5)\n
         verbose_graphs -- outputs the graphs pertaining to the filling of a the seeded region (default False)\n
-        ZZZ\n
         threshold -- value at which to stop the loop, as either the full image is segmented binarily or another condition is attained (default 0.99)\n
         save_between -- allows to save all VOIs during the full loop (data heavy)\n
         max_number_save -- number of segmentations to save; after this threshold, the remaining segmentations are not saved anymore (default 10000)\n
@@ -687,7 +800,45 @@ class DicomImage(object):
         min_f_growth -- minimal index of the factors after which to check the growth rate (default 0)\n
         growth -- saves the image if the size of the segmented volume increases by more than this factor (default -1)\n
         break_after_f -- breaks the loop over f if all fraction intervals are overpassed (default False)\n
-        """       
+        numba -- use the Numba package to spead up the loops (default True)\n
+        """   
+        if numba:  
+            @jit#(nopython=True)
+            def loop(VOI,VOI_old,range_im,range_im_tmp,region_mean,region_std,factor,subimage,min_i,min_j,min_k,max_i,max_j,max_k):
+                for i in range(range_im_tmp[0,0],range_im_tmp[0,1]+1):
+                    for j in range(range_im_tmp[1,0],range_im_tmp[1,1]+1):
+                        for k in range(range_im_tmp[2,0],range_im_tmp[2,1]+1):
+                            if(VOI[i,j,k] < 0.5): #If the voxel is already in the VOI, don't care
+                                neighbours = 0
+                                try: neighbours += VOI_old[i+1,j,k] 
+                                except: pass
+                                try: neighbours += VOI_old[i-1,j,k] 
+                                except: pass
+                                try: neighbours += VOI_old[i,j+1,k] 
+                                except: pass
+                                try: neighbours += VOI_old[i,j-1,k] 
+                                except: pass
+                                try: neighbours += VOI_old[i,j,k+1] 
+                                except: pass
+                                try: neighbours += VOI_old[i,j,k-1] 
+                                except: pass
+                                
+                                if(neighbours > 0.5): #A neighbour has to be on
+                                    if((subimage[i,j,k]<=(region_mean+factor*region_std) and subimage[i,j,k]>=(region_mean-factor*region_std))):
+                                        VOI[i,j,k] = 1
+                                        if i<=range_im[0,0] and i>= min_i+1:
+                                            range_im[0,0] = i - 1
+                                        if i>=range_im[0,1] and i< max_i - 1:
+                                            range_im[0,1] = i + 1
+                                        if j<=range_im[1,0] and j>= min_j+1:
+                                            range_im[1,0] = j - 1
+                                        if j>=range_im[1,1] and j< max_j - 1:
+                                            range_im[1,1] = j + 1
+                                        if k<=range_im[2,0] and k>= min_k+1:
+                                            range_im[2,0] = k - 1
+                                        if k>=range_im[2,1] and k< max_k - 1:
+                                            range_im[2,1] = k + 1
+                return VOI, range_im  
         if (seed[0]==-1):
             raise Exception("Seed argument must be a 3-array within the image, ex. [0,0,0]") 
         f_range = np.arange(factor[0],factor[1],(factor[1]-factor[0])/steps)
@@ -702,9 +853,14 @@ class DicomImage(object):
             if counter_save >= max_number_save:
                 fraction_f=[-1,0];size_f=[-1,0];voxels_f=[-1,0]
                 break
-            VOI_filled = self.VOI_filled(seed=np.array(seed),factor=f_range[f],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=False,
-                verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f}",
-                do_moments=do_moments,do_stats=do_stats,fraction_f=fraction_f,size_f=size_f,voxels_f=voxels_f,counter_save=counter_save)
+            if numba:
+                VOI_filled = self.VOI_filled(seed=np.array(seed),factor=f_range[f],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=False,
+                    verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f}",
+                    do_moments=do_moments,do_stats=do_stats,fraction_f=fraction_f,size_f=size_f,voxels_f=voxels_f,counter_save=counter_save,loop=loop)
+            else:
+                VOI_filled = self.VOI_filled_noNumba(seed=np.array(seed),factor=f_range[f],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=False,
+                    verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f}",
+                    do_moments=do_moments,do_stats=do_stats,fraction_f=fraction_f,size_f=size_f,voxels_f=voxels_f,counter_save=counter_save)
             counter_save = VOI_filled[1]
             voxels[f] = self.count_voxels(VOI=VOI_filled[0])
             ratio_range[f] = (voxels[f]/image_size)
@@ -719,25 +875,40 @@ class DicomImage(object):
                 print(f"Stopping at iter {f+1}, because threshold of {threshold} has been reached with {voxels[f]/size_sub_im:.3f}.")
                 if counter_save == 0 and max_number_save > 0:
                     print(f"Saving a backup segmentation, for nothing was satisfactory.")
-                    self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
-                        verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
-                        do_moments=do_moments,do_stats=do_stats)
+                    if numba:
+                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                            verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
+                            do_moments=do_moments,do_stats=do_stats,loop=loop)
+                    else:
+                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                            verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
+                            do_moments=do_moments,do_stats=do_stats)
                 break
             if f > min_f_growth and growth>=0:
                 if voxels[f]/voxels[f-1] > growth:
                     print(f"Saving the previous segmentation, for the growth factor is {(voxels[f]/voxels[f-1]):.2f}, which is over the allowed {growth}.\
                             \nThe index was {f-1}, which is >= to {min_f_growth}.")
-                    self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
-                        verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} growth {(voxels[f]/voxels[f-1]):.2f}>{growth}",
-                        do_moments=do_moments,do_stats=do_stats)     
+                    if numba:
+                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                            verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} growth {(voxels[f]/voxels[f-1]):.2f}>{growth}",
+                            do_moments=do_moments,do_stats=do_stats,loop=loop)   
+                    else: 
+                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                            verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} growth {(voxels[f]/voxels[f-1]):.2f}>{growth}",
+                            do_moments=do_moments,do_stats=do_stats)   
                     break               
             if voxels[f]/image_size >= threshold:
                 print(f"Stopping at iter {f+1}, because threshold of {threshold} has been reached with {voxels[f]/image_size:.3f}.")
                 if counter_save == 0 and max_number_save > 0:
                     print(f"Saving a backup image, for nothing was satisfactory.")
-                    self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
-                        verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
-                        do_moments=do_moments,do_stats=do_stats)
+                    if numba:
+                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                            verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
+                            do_moments=do_moments,do_stats=do_stats,loop=loop)
+                    else:
+                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                            verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
+                            do_moments=do_moments,do_stats=do_stats)
                 break
         if verbose_graphs:
             if fraction_f[0] >= 0 and fraction_f[1] <= 1:
