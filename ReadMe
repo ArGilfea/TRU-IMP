@@ -1,0 +1,29 @@
+README File
+
+Use:
+    This package and the GUI are used to visualize dynamic images, segment them and extract parameters. 
+    It was created for the sake of working with Dynamic Nuclear Medicine images.
+    It might thus work with other types of images, but will probably not be optimized.
+
+Note:
+    The GUI and the code is functional on a MacBookPro computer. 
+    It has not yet been tested with another OS.
+
+Packages Required:
+    -Numpy          --For all computations
+    -Scipy          --To compute the parameters
+    -SkImage        --For filters and Canny edge detection algorithm
+    -Time           --To track the time elapsed for processes
+    -Numba          --To increase the speed of some functions
+    -Dynesty        --To compute the parameters
+    -os             --To clear the screen (easily circumvented)
+    -matplotlib     --To create the images and graphs
+    -pydicom        --To extract the images
+    -pickle         --To save and load data
+
+GUI:
+    The GUI is the easy way to work with the code.
+    Opening a File:
+        A path can be input or browsed at the top left of the screen to locate the dicom files.
+        By clicking "Extract", the dicom files will be opened and put together to form a 4-D volume.
+        Otherwise,   

@@ -1,10 +1,5 @@
-import os
 import numpy as np
 import matplotlib.pyplot as plt
-import pydicom #To read Dicom Files
-import time #To monitor time to run program
-from MyFunctions.DicomImage import DicomImage #Custom Class
-import MyFunctions.Pickle_Functions as PF
 
 def graph_all_specimens(all_rats,rats_name,rats,timeframes,begin=0,name1="",path_out='',name_out=''):
     """

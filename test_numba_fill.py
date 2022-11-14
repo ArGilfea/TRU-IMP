@@ -3,11 +3,8 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import matplotlib.pyplot as plt
 import time
-from numba import jit
 ###
-import MyFunctions.Batch_Segmentations as BS
 import MyFunctions.Pickle_Functions as PF
-import MyFunctions.Graph_Many as GM
 ####
 ###
 

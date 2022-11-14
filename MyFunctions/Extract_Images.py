@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import pydicom #To read Dicom Files
 import time #To monitor time to run program
 from MyFunctions.DicomImage import DicomImage #Custom Class

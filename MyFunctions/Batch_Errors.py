@@ -1,12 +1,6 @@
-from distutils.log import error
-import os
-from unicodedata import name
 import numpy as np
-import matplotlib.pyplot as plt
-import pydicom #To read Dicom Files
 import time
 
-from torch import threshold #To monitor time to run program
 from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 

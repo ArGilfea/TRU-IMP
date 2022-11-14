@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from numpy.core.defchararray import count
 import pydicom #To read Dicom Files
 import time #To monitor time to run program
-import glob
 from MyFunctions.DicomImage import DicomImage #Custom Class
 from MyFunctions.Pickle_Functions import pickle_save
 

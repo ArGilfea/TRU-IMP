@@ -1,5 +1,3 @@
-from operator import sub
-from unicodedata import name
 import numpy as np
 from scipy.optimize import curve_fit
 from skimage import feature
