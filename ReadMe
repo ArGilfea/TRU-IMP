@@ -135,16 +135,51 @@ GUI:
    These will also be present at the end in the reference sections.
 
 Segmentation Schemes:
-    -Canny and Canny Filled:
-        X
-    -ICM and K-Mean:
-        X
-    -Filling and Filling f:
-        X
-    -Ellipsoid: 
-        This creates an ellipsoid with a given center with the specified lengths for each axis.
-    -Threshold:
-        X
+    -Canny and Canny Filled: The Canny part will use the Canny
+                             edge detection algorithm to determine the edges
+                             of the image.
+                             Since Canny only yields results in 2-D,
+                             a combination will be used to determine if a given
+                             voxel belongs to the segmentation,
+                             i.e. it will belong to it only if it belongs
+                             to at least a certain number of 2-D slices.
+                             The other parameter is sigma, is used
+                             for the Gaussian filter used.
+                             For the Canny filled, a Canny part is used
+                             first. This yields a contour.
+                             Afterward, this image is filled to yield
+                             the resulting segmentation.
+                             Reference: Canny, J. A Computational Approach to Edge Detection. 
+                                        IEEE Transactions on Pattern Analysis and Machine Intelligence 8(6). 1986.
+    -ICM and K-Mean: This method presupposes a statistical distribution in the
+                     distribution of the signal in the image:
+                     one distribution for the volume to be segmented and one for the rest.
+                     The k-mean part looks for the parameters of this distribution, 
+                     supposed to be Gaussians. 
+                     Once the mean and std determined, the segmentation is done.
+                     The ICM part starts with a k-mean, then further pinpoints the
+                     segmentation by taking into account the current neighbours of
+                     a voxel; in other words, a voxel will more probably belong to 
+                     a class if its neighbours belong to the same class.
+                     Reference: Besag, J. On the Statistical Analysis of Dirty Pictures. 1986 48(3):259-79
+    -Filling and Filling f: This method takes a seed as a starting point.
+                            For each iteration, until convergence, any voxel 
+                            adjacent to the current segmentation will be added
+                            if it is contained between the mean +/- f std,
+                            where f is the factor selected by the user.
+                            After convergence of the segmentations, the last
+                            one will be kept as the result.
+                            Alternatively, to not have to select a specific factor f,
+                            Filling f will take a range of values as input.
+                            The final segmentation will be the one for which the growth
+                            of the segmented volume will be the starkest.
+                            Reference: Adams, R., Bischof, L. 1994. Seeded Region Growing. 
+                                       IEEE Transactions on Pattern Analysis and Machine Intelligence. 16(6): 641-7.
+    -Ellipsoid: This creates an ellipsoid with a given center with the specified lengths for each axis.
+    -Threshold: This takes an already determined segmentation and will only keep all the voxels that
+                are above a certain percentage of the maximal value. 
+                To determine the maximal value and avoid extreme values,
+                a Gaussian filter with sigma can be used.
 
 Distance Schemes:
     -TaxiCab Distance: This computes the taxicab distance between two points, where relevant.
@@ -153,7 +188,12 @@ Distance Schemes:
                        is |x1-x0| + |y1-y0| + |z1-z0|
 
 Error Bar Schemes:
-    -Linear Shift: This will take the 
+    -Linear Shift: This will take a given segmentation and shift it by
+                   a number of voxels, as specified in the parameters.
+                   The result will be a new TAC with an error bar,
+                   corresponding to the average of the new segmentations 
+                   and its standard deviation.
+                   Only the resulting curve will be saved.
 
 Bayesian Analysis Schemes:
     -Dynesty: This will use Dynesty to fit a "Bayesian Curves Used" to the "Bayesian Analysis Model".
@@ -198,7 +238,10 @@ Bayesian Curves Used:
 
 
 References:
+    -Canny: Canny, J. A Computational Approach to Edge Detection. IEEE Transactions on Pattern Analysis and Machine Intelligence 8(6). 1986.
     -Dynesty: https://dynesty.readthedocs.io/en/latest/
+    -Filling: Adams, R., Bischof, L. 1994. Seeded Region Growing. IEEE Transactions on Pattern Analysis and Machine Intelligence. 16(6): 641-7.
+    -ICM: Besag, J. On the Statistical Analysis of Dirty Pictures. 1986 48(3):259-79
     -Pharmacokinetic modeling: Maguire, R.P. et al. PET Pharmacokinetic Course. 
                                Montreal Neurological Institute: Montréal. 2003.
     -SciPy: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html

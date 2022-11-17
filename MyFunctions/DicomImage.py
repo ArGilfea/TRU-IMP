@@ -752,7 +752,6 @@ class DicomImage(object):
             if iteration == 1:
                 region_std = np.abs(region_mean)
             if (verbose and iteration%5==0) or (verbose and iteration==1):
-                #print(f"Iter: {iteration}, x={region_mean:.5e}, std={region_std:.5e}, voxels ={np.sum(VOI_old):.8e}")
                 print("Iter:", iteration,", x=",region_mean,", std=",region_std,", voxels =",np.sum(VOI_old))
             ### Numba
             ###
