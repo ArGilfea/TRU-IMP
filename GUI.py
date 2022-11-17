@@ -51,7 +51,7 @@ class Window(QMainWindow):
         buttonErrors = QPushButton("ErrorBars")
         buttonBayesian = QPushButton("Bayesian")
 
-        btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Dynesty analyses")
+        btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Bayesian analyses")
         btn_segm.setToolTip("Runs the segmentations according to the selected parameters")
         buttonErrors.setToolTip("Runs the error bars according to the selected parameters")
         buttonBayesian.setToolTip("Runs the Bayesian analyses according to the selected parameters")
@@ -187,7 +187,7 @@ class Window(QMainWindow):
         self.ResultViewCombo.addItem("TAC")
         self.ResultViewCombo.addItem("Dice")
         self.ResultViewCombo.addItem("Jaccard")
-        self.ResultViewCombo.addItem("Dynesty")
+        self.ResultViewCombo.addItem("Bayesian")
         self.ResultViewCombo.activated[str].connect(self.combo_box_result_changed)
 
         layout.addWidget(self.ImageViewCombo)
@@ -527,8 +527,8 @@ class Window(QMainWindow):
             self.update_Dice()
         elif self.resultView == "Jaccard":
             self.update_Jaccard()
-        elif self.resultView == "Dynesty":
-            self.update_Dynesty(self.sliderBayesian.value())
+        elif self.resultView == "Bayesian":
+            self.update_Bayesian(self.sliderBayesian.value())
     def update_Dice(self):
         """Shows the Dice coefficients in the middle image"""
         try:
@@ -547,8 +547,8 @@ class Window(QMainWindow):
             self.TACImage.draw() 
         except:
             pass
-    def update_Dynesty(self,param:int=0):
-        """Shows the Dynesty coefficients in the middle image"""
+    def update_Bayesian(self,param:int=0):
+        """Shows the Bayesian coefficients in the middle image"""
         try:
             if param == -1:
                 k = np.arange(self.Image.bayesian_results_avg.shape[1])
@@ -559,7 +559,7 @@ class Window(QMainWindow):
                 self.TACImage.axes.errorbar(np.arange(self.Image.bayesian_results_avg.shape[0]),
                                                 self.Image.bayesian_results_avg[:,k[i]],
                                                 yerr=[self.Image.bayesian_results_e_down[:,k[i]],self.Image.bayesian_results_e_up[:,k[i]]])
-            self.base_Dynesty_axes()
+            self.base_Bayesian_axes()
             self.TACImage.draw() 
         except:
             pass
@@ -684,8 +684,8 @@ class Window(QMainWindow):
         except: pass
         self.TACImage.axes.set_title(self.resultView)
         self.cb = self.TACImage.fig.colorbar(mappable)
-    def base_Dynesty_axes(self):
-        """Gives the basic axes details for the result image (center) when they are updated when it is Dice or Jaccard"""
+    def base_Bayesian_axes(self):
+        """Gives the basic axes details for the result image (center) when they are updated for the Bayesian analyses"""
         try:
             self.cb.remove()
         except: pass

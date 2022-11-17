@@ -6,7 +6,7 @@ Use:
     It might thus work with other types of images, but will probably not be optimized.
 
 Note:
-    The GUI and the code is functional on a MacBookPro computer. 
+    The GUI and the code are functional on a MacBookPro computer. 
     It has not yet been tested with another OS.
 
 Packages Required:
@@ -22,8 +22,121 @@ Packages Required:
     -pickle         --To save and load data
 
 GUI:
-    The GUI is the easy way to work with the code.
+    The GUI is the easy way to work with the code. 
+    It consists of the main functions with the basic commands.
+    The more in-depth commands and analyses are not directly accessible and must be done by code.
     Opening a File:
         A path can be input or browsed at the top left of the screen to locate the dicom files.
         By clicking "Extract", the dicom files will be opened and put together to form a 4-D volume.
-        Otherwise,   
+        Otherwise, if a pickle file (.pkl) of a DicomImage (in-package code) class is selected,
+	    the GUI will open it with the "Load" button,
+        instantiating all the segmentations and other analyses already done.
+    Visualising an Image:
+        When an image is loaded, the sliders on the left-hand side can be moved to change the view.
+        To see exactly where one is looking, the right hand side focus option can be toggled:
+        this will create a focus on the views to show where the pointer is located.
+        For images that are hard to visualize, a "log" button can be toggled:
+        this will take the log_10 of the image, making details more visible;
+        it also increases the visible artefacts and noise.
+        There is also an option to view the limits of the subimage, as determined by the parameters:
+        this will create yellow lines delimitating the location of the subimage.
+        A drop-down menu, initially set at "Slice" can allow different views of the image:
+            -The "Slice" shows slices of the image;
+            -The "Flat" shows the flattened image;
+            -The "Sub. Slice" shows the slices of the subimage;
+            -The "Sub. Flat" shows the flattened subimage;
+            -The "Segm. Slice" shows the slices of a segmentation;
+            -The "Segm. Flat" shows the flattened segmentation;
+            -The "Segm. Sub. Slice" shows the slices of the subsegmentation;
+            -The "Segm. Sub. Flat" shows the flattened subsegmentation;
+    Visualising a TAC:
+        The middle image, in its default setting, shows the Time-Activity Curve for the 
+        voxel selected by the sliders on the left.
+        If focus is toggled, the focus on the views will be the point for the central TAC.
+        If the subimage button is toggled, lines will be added to limit the TACs.
+    Visualising Sliced Signal:
+        The botton row of images show slices at the position of the sliders.
+        The y-axis represents the signal in that specific slice.
+        If the focus button is toggled, a red line will indicate the position on those slices.
+        If the subimage button is toggled, yellow lines will delimitate the subimage.
+    Infos Button:
+        This button will create a pop-up with the basic information of the acquisition.
+    Parameters Button:
+        This will open a parameters window.
+        In this window, the parameters for segmentations, errors, and analyses can be selected.
+        Each tab represents one family of parameters.
+        For each tab, a specific model can be selected: this will make the relevant parameters appear.
+        Even if a new model is selected, the parameters are kept.
+        The verbose parameter (default True) is recommended, as it allows to see the progresses.
+    Segmentation Button:
+        This will segment the images according to the selected parameters.
+        Only one method will be used, as specified in the parameters window.
+        This step can take a lot of time, depending upon the segmentation scheme.
+        The results will be stored in the instance of the GUI.
+    ErrorBars Button:
+        This will compute the error of the segmentations according to the selected parameters.
+        Only one method will be used, as specified in the parameters window.
+        This step can take a lot of time, depending upon the method selected.
+        The results will be stored in the instance of the GUI.
+    Bayesian Button:
+        This will use Bayesian analysis to extract coefficients of the TACs,
+        according to the parameters selected.
+        Only one method will be used, as specified in the parameters window.
+        This step can take a lot of time, depending upon the method selected.
+        The results will be stored in the instance of the GUI.
+    Visualising Results:
+        The initial results that can be seen is "TAC".
+        The results can be seen in the central image.
+        This can be changed to visualise other results:
+            -TAC:
+                Shows the TAC of the voxel, of a segmentation or of a segmentation error scheme,
+                depending on the position of the sliders "Segm" and "Segm.Errors". 
+                If both are -1, it will show the voxel of the leftern sliders;
+                otherwise, it will show the curves for the sliders not equal to -1.
+            -Dice:
+                This will show the Dice coefficients for all segmentations,
+                if they have been computed.
+            -Jaccard:
+                This will show the Jaccard coefficients for all segmentations,
+                if they have been computed.
+            -Bayesian:
+                This will show the parameters extracted with Bayesian analyses.
+                The parameter shown will be the one given by the "Bay. Values" slider.
+                If it is set to -1, it will show them all:
+                this can be hard to visualise if they don't have the same magnitude.
+    Exporting Results:
+        Clicking the Export Button will open a window from where the exportation can be done.
+        Whatever will be checked will be exported.
+        The file destination can be entered manually or the folder selected via the "Browse" button.
+        The extension used will be the base name of the exported data.
+        For each type of data exported, a suffix will be appended to describe it, making the 
+        selection of the relevant data easier afterward.
+        The whole instance of the GUI and its computations, i.e. a DicomImage class, can be extracted.
+        This file can latter be reloaded by the GUI. 
+        This allows to keep the computations saved elsewhere
+        and save computing time.
+        The parameters of the parameter window can also be extracted, allowing to keep 
+        track of the parameters used for a specific analysis. 
+        This is useful for reproducibility concerns.
+        The other results, (TACs, segmentation images, curves, etc.) can
+        be extracted either as images or as data.
+        The data will be in a .csv file, where the first column will either be 
+        the time and the others related to each segmentation,
+        or the segmentation number and the other columns will be the extracted parameters.
+        This can allow to process the results and the data outside of the GUI.
+        This was done to avoid putting a huge burden upon the inner processing of the results in
+        the GUI, as this task can be easily done outside of the interface.
+    Exit Button:
+        Shuts down the GUI
+
+Segmentation Schemes:
+    -Canny and Canny Filled:
+        X
+    -ICM and K-Mean:
+        X
+    -Filling and Filling f:
+        X
+    -Ellipsoid: 
+        This creates an ellipsoid with a given center with the specified lengths for each axis.
+    -Threshold:
+        X
