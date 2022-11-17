@@ -1308,7 +1308,7 @@ class DicomImage(object):
         Keyword arguments:\n
         param -- list of parameters [A_0,k_1/V1]
         """
-        return param[0]*(np.exp(-param[1]*t)-np.exp(-param[2]*t))
+        return param[0]*(np.exp(-param[1]*t))
     def model_three_compartment_A2(self,t:np.ndarray,param:np.ndarray): #Added in 3.0.0
         """Model of the second compartment in a two_compartment model\n
         Form: A_2(t) = A_0 (k_1V_2/(k_1V_2-k_2V_1))[e^(-k_2/V_2 t)-e^(-k_1/V_1 t)]\n
@@ -1492,7 +1492,7 @@ class DicomImage(object):
             raise Exception("Invalid choice of curves to fit. Please see function definition for acceptable choices.")
         if model == '2_Comp_A1':
             model = self.model_three_compartment_A1
-            ndim = 3 #Number of parameters of the model
+            ndim = 2 #Number of parameters of the model
         elif model == '2_Comp_A2':
             model = self.model_three_compartment_A2
             ndim = 3 #Number of parameters of the model

@@ -388,7 +388,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.ModelBayesian}"),self.current_line_Bayesian,1)
         self.generalLayoutBayesian.addWidget(self.ModelCombo,self.current_line_Bayesian,2)
         self.current_line_Bayesian +=1
-        self.generalLayoutBayesian.addWidget(QLabel("Bayesian Model"),self.current_line_Bayesian,0)
+        self.generalLayoutBayesian.addWidget(QLabel("Curves Used"),self.current_line_Bayesian,0)
         self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.CurveTypeBayesian}"),self.current_line_Bayesian,1)
         self.generalLayoutBayesian.addWidget(self.CurvesCombo,self.current_line_Bayesian,2)
         self.current_line_Bayesian +=1

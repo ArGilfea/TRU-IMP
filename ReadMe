@@ -129,6 +129,11 @@ GUI:
     Exit Button:
         Shuts down the GUI
 
+###This section will describe the main choices that the user can make.
+   The goal is to make the process easier to understand. 
+   Where relevant, references will be given.
+   These will also be present at the end in the reference sections.
+
 Segmentation Schemes:
     -Canny and Canny Filled:
         X
@@ -140,3 +145,60 @@ Segmentation Schemes:
         This creates an ellipsoid with a given center with the specified lengths for each axis.
     -Threshold:
         X
+
+Distance Schemes:
+    -TaxiCab Distance: This computes the taxicab distance between two points, where relevant.
+                       In topological terms, this represents L1, 
+                       i.e. the distance between two points (x0,y0,z0) and (x1,y1,z1)
+                       is |x1-x0| + |y1-y0| + |z1-z0|
+
+Error Bar Schemes:
+    -Linear Shift: This will take the 
+
+Bayesian Analysis Schemes:
+    -Dynesty: This will use Dynesty to fit a "Bayesian Curves Used" to the "Bayesian Analysis Model".
+              Dynesty is a nested sampling method to estimate the parameters of a curve.
+              This method can be relatively lengthy, but the results are more transparent than other methods.
+              The description of the results, beside the values, can not yet be obtainable directly from the GUI (work in progress).
+              Full reference can be found here: https://dynesty.readthedocs.io/en/latest/
+    -SciPy: This will use scipy.optimize.curve_fit to fit a "Bayesian Curves Used" to the "Bayesian Analysis Model"
+            Reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
+
+Bayesian Analysis Models:
+    See the reference section for links.
+    -2_Comp_A1: This will use the first compartment equation for a 3-compartment
+                pharmacokinetic model. 
+                Three parameters will be extracted:
+                    -The initial activity;
+                    -An exponential factor;
+                The model has the following equation:
+                    A_1(t) = A_0 e^(-k t)
+    -2_Comp_A2: This will use the second compartment equation for a 3-compartment
+                pharmacokinetic model. 
+                Three parameters will be extracted:
+                    -The initial activity;
+                    -A first exponential factor;
+                    -A second exponential factor.
+                The model has the following equation:
+                    A_2(t) = A_0 [e^(-k_1 t) - e^(-k_2 t)]
+    -2_Comp_A2_Pause: This will use the second compartment equation for a 3-compartment
+                        pharmacokinetic model. This will also model that a pause
+                        happened in the process, for an unknown period of time.
+                        Five parameters will be extracted:
+                            -The initial activity;
+                            -A first exponential factor;
+                            -A second exponential factor.
+                            -The start of the pause;
+                            -The length of the pause.
+
+Bayesian Curves Used:
+    -Average: This will use the TACs from the segmentations directly.
+    -Errors: This will use the errorbars extracted from the segmentations.
+
+
+
+References:
+    -Dynesty: https://dynesty.readthedocs.io/en/latest/
+    -Pharmacokinetic modeling: Maguire, R.P. et al. PET Pharmacokinetic Course. 
+                               Montreal Neurological Institute: Montréal. 2003.
+    -SciPy: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
