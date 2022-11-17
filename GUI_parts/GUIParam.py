@@ -55,6 +55,6 @@ class GUIParameters(object):
 
         self.BayesianAcq = -1
         self.BayesianType = "None"
-        self.ModelBayesian = "None"
+        self.ModelBayesian = "2_Comp_A2"
         self.CurveTypeBayesian = "Average"
         del Image

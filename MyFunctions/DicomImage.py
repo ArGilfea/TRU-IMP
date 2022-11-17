@@ -1300,7 +1300,7 @@ class DicomImage(object):
 # This section deals with pharmacokinetic models           #
 #                                                          #
 ############################################################
-    def model_three_compartment_A1(self,t:np.ndarray,param:np.ndarray): #Added in 3.0.0
+    def model_three_compartment_A1(self,t:np.ndarray,param:np.ndarray) -> np.ndarray: #Added in 3.0.0
         """Model of the first compartment in a two_compartment model.\n
         Form: A_1(t) = A_0 e^(-k_1/V_1 t)\n
 
@@ -1308,7 +1308,7 @@ class DicomImage(object):
         param -- list of parameters [A_0,k_1/V1]
         """
         return param[0]*(np.exp(-param[1]*t))
-    def model_three_compartment_A2(self,t:np.ndarray,param:np.ndarray): #Added in 3.0.0
+    def model_three_compartment_A2(self,t:np.ndarray,param:np.ndarray) -> np.ndarray: #Added in 3.0.0
         """Model of the second compartment in a two_compartment model\n
         Form: A_2(t) = A_0 (k_1V_2/(k_1V_2-k_2V_1))[e^(-k_2/V_2 t)-e^(-k_1/V_1 t)]\n
 
@@ -1316,7 +1316,7 @@ class DicomImage(object):
         param -- list of parameters [A_0,k_1,k_2/V2]
         """
         return param[0]*(np.exp(-param[1]*t)-np.exp(-param[2]*t))
-    def model_three_compartment_A2_pause(self,t:np.ndarray,param:np.ndarray): #Added in 3.0.0
+    def model_three_compartment_A2_pause(self,t:np.ndarray,param:np.ndarray) -> np.ndarray:  #Added in 3.0.0
         """Model of the second compartment in a two_compartment model\n
         Form: A_2(t) = A_0 (k_1V_2/(k_1V_2-k_2V_1))[e^(-k_2/V_2 t)-e^(-k_1/V_1 t)]\n
         This model includes a pause, during which there is no change anymore (bubble in the tube)\n

@@ -214,6 +214,7 @@ class Window(QMainWindow):
         self.sliderSegm = QSlider(Qt.Horizontal)
         self.sliderSegmStats = QSlider(Qt.Horizontal)
         self.sliderBayesian = QSlider(Qt.Horizontal)
+        self.sliderFitted = QSlider(Qt.Horizontal)
         try:
             self.sliderAcq.setMinimum(0);self.sliderAcq.setMaximum(self.Image.nb_acq-1)
             self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice-1)
@@ -224,6 +225,10 @@ class Window(QMainWindow):
             try:
                 self.sliderBayesian.setMinimum(-1);self.sliderBayesian.setMaximum(self.Image.bayesian_results_avg.shape[1]-1)
             except: pass
+            try:
+                self.sliderFitted.setMinimum(-1);self.sliderFitted.setMaximum(self.Image.bayesian_results_avg.shape[0]-1)
+            except: 
+                self.sliderFitted.setMinimum(-1);self.sliderFitted.setMaximum(-1)
         except:
             pass
         self.sliderAcq.setTickPosition(QSlider.TicksBothSides)
@@ -233,6 +238,7 @@ class Window(QMainWindow):
         self.sliderSegm.setTickPosition(QSlider.TicksBothSides)
         self.sliderSegmStats.setTickPosition(QSlider.TicksBothSides)
         self.sliderBayesian.setTickPosition(QSlider.TicksBothSides)
+        self.sliderFitted.setTickPosition(QSlider.TicksBothSides)
         self.sliderAcq.setSingleStep(1)
         self.sliderAxial.setSingleStep(1)
         self.sliderSagittal.setSingleStep(1)
@@ -240,6 +246,7 @@ class Window(QMainWindow):
         self.sliderSegm.setSingleStep(1)
         self.sliderSegmStats.setSingleStep(1)
         self.sliderBayesian.setSingleStep(1)
+        self.sliderFitted.setSingleStep(1)
         layout.addWidget(self.sliderAcq,0,1)
         layout.addWidget(self.sliderAxial,1,1)
         layout.addWidget(self.sliderSagittal,3,1)
@@ -252,6 +259,7 @@ class Window(QMainWindow):
         self.SegmValueHeader = QLabel("Segm:")
         SegmStatsValueHeader = QLabel("Segm. Errors:")
         BayesianValueHeader = QLabel("Bay. Values:")
+        FittedValueHeader = QLabel("Fit Bay.:")
         self.checkBoxMsgSubImage = QLabel("Sub Image:")
         self.checkBoxMsgFocus = QLabel("Focus:")
 
@@ -262,6 +270,7 @@ class Window(QMainWindow):
         self.sliderSegmValue = QLineEdit()
         self.sliderSegmStatsValue = QLineEdit()
         self.sliderBayesianValue = QLineEdit()
+        self.sliderFittedValue = QLineEdit()
         self.checkBoxFocus = QCheckBox()
         self.checkBoxSubImage = QCheckBox()
         self.checkBoxLog = QCheckBox()
@@ -272,6 +281,7 @@ class Window(QMainWindow):
         self.sliderSegmValue.setFixedWidth(sizeText)
         self.sliderSegmStatsValue.setFixedWidth(sizeText)
         self.sliderBayesianValue.setFixedWidth(sizeText)
+        self.sliderFittedValue.setFixedWidth(sizeText)
         try:
             self.sliderAcqValue.setText(f"{self.set_value_slider(self.sliderAcq,self.sliderAcqValue)}")
             self.sliderAxialValue.setText(f"{self.set_value_slider(self.sliderAxial,self.sliderAxialValue)}")
@@ -280,6 +290,7 @@ class Window(QMainWindow):
             self.sliderSegmValue.setText(f"{self.set_value_slider(self.sliderSegm,self.sliderSegmValue)}")
             self.sliderSegmStatsValue.setText(f"{self.set_value_slider(self.sliderSegmStats,self.sliderSegmStatsValue)}")
             self.sliderBayesianValue.setText(f"{self.set_value_slider(self.sliderBayesian,self.sliderBayesianValue)}")
+            self.sliderFittedValue.setText(f"{self.set_value_slider(self.sliderFitted,self.sliderFittedValue)}")
             self.sliderAcqValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAcq,self.sliderAcqValue))
             self.sliderAxialValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderAxial,self.sliderAxialValue))
             self.sliderSagittalValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSagittal,self.sliderSagittalValue))
@@ -287,6 +298,7 @@ class Window(QMainWindow):
             self.sliderSegmValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSegm,self.sliderSegmValue))
             self.sliderSegmStatsValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSegmStats,self.sliderSegmStatsValue))
             self.sliderBayesianValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderBayesian,self.sliderBayesianValue))
+            self.sliderFittedValue.editingFinished.connect(partial(self.set_value_line_edit,self.sliderFitted,self.sliderFittedValue))
             self.sliderAcq.valueChanged.connect(partial(self.set_value_slider,self.sliderAcq,self.sliderAcqValue))
             self.sliderAxial.valueChanged.connect(partial(self.set_value_slider,self.sliderAxial,self.sliderAxialValue))
             self.sliderSagittal.valueChanged.connect(partial(self.set_value_slider,self.sliderSagittal,self.sliderSagittalValue))
@@ -294,6 +306,7 @@ class Window(QMainWindow):
             self.sliderSegm.valueChanged.connect(partial(self.set_value_slider,self.sliderSegm,self.sliderSegmValue))
             self.sliderSegmStats.valueChanged.connect(partial(self.set_value_slider,self.sliderSegmStats,self.sliderSegmStatsValue))
             self.sliderBayesian.valueChanged.connect(partial(self.set_value_slider,self.sliderBayesian,self.sliderBayesianValue))
+            self.sliderFitted.valueChanged.connect(partial(self.set_value_slider,self.sliderFitted,self.sliderFittedValue))
             self.checkBoxFocus.stateChanged.connect(self.set_value_focus)
             self.checkBoxSubImage.stateChanged.connect(self.set_value_subImage)
             self.checkBoxLog.stateChanged.connect(self.set_value_log)
@@ -319,8 +332,12 @@ class Window(QMainWindow):
         sublayout.addWidget(self.sliderSegmStatsValue,3,2)
 
         sublayout.addWidget(BayesianValueHeader,4,0)
-        sublayout.addWidget(self.sliderBayesian,4,1)
-        sublayout.addWidget(self.sliderBayesianValue,4,2)
+        sublayout.addWidget(self.sliderFitted,4,1)
+        sublayout.addWidget(self.sliderFittedValue,4,2)
+
+        sublayout.addWidget(FittedValueHeader,5,0)
+        sublayout.addWidget(self.sliderBayesian,5,1)
+        sublayout.addWidget(self.sliderBayesianValue,5,2)
 
         layout.addWidget(self.AcqValueHeader,0,0)
         layout.addWidget(self.AxialValueHeader,1,0)
@@ -518,6 +535,10 @@ class Window(QMainWindow):
         """Update the segmentation and segmentation error sliders"""
         self.sliderSegm.setMaximum(self.Image.voi_counter-1)
         self.sliderSegmStats.setMaximum(self.Image.voi_statistics_counter-1)
+        try:
+            self.sliderFitted.setMaximum(self.Image.bayesian_results_avg.shape[0]-1)
+        except:
+            self.sliderFitted.setMaximum(-1)
         self.sliderBayesian.setMaximum(self.Image.bayesian_counter-1)
     def update_Result(self):
         """Update the middle image according to the type of result to be displayed"""
@@ -571,17 +592,30 @@ class Window(QMainWindow):
         For the 1D spatial axes, see update_1D function.
         """
         try:
+            try:
+                if self.sliderFitted.value() > 0:
+                    if self.parameters.ModelBayesian == "2_Comp_A1":
+                        model = self.Image.model_three_compartment_A1
+                    elif self.parameters.ModelBayesian == "2_Comp_A2":
+                        model = self.Image.model_three_compartment_A2
+                    elif self.parameters.ModelBayesian == "2_Comp_A2_Pause":
+                        model = self.Image.model_three_compartment_A2_pause
+                    else:
+                        model = self.Image.model_three_compartment_A2
+            except: pass
             self.TACImage.axes.cla()
             values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
             subI = self.parameters.subImage[0,:]
             if self.view_range == "All":
                 x_axis = self.Image.time
-                if self.sliderSegm.value() >= 0 or self.sliderSegmStats.value() >= 0:
+                if self.sliderSegm.value() >= 0 or self.sliderSegmStats.value() >= 0 or self.sliderFitted.value() >= 0:
                     if self.sliderSegm.value() >= 0:
                         y_axis = self.Image.voi_statistics[self.sliderSegm.value()]
                     if self.sliderSegmStats.value() >= 0:
                         y_axis2 = self.Image.voi_statistics_avg[self.sliderSegmStats.value()]
                         error = self.Image.voi_statistics_std[self.sliderSegmStats.value()]
+                    if self.sliderFitted.value() > 0:
+                        y_axis3 = model(x_axis,self.Image.bayesian_results_avg[self.sliderFitted.value(),:])
                 else:
                     y_axis = self.Image.Image[:,values[1],values[2],values[3]]
             else:
@@ -592,6 +626,8 @@ class Window(QMainWindow):
                     if self.sliderSegmStats.value() >= 0:
                         y_axis2 = self.Image.voi_statistics_avg[self.sliderSegmStats.value()][subI[0]:subI[1]]
                         error = self.Image.voi_statistics_std[self.sliderSegmStats.value()][subI[0]:subI[1]]
+                    if self.sliderFitted.value() > 0:
+                        y_axis3 = model(x_axis,self.Image.bayesian_results_avg[self.sliderFitted.value(),:])[subI[0]:subI[1]]
                 else:
                     y_axis = self.Image.Image[:,values[1],values[2],values[3]][subI[0]:subI[1]]
             if self.showFocus:
@@ -607,6 +643,9 @@ class Window(QMainWindow):
             except: pass
             try:
                 self.TACImage.axes.errorbar(x_axis,y_axis2,error,color='r',label="Error TAC")
+            except: pass
+            try:
+                self.TACImage.axes.plot(x_axis,y_axis3,color='g',label="Fit")
             except: pass
             self.base_TAC_axes()
             self.TACImage.draw()                

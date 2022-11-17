@@ -364,7 +364,6 @@ class ParamWindow(QMainWindow):
         self.BayesianCombo.addItem("scipy")
 
         self.ModelCombo = QComboBox()
-        self.ModelCombo.addItem("None")
         self.ModelCombo.addItem("2_Comp_A1")
         self.ModelCombo.addItem("2_Comp_A2")
         self.ModelCombo.addItem("2_Comp_A2_Pause")
