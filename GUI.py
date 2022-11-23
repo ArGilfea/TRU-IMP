@@ -519,6 +519,8 @@ class Window(QMainWindow):
                 k=-1
             self.Image.Bayesian_analyses(key=k,curves = self.parameters.CurveTypeBayesian,method=self.parameters.BayesianType,
                                         model = self.parameters.ModelBayesian,
+                                        thresh_perc=self.parameters.Bayesian_thresh_perc,
+                                        thresh_value=self.parameters.Bayesian_thresh_value,
                                         verbose = self.parameters.verbose,
                                         save=True)
             self.displayStatus(f"{self.parameters.BayesianType} Bayesian analyses",initial)

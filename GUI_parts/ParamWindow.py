@@ -391,6 +391,31 @@ class ParamWindow(QMainWindow):
         self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.CurveTypeBayesian}"),self.current_line_Bayesian,1)
         self.generalLayoutBayesian.addWidget(self.CurvesCombo,self.current_line_Bayesian,2)
         self.current_line_Bayesian +=1
+    def _createThreshBaySliders(self):
+        btnNew,slider = self._createIntInput(self.parameters.Bayesian_thresh_perc)
+        btnNew2,slider2 = self._createIntInput(self.parameters.Bayesian_thresh_value)
+
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(10)
+        slider.setRange(0,100)
+        slider.setValue(100*self.parameters.Bayesian_thresh_perc)
+
+        slider2.valueChanged.connect(self.update_int)
+        slider2.setTickInterval(10)
+        slider2.setRange(0,100)
+        slider2.setValue(100*self.parameters.Bayesian_thresh_value)
+
+        self.sliderBayesianThreshPerc = slider
+        self.sliderBayesianThreshValue = slider2
+
+        self.generalLayoutBayesian.addWidget(QLabel("Bayesian Thresh Perc"),self.current_line_Bayesian,0)
+        self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.Bayesian_thresh_perc}"),self.current_line_Bayesian,1)
+        self.generalLayoutBayesian.addWidget(btnNew,self.current_line_Bayesian,2)
+        self.current_line_Bayesian +=1
+        self.generalLayoutBayesian.addWidget(QLabel("Bayesian Thresh Value"),self.current_line_Bayesian,0)
+        self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.Bayesian_thresh_value}"),self.current_line_Bayesian,1)
+        self.generalLayoutBayesian.addWidget(btnNew2,self.current_line_Bayesian,2)
+        self.current_line_Bayesian +=1
     def _createFactorFFilling(self):
         """Creates the slider and the line edit for the factor f (for filling)"""
         btnNew,slider = self._createIntInput(self.parameters.factor_fill_f)
@@ -765,6 +790,8 @@ class ParamWindow(QMainWindow):
         if self.parameters.ErrorType == "Linear Shift":
             self._createOrderShiftError()
             self._createDShiftError()
+        if self.parameters.CurveTypeBayesian == "Errors":
+            self._createThreshBaySliders()
         self._createBayesianValue()
         self._createSaveBox()
         self._createVerbose()
@@ -941,6 +968,12 @@ class ParamWindow(QMainWindow):
         except: pass
         try:
             self.parameters.factor_fill_f = self.sliderFactorF.value()/100
+        except: pass
+        try:
+            self.parameters.Bayesian_thresh_perc = self.sliderBayesianThreshPerc.value()/100
+        except: pass
+        try:
+            self.parameters.Bayesian_thresh_value = self.sliderBayesianThreshValue.value()/100
         except: pass
         try:
             self.parameters.factor_Fill_range[0] = float(self.FactorFRangeValueMin.text())

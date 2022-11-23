@@ -1424,6 +1424,7 @@ class DicomImage(object):
 #                                                          #
 ############################################################
     def Bayesian_analyses(self,key = -1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2',
+                            thresh_perc:float = 0, thresh_value:float = 0,
                             verbose:bool = False,save:bool = True):
         """Takes an array of index for a curve and fit it using a given model and algorithm.
 
@@ -1432,7 +1433,9 @@ class DicomImage(object):
         curves -- Type of curves to be fitted: average or errors (default average)\n
         method -- algorithmic method of Bayesian analysis; can take scipy.optimize.curve_fit or Dynesty (default Dynesty)
         Other possibilities will include EMCEE (To be added).\n
-        model -- pharmacokinetic model to fit the data (default '2-compartment'). 
+        model -- pharmacokinetic model to fit the data (default '2-compartment'). \n
+        thresh_perc -- percentage of the values under which the error is increased (default 0)\n
+        thresh_value -- percentage of the maximum value to which errors under the threshold will be set (default 0)\n
         Other possibilities will include 1-compartment, 2-comparment-with-reference (To be added).\n
         param -- array of the subcharacteristic of the curves to fit (default [])\n
         verbose -- print the progress of the process (default False)\n
@@ -1446,7 +1449,8 @@ class DicomImage(object):
         if verbose: initial = time.time()
         for i in range(key.shape[0]):
             if verbose: print(f"Iter {i+1} of {key.shape[0]} after {(time.time()-initial):.2f} s at {time.strftime('%H:%M:%S')}")
-            value, error_up, error_down = self.Bayesian_analysis(key[i],curves=curves,method=method,model=model)
+            value, error_up, error_down = self.Bayesian_analysis(key[i],curves=curves,method=method,model=model,
+                                                               thresh_perc = thresh_perc, thresh_value = thresh_value)
             if i == 0:
                 values = np.zeros((key.shape[0],value.shape[0]))
                 errors_up = np.zeros_like(values)
@@ -1466,15 +1470,18 @@ class DicomImage(object):
         self.bayesian_counter = self.bayesian_results_avg.shape[1]
         return values, errors_up, errors_down
 
-    def Bayesian_analysis(self,key:int=-1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2'):
-        """Takes an index for a curve and fit it using a given model and algorithm.
+    def Bayesian_analysis(self,key:int=-1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2',
+                            thresh_perc:float = 0, thresh_value:float = 0):
+        """Takes an index for a curve and fit it using a given model and algorithm.\n
 
         Keyword arguments:\n
         key -- value of the curve to fit (default [-1])\n
         curves -- Type of curves to be fitted: average or errors (default average)\n
         method -- algorithmic method of Bayesian analysis; can take scipy.optimize.curve_fit or Dynesty (default Dynesty)
         Other possibilities will include EMCEE (To be added).\n
-        model -- pharmacokinetic model to fit the data (default '2-compartment'). 
+        model -- pharmacokinetic model to fit the data (default '2-compartment'). \n
+        thresh_perc -- percentage of the values under which the error is increased (default 0)\n
+        thresh_value -- percentage of the maximum value to which errors under the threshold will be set (default 0)\n
         Other possibilities will include 1-compartment, 2-comparment-with-reference (To be added).\n
         param -- array of the subcharacteristic of the curves to fit (default [])\n
         """
@@ -1489,6 +1496,11 @@ class DicomImage(object):
             e_data = self.voi_statistics_std[key]
         else:
             raise Exception("Invalid choice of curves to fit. Please see function definition for acceptable choices.")
+        if (thresh_perc > 0 and thresh_perc < 1) and curves == 'Errors':
+            max_value = np.max(y_data)
+            for i in range(y_data.shape[0]):
+                if e_data[i] < max_value*thresh_perc:
+                    e_data[i] = max_value*thresh_value
         if model == '2_Comp_A1':
             model = self.model_three_compartment_A1
             ndim = 2 #Number of parameters of the model
