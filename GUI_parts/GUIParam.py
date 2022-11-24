@@ -59,4 +59,10 @@ class GUIParameters(object):
         self.CurveTypeBayesian = "Average"
         self.Bayesian_thresh_perc = 0
         self.Bayesian_thresh_value = 0
+
+        self.NoiseType = "Gaussian"
+        self.NoiseSigma = 0
+        self.NoiseMu = 1
+
+
         del Image

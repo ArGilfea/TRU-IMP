@@ -41,12 +41,15 @@ class ParamWindow(QMainWindow):
         self.generalLayoutSegm = QGridLayout()
         self.generalLayoutError = QGridLayout()
         self.generalLayoutBayesian = QGridLayout()
+        self.generalLayoutNoise = QGridLayout()
         centralWidgetSegm = QWidget(self)
         centralWidgetErrors = QWidget(self)
         centralWidgetBayesian = QWidget(self)
+        centralWidgetNoise = QWidget(self)
         centralWidgetSegm.setLayout(self.generalLayoutSegm)
         centralWidgetErrors.setLayout(self.generalLayoutError)
         centralWidgetBayesian.setLayout(self.generalLayoutBayesian)
+        centralWidgetNoise.setLayout(self.generalLayoutNoise)
         self.layout = QVBoxLayout()
         
         
@@ -54,6 +57,7 @@ class ParamWindow(QMainWindow):
         self.tabs.addTab(centralWidgetSegm,"Segm.")
         self.tabs.addTab(centralWidgetErrors,"Errors.")
         self.tabs.addTab(centralWidgetBayesian,"Bayesian.")
+        self.tabs.addTab(centralWidgetNoise,"Noise")
         self.setCentralWidget(self.tabs)
         self.setLayout(self.layout)
         self.initialize_param_window()
@@ -63,6 +67,7 @@ class ParamWindow(QMainWindow):
         self.current_line_Segm = 1
         self.current_line_Error = 1
         self.current_line_Bayesian = 1
+        self.current_line_Noise = 1
         self._createParamList()
 
     def _createSeedSliders(self):
@@ -391,6 +396,20 @@ class ParamWindow(QMainWindow):
         self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.CurveTypeBayesian}"),self.current_line_Bayesian,1)
         self.generalLayoutBayesian.addWidget(self.CurvesCombo,self.current_line_Bayesian,2)
         self.current_line_Bayesian +=1
+    def _createNoiseType(self):
+        """Creates the Combo Box for the noise"""
+        self.NoiseCombo = QComboBox()
+        self.NoiseCombo.addItem("Gaussian")
+        self.NoiseCombo.addItem("Poisson")
+        self.NoiseCombo.addItem("Thermal")
+
+        self.NoiseCombo.setCurrentText(self.parameters.NoiseType)
+        self.NoiseCombo.activated[str].connect(self.NoiseMethodCombo_Changed)
+
+        self.generalLayoutNoise.addWidget(QLabel("Noise Type"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseType}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.NoiseCombo,self.current_line_Noise,2)
+        self.current_line_Noise +=1
     def _createThreshBaySliders(self):
         btnNew,slider = self._createIntInput(self.parameters.Bayesian_thresh_perc)
         btnNew2,slider2 = self._createIntInput(self.parameters.Bayesian_thresh_value)
@@ -757,13 +776,14 @@ class ParamWindow(QMainWindow):
         self.generalLayoutBayesian.addWidget(QLabel("Parameter"),0,0)
         self.generalLayoutBayesian.addWidget(QLabel("Values"),0,1)
         self.generalLayoutBayesian.addWidget(QLabel("New Values"),0,2)
+        self.generalLayoutNoise.addWidget(QLabel("Parameter"),0,0)
+        self.generalLayoutNoise.addWidget(QLabel("Values"),0,1)
+        self.generalLayoutNoise.addWidget(QLabel("New Values"),0,2)
 
+        #Segmentation Specific
         self._createSegmType()
-        self._createErrorType()
-        self._createBayesianType()
         self._createSubImageSliders()
         self._createAcqValue()
-
         if self.parameters.SegmType in ["Canny Filled","Canny Contour"]:
             self._createMethodCannyType()
             self._createSigmaCanny()
@@ -785,14 +805,21 @@ class ParamWindow(QMainWindow):
         elif self.parameters.SegmType == "Ellipsoid":
             self._createCenterEllipsoidSliders()
             self._createAxesEllipsoidSliders()
+        #Error Specific
+        self._createErrorType()
         if self.parameters.ErrorType != "None":
             self._createErrorValue()
         if self.parameters.ErrorType == "Linear Shift":
             self._createOrderShiftError()
             self._createDShiftError()
+        #Bayesian Specific
+        self._createBayesianType()
         if self.parameters.CurveTypeBayesian == "Errors":
             self._createThreshBaySliders()
         self._createBayesianValue()
+        #Noise Specific
+        self._createNoiseType()
+        #Utilities
         self._createSaveBox()
         self._createVerbose()
         self._createStatsBox()
@@ -815,6 +842,10 @@ class ParamWindow(QMainWindow):
     def BayesianMethodCombo_Changed(self):
         """Links the model of Bayesian analysis and the combo box in the parameters"""
         self.parameters.BayesianType = self.BayesianCombo.currentText()
+        self.refresh_app()
+    def NoiseMethodCombo_Changed(self):
+        """Links the model of Noise and the combo box in the parameters"""
+        self.parameters.NoiseType = self.NoiseCombo.currentText()
         self.refresh_app()
     def ModelBayesianMethodCombo_Changed(self):
         """Links the method of error and the combo box in the parameters"""
@@ -1000,6 +1031,12 @@ class ParamWindow(QMainWindow):
         if self.generalLayoutBayesian is not None:
             while self.generalLayoutBayesian.count():
                 item = self.generalLayoutBayesian.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+        if self.generalLayoutNoise is not None:
+            while self.generalLayoutNoise.count():
+                item = self.generalLayoutNoise.takeAt(0)
                 widget = item.widget()
                 if widget is not None:
                     widget.deleteLater()

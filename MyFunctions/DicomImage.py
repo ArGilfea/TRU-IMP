@@ -1473,7 +1473,6 @@ class DicomImage(object):
     def Bayesian_analysis(self,key:int=-1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2',
                             thresh_perc:float = 0, thresh_value:float = 0):
         """Takes an index for a curve and fit it using a given model and algorithm.\n
-
         Keyword arguments:\n
         key -- value of the curve to fit (default [-1])\n
         curves -- Type of curves to be fitted: average or errors (default average)\n
@@ -1526,6 +1525,26 @@ class DicomImage(object):
             error_up = np.zeros(ndim)
             error_down = np.zeros(ndim)
         return value,error_up, error_down
+############################################################
+#                                                          #
+# This section deals with the noise                        #
+#                                                          #
+############################################################
+    def add_noise(self,noiseType:str = "Gaussian",noiseMu:float = 0,noiseSigma:float = 1):
+        """
+        Adds a noise to the whole acquisition.\n
+        Keyword arguments:\n
+        noiseType -- Type of noise to add to the whole acquisition (default Gaussian)\n
+        noiseMu -- average of the noise (default 0)\n
+        noiseSigma -- standard deviation of the noise (default 1)\n
+        """
+        if noiseType == "Gaussian":
+            pass
+        elif noiseType == "Poisson":
+            pass
+        elif noiseType == "Thermal":
+            pass
+
 ############################################################
 #                                                          #
 # This section deals with the metrics                      #

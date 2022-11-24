@@ -46,33 +46,32 @@ class Window(QMainWindow):
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
-        btn_param = QPushButton("Parameters")
+        
         btn_segm = QPushButton("Segment")
         buttonErrors = QPushButton("ErrorBars")
         buttonBayesian = QPushButton("Bayesian")
 
-        btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Bayesian analyses")
         btn_segm.setToolTip("Runs the segmentations according to the selected parameters")
         buttonErrors.setToolTip("Runs the error bars according to the selected parameters")
         buttonBayesian.setToolTip("Runs the Bayesian analyses according to the selected parameters")
 
-        btn_param.setToolTip("Displays the parameters to resize the acquisition or to set up for the segmentations")
-        btn_param.clicked.connect(self.open_parameters)
-        btn_segm.clicked.connect(self.run_segm)
         buttonErrors.clicked.connect(self.run_errors)
         buttonBayesian.clicked.connect(self.run_Bayesian)
-        layout.addWidget(btn_param)  
+
+        btn_segm.clicked.connect(self.run_segm)
         layout.addWidget(btn_segm)
         layout.addWidget(buttonErrors)
         layout.addWidget(buttonBayesian)
-        self.generalLayout.addWidget(subWidget,0,3)         
-    def _createExitButton(self,line:int=7):
+        self.generalLayout.addWidget(subWidget,self.current_line,3)    
+        self.current_line += 1     
+    def _createExitButton(self):
         """Create an exit button"""
         self.exit = QPushButton("Exit")
         self.exit.setToolTip("Closes the GUI and its dependencies")
         self.exit.clicked.connect(self.close)
-        self.generalLayout.addWidget(self.exit,line,3)  
-    def _createExtractDock(self,line:int=0):
+        self.generalLayout.addWidget(self.exit,self.current_line,3)  
+        self.current_line += 1
+    def _createExtractDock(self):
         """Create the dock to enter a line and the buttons to extract, load and, browse the origin of the acquisition"""
         subWidget = QWidget()
         msg_extract = QLabel("Path: ")
@@ -100,10 +99,10 @@ class Window(QMainWindow):
         layout.addWidget(btn_extr)
         layout.addWidget(btn_load)
 
-        self.generalLayout.addWidget(msg_extract,line,0)  
-        self.generalLayout.addWidget(source,line,1)           
-        self.generalLayout.addWidget(subWidget,line,2)  
-    def _createSavingDock(self,line:int=2):
+        self.generalLayout.addWidget(msg_extract,self.current_line,0)  
+        self.generalLayout.addWidget(source,self.current_line,1)           
+        self.generalLayout.addWidget(subWidget,self.current_line,2)  
+    def _createSavingDock(self):
         """Create a button and a dock to save the image directly (removed)"""
         subWidget1 = QWidget()
         subWidget2 = QWidget()
@@ -111,10 +110,14 @@ class Window(QMainWindow):
         layout2 = QHBoxLayout()
         subWidget1.setLayout(layout1)
         subWidget2.setLayout(layout2)
+        btn_param = QPushButton("Parameters")
+        btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Bayesian analyses")
+        btn_param.setToolTip("Displays the parameters to resize the acquisition or to set up for the segmentations")
+        btn_param.clicked.connect(self.open_parameters)
+          
         self.btn = QPushButton("Info")
         self.btn.clicked.connect(self.on_button_clicked_infos)
         self.btn.setToolTip("Displays the infos of the current loaded acquisition")
-        msg_save = QLabel("Path: ")
         path = QLineEdit()
         path_name = QLineEdit()
         path.setText("")
@@ -127,14 +130,11 @@ class Window(QMainWindow):
         btn_export.clicked.connect(self.open_export)
         layout1.addWidget(path)
         layout1.addWidget(path_name)
-        #layout2.addWidget(btn_browse)
-        #layout2.addWidget(btn_save)
         layout2.addWidget(btn_export)
         layout2.addWidget(self.btn)
-        #self.generalLayout.addWidget(msg_save,line,0)  
-        #self.generalLayout.addWidget(subWidget1,line,1)  
-        self.generalLayout.addWidget(subWidget2,line,2)  
-    def _createImageDisplay(self,line:int=4):
+        layout2.addWidget(btn_param)
+        self.generalLayout.addWidget(subWidget2,self.current_line,2)  
+    def _createImageDisplay(self):
         """Create the docks for the 2D images to be shown"""
         self.showFocus = False
         self.showSubImage = False
@@ -154,17 +154,26 @@ class Window(QMainWindow):
             self.axialGraph = self.axial.axes.pcolormesh(np.zeros((100,100)))
             self.sagittal.axes.pcolormesh(np.zeros((100,100)))
             self.coronal.axes.pcolormesh(np.zeros((100,100)))
+        try:
+            if self.first_pass:
+                self.displayImageLine = self.current_line+2
+        except: pass
         self.axial.setMinimumSize(size_Image,size_Image)
         self.coronal.setMinimumSize(size_Image,size_Image)
         self.sagittal.setMinimumSize(size_Image,size_Image)
-        self.generalLayout.addWidget(msg_Image,line,0)  
-        self.generalLayout.addWidget(msg_Axial,line-1,1)
-        self.generalLayout.addWidget(msg_Sagittal,line-1,3)
-        self.generalLayout.addWidget(msg_Coronal,line-1,2)
-        self.generalLayout.addWidget(self.axial,line,1)
-        self.generalLayout.addWidget(self.sagittal,line,3)
-        self.generalLayout.addWidget(self.coronal,line,2)
-    def _createImageDisplayType(self,line:int=2):
+        self.generalLayout.addWidget(msg_Image,self.displayImageLine,0)  
+        self.generalLayout.addWidget(msg_Axial,self.displayImageLine-1,1)
+        self.generalLayout.addWidget(msg_Sagittal,self.displayImageLine-1,3)
+        self.generalLayout.addWidget(msg_Coronal,self.displayImageLine-1,2)
+        self.generalLayout.addWidget(self.axial,self.displayImageLine,1)
+        self.generalLayout.addWidget(self.sagittal,self.displayImageLine,3)
+        self.generalLayout.addWidget(self.coronal,self.displayImageLine,2)
+        try:
+            if self.first_pass == True:
+                self.current_line += 3
+                self.first_pass = False
+        except: pass
+    def _createImageDisplayType(self):
         """Create the button for the combo box of the images\nAlso create the combo box for the choice of the result"""
         subWidget = QWidget()
         layout = QHBoxLayout()
@@ -192,8 +201,9 @@ class Window(QMainWindow):
 
         layout.addWidget(self.ImageViewCombo)
         layout.addWidget(self.ResultViewCombo)
-        self.generalLayout.addWidget(subWidget,line,3)
-    def _createImageDisplayBars(self,line:int=5):
+        self.generalLayout.addWidget(subWidget,self.current_line,3)
+        self.current_line += 1
+    def _createImageDisplayBars(self):
         """Create the sliders for the 2D images, the 1D images and the TAC."""
         try:
             self.generalLayout.removeWidget(self.slider_widget)
@@ -349,16 +359,17 @@ class Window(QMainWindow):
         layout.addWidget(self.sliderCoronalValue,2,2)
         layout.addWidget(self.sliderSagittalValue,3,2)
         
-        self.generalLayout.addWidget(subWidget,line,3)
-        self.generalLayout.addWidget(self.slider_widget,line,1)
+        self.generalLayout.addWidget(subWidget,self.displayImageLine+1,3)
+        self.generalLayout.addWidget(self.slider_widget,self.displayImageLine+1,1)
         self.slider_widget.resize(500,500)
-    def _createTACImage(self,line:int=5):
+    def _createTACImage(self):
         """Create an empty image for where the TAC and the results will be"""
         self.TACImage = MplCanvas(self, width=5, height=4, dpi=75)
         self.TACImage.setMinimumSize(size_Image,size_Image)
         self.base_TAC_axes()
-        self.generalLayout.addWidget(self.TACImage,line,2)
-    def _create1DImage(self,line:int = 6):
+        self.generalLayout.addWidget(self.TACImage,self.current_line,2)
+        self.current_line += 1
+    def _create1DImage(self):
         """Create the dock for the 1D Image (i.e. the slices)"""
         label = QLabel("Slices")
         self.AxialImage1D = MplCanvas(self,width=5,height=4,dpi=75)
@@ -370,10 +381,11 @@ class Window(QMainWindow):
 
         self.base_1D_axes()
 
-        self.generalLayout.addWidget(label,line,0)
-        self.generalLayout.addWidget(self.AxialImage1D,line,1)
-        self.generalLayout.addWidget(self.SagittalImage1D,line,3)
-        self.generalLayout.addWidget(self.CoronalImage1D,line,2)
+        self.generalLayout.addWidget(label,self.current_line,0)
+        self.generalLayout.addWidget(self.AxialImage1D,self.current_line,1)
+        self.generalLayout.addWidget(self.SagittalImage1D,self.current_line,3)
+        self.generalLayout.addWidget(self.CoronalImage1D,self.current_line,2)
+        self.current_line += 1
     def _createErrorMessage(self,message:str=""):
         """Create an error message and displays it"""
         alert = QMessageBox()
@@ -954,26 +966,36 @@ class Window(QMainWindow):
 
     def __init__(self):
         """Initializes the GUI Window"""
+        self.tabs = QTabWidget()
         self.BUTTON_SIZE = 40
         self.DISPLAY_HEIGHT = 35
+        self.current_line = 0
+        #self.displayImageLine = 0
+        self.first_pass = True
         super().__init__(parent=None)
         self.setMinimumSize(1200, 800)
         self.setWindowTitle("My GUI")
         self.generalLayout = QGridLayout()
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
-        self.setCentralWidget(centralWidget)
+        self.tabs.addTab(centralWidget,"Main")
+        self.setCentralWidget(self.tabs)
+        #First Line
         self._createExtractDock()
-        #self._createLoadingDock()
-        self._createSavingDock()
         self._createInfoParam()
-        self._createImageDisplay()
+        #Second Line
+        self._createSavingDock()
         self._createImageDisplayType()
         #self._createImageDisplayBars()
+        #Line 4
+        self._createImageDisplay()
+        #Next Line
         self._createTACImage()
+        #Next Line
         self._create1DImage()
-        self._createStatusBar()
+        #Last Line
         self._createExitButton() 
+        self._createStatusBar()
 
 def evaluateExpression(expression):
     """Evaluate an expression (Model)."""
