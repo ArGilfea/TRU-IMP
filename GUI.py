@@ -36,11 +36,33 @@ class Window(QMainWindow):
     """
     Main window of the GUI.
     """    
+    def _createLog(self):
+        """Create a Log tab to keep track of the processes"""
+        self.logText = QTextEdit()
+        self.logText.setReadOnly(True)
+        try:
+            self.logText.setText(self.Image.progress_log)
+        except:
+            self.logText.setText("Nothing started")
+        self.generalLayoutLog.addWidget(self.logText)
     def _createStatusBar(self):
         """Create a status bar at the bottom of the GUI"""
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)      
         self.statusBar.showMessage("Nothing started")
+    def _createNoiseButtons(self):
+        """Create the Noise button at the top of the GUI"""
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+
+        btn_noise = QPushButton("Noise")
+        btn_noise.setToolTip("Adds the noise to the images according to the selected parameters")
+        btn_noise.clicked.connect(self.run_noise)
+
+        layout.addWidget(btn_noise)
+        self.generalLayout.addWidget(subWidget,self.current_line,3)    
+        self.current_line += 1
     def _createInfoParam(self):
         """Create the dock at the top from where the parameters, the infos and the lauch buttons are"""
         subWidget = QWidget()
@@ -57,20 +79,19 @@ class Window(QMainWindow):
 
         buttonErrors.clicked.connect(self.run_errors)
         buttonBayesian.clicked.connect(self.run_Bayesian)
-
         btn_segm.clicked.connect(self.run_segm)
+
         layout.addWidget(btn_segm)
         layout.addWidget(buttonErrors)
         layout.addWidget(buttonBayesian)
         self.generalLayout.addWidget(subWidget,self.current_line,3)    
-        self.current_line += 1     
     def _createExitButton(self):
         """Create an exit button"""
         self.exit = QPushButton("Exit")
         self.exit.setToolTip("Closes the GUI and its dependencies")
         self.exit.clicked.connect(self.close)
-        self.generalLayout.addWidget(self.exit,self.current_line,3)  
-        self.current_line += 1
+        self.generalLayout.addWidget(self.exit,self.current_line+1,3)  
+        self.current_line += 2
     def _createExtractDock(self):
         """Create the dock to enter a line and the buttons to extract, load and, browse the origin of the acquisition"""
         subWidget = QWidget()
@@ -201,7 +222,7 @@ class Window(QMainWindow):
 
         layout.addWidget(self.ImageViewCombo)
         layout.addWidget(self.ResultViewCombo)
-        self.generalLayout.addWidget(subWidget,self.current_line,3)
+        self.generalLayout.addWidget(subWidget,self.current_line,1)
         self.current_line += 1
     def _createImageDisplayBars(self):
         """Create the sliders for the 2D images, the 1D images and the TAC."""
@@ -423,13 +444,13 @@ class Window(QMainWindow):
     def set_value_line_edit(self,slider:QSlider,lineedit:QLineEdit):
         """Link the slider and the lineedit to the same value"""
         try:
-            lineedit.setText(f"{int(lineedit.text())}")
-        except:
-            lineedit.setText("0")
-        try:
             slider.setValue(int(lineedit.text()))
         except:
             slider.setValue(0)
+        try:
+            lineedit.setText(f"{int(lineedit.text())}")
+        except:
+            lineedit.setText("0")
         self.update_all()
     def combo_box_changed(self):
         """Change the parameters with respect to the view of the acquisition"""
@@ -539,6 +560,23 @@ class Window(QMainWindow):
             self.update_segm()
         except:
             self._createErrorMessage("Unable to run the Bayesian analyses")
+    def run_noise(self):
+        """
+        Function to add noise to the image.
+        For now, the resulting image will overwrite the previous (or basic) one
+        """   
+        try:
+            initial = time.time()
+            self.Image.add_noise(noiseType= self.parameters.NoiseType,
+                                    noiseMu = self.parameters.NoiseMu,
+                                    noiseSigma= self.parameters.NoiseSigma)
+            if self.parameters.NoiseType != "None":
+                self.displayStatus(f"{self.parameters.NoiseType} noise added",initial)
+            else:
+                self.displayStatus("",initial)
+            self.update_all()
+        except:
+            self._createErrorMessage("Unable to add the noise")
     def update_all(self):
         """Main function when something is changed to update all the views"""
         self.update_Result()
@@ -863,10 +901,14 @@ class Window(QMainWindow):
         """Set the display's text (unused, part of the basic model used)."""
         self.display.setText(text)
         self.display.setFocus()
-    def displayStatus(self,action:str,time_i=time.time()):
+    def displayStatus(self,action:str="",time_i=time.time()):
         """Updates the display bar (far bottom)"""
-        new_status = f"{action} done in {(time.time()-time_i):.2f}' s at {time.strftime('%H:%M:%S')}"
-        self.statusBar.showMessage(new_status)
+        if action != "":
+            new_status = f"{action} done in {(time.time()-time_i):.2f}' s at {time.strftime('%H:%M:%S')}"
+            self.statusBar.showMessage(new_status)
+            self.Image.progress_log += "\n" + new_status
+            self.logText.textCursor().insertHtml(new_status + '<br>')
+        self.logText.setText(self.Image.progress_log)
     def displayText(self):
         """Get the display's text (unused, part of the basic model used)."""
         return self.display.text()
@@ -976,15 +1018,22 @@ class Window(QMainWindow):
         self.setMinimumSize(1200, 800)
         self.setWindowTitle("My GUI")
         self.generalLayout = QGridLayout()
+        self.generalLayoutLog = QGridLayout()
         centralWidget = QWidget(self)
+        centralWidgetLog = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
+        centralWidgetLog.setLayout(self.generalLayoutLog)
         self.tabs.addTab(centralWidget,"Main")
+        self.tabs.addTab(centralWidgetLog,"Log")
+
         self.setCentralWidget(self.tabs)
         #First Line
         self._createExtractDock()
-        self._createInfoParam()
+        self._createNoiseButtons()
+        #Next Line
         #Second Line
         self._createSavingDock()
+        self._createInfoParam()
         self._createImageDisplayType()
         #self._createImageDisplayBars()
         #Line 4
@@ -995,6 +1044,9 @@ class Window(QMainWindow):
         self._create1DImage()
         #Last Line
         self._createExitButton() 
+        ##Creates the Log Tab
+        self._createLog()
+        #Status Bar
         self._createStatusBar()
 
 def evaluateExpression(expression):

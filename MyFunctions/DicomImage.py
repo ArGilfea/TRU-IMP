@@ -65,10 +65,10 @@ class DicomImage(object):
                 self.axial_flats[i,:,:] = self.axial_flat(i)
                 self.sagittal_flats[i,:,:] = self.sagittal_flat(i)
                 self.coronal_flats[i,:,:] = self.coronal_flat(i)
+        self.progress_log = ""
 
     def select_acq(self,acq:int = -1): #Done in 1.1
-        """Returns a specific 3D (spatial) volume image, determined by the key input
-        
+        """Returns a specific 3D (spatial) volume image, determined by the key input.\n
         Keyword arguments:\n
         acq -- the timeframe of interest (default -1)
         """
@@ -76,6 +76,11 @@ class DicomImage(object):
         if(acq>= 0) and (acq < self.nb_acq):
             region = self.Image[acq,:,:,:]
         return region
+
+    def update_log(self,message:str):
+        """This will print a message to the monitor and also save it in the progress log"""
+        print(message)
+        self.progress_log += "\n" + message
 ############################################################
 #                                                          #
 # This section deals with the 2-D images                   #
@@ -312,7 +317,7 @@ class DicomImage(object):
             else:
                 return new_VOI
         else:
-            print(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
+            self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
     def linear_shifts_error(self,key:int=-1,order=1,d=1,weight=1,verbose:bool=False):#Done in 2.0.0
         """
         This function takes a specific segmentation and shifts it linearly, saving only the results,
@@ -333,7 +338,7 @@ class DicomImage(object):
             VOI_shifted = self.linear_shift(shift_axis[i,:],counter=key,save=False)
             stats_curves[i,:] = self.VOI_statistics(VOI = VOI_shifted)
             if verbose:
-                print(f"% done for key {key}: {(i+1)/shift_axis.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+                self.update_log(f"% done for key {key}: {(i+1)/shift_axis.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
         self.voi_statistics_counter += 1
         self.voi_statistics_avg.append(np.mean(stats_curves,0))
         self.voi_statistics_std.append(np.std(stats_curves,0))
@@ -357,7 +362,8 @@ class DicomImage(object):
         else: keys=np.array(keys)
         for i in range(keys.shape[0]):
             self.linear_shifts_error(keys[i],order=order,d=d,weight=weight,verbose=verbose_precise)
-            if verbose: print(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+            if verbose: 
+                self.update_log(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
 ############################################################
 #                                                          #
 # This section deals with the adding and removal of VOIs   #
@@ -634,7 +640,7 @@ class DicomImage(object):
             if iteration == 1:
                 region_std = np.abs(region_mean)
             if (verbose and iteration%5==0) or (verbose and iteration==1):
-                print("Iter:", iteration,", x=",region_mean,", std=",region_std,", voxels =",np.sum(VOI_old))
+                self.update_log("Iter:", iteration,", x=",region_mean,", std=",region_std,", voxels =",np.sum(VOI_old))
             for i in range(range_im_tmp[0,0],range_im_tmp[0,1]+1):
                 for j in range(range_im_tmp[1,0],range_im_tmp[1,1]+1):
                     for k in range(range_im_tmp[2,0],range_im_tmp[2,1]+1):
@@ -666,7 +672,7 @@ class DicomImage(object):
             #print(f"Saving VOI with f = {factor:.3f}, for size = {size_VOI} is within the range [{voxels_f[0]:.3f},{voxels_f[1]:.3f}].")
             save_between = True
         if verbose:
-            print('Stopped the filling at iter', {iteration},', while the max_iter was ',{max_iter})
+            self.update_log('Stopped the filling at iter', {iteration},', while the max_iter was ',{max_iter})
         if save or save_between:
             counter_save += 1
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
@@ -752,7 +758,7 @@ class DicomImage(object):
             if iteration == 1:
                 region_std = np.abs(region_mean)
             if (verbose and iteration%5==0) or (verbose and iteration==1):
-                print("Iter:", iteration,", x=",region_mean,", std=",region_std,", voxels =",np.sum(VOI_old))
+                self.update_log("Iter:", iteration,", x=",region_mean,", std=",region_std,", voxels =",np.sum(VOI_old))
             ### Numba
             ###
             VOI, range_im = loop(VOI,VOI_old,range_im,range_im_tmp,region_mean,region_std,factor,subimage,min_i,min_j,min_k,max_i,max_j,max_k)
@@ -768,7 +774,7 @@ class DicomImage(object):
             #print(f"Saving VOI with f = {factor:.3f}, for size = {size_VOI} is within the range [{voxels_f[0]:.3f},{voxels_f[1]:.3f}].")
             save_between = True
         if verbose:
-            print('Stopped the filling at iter', {iteration},', while the max_iter was ',{max_iter})
+            self.update_log('Stopped the filling at iter', {iteration},', while the max_iter was ',{max_iter})
         if save or save_between:
             counter_save += 1
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
@@ -846,7 +852,7 @@ class DicomImage(object):
         size_sub_im = (sub_im[0][1]-sub_im[0][0])*(sub_im[1][1]-sub_im[1][0])*(sub_im[2][1]-sub_im[2][0])
         for f in range(steps):
             if verbose:
-                print(f"f value = {f_range[f]:.3f}, step {f+1}/{steps}")
+                self.update_log(f"f value = {f_range[f]:.3f}, step {f+1}/{steps}")
             if counter_save >= max_number_save:
                 fraction_f=[-1,0];size_f=[-1,0];voxels_f=[-1,0]
                 break
@@ -865,13 +871,13 @@ class DicomImage(object):
                 if((break_after_f and voxels[f] > voxels_f[1]) \
                         and (ratio_range[f] > fraction_f[1] and voxels[f]*self.voxel_volume/1000 > size_f[1])) \
                         and (counter_save == 0 and max_number_save > 0):
-                    print(f"Saving the least worst segmentation.")
+                    self.update_log(f"Saving the least worst segmentation")
                     self.save_VOI(VOI_filled[0],name=name,do_stats=do_stats,do_moments=do_moments)
                     break
             if size_sub_im>0 and voxels[f]/size_sub_im > threshold:
-                print(f"Stopping at iter {f+1}, because threshold of {threshold} has been reached with {voxels[f]/size_sub_im:.3f}.")
+                self.update_log(f"Stopping at iter {f+1}, because threshold of {threshold} has been reached with {voxels[f]/size_sub_im:.3f}.")
                 if counter_save == 0 and max_number_save > 0:
-                    print(f"Saving a backup segmentation, for nothing was satisfactory.")
+                    self.update_log(f"Saving a backup segmentation, for nothing was satisfactory")
                     if numba:
                         self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
                             verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
@@ -883,8 +889,8 @@ class DicomImage(object):
                 break
             if f > min_f_growth and growth>=0:
                 if voxels[f]/voxels[f-1] > growth:
-                    print(f"Saving the previous segmentation, for the growth factor is {(voxels[f]/voxels[f-1]):.2f}, which is over the allowed {growth}.\
-                            \nThe index was {f-1}, which is >= to {min_f_growth}.")
+                    self.update_log(f"Saving the previous segmentation, for the growth factor is {(voxels[f]/voxels[f-1]):.2f}, which is over the allowed {growth}.\
+                            \nThe index was {f-1}, which is >= to {min_f_growth}")
                     if numba:
                         self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
                             verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} growth {(voxels[f]/voxels[f-1]):.2f}>{growth}",
@@ -895,9 +901,9 @@ class DicomImage(object):
                             do_moments=do_moments,do_stats=do_stats)   
                     break               
             if voxels[f]/image_size >= threshold:
-                print(f"Stopping at iter {f+1}, because threshold of {threshold} has been reached with {voxels[f]/image_size:.3f}.")
+                self.update_log(f"Stopping at iter {f+1}, because threshold of {threshold} has been reached with {voxels[f]/image_size:.3f}.")
                 if counter_save == 0 and max_number_save > 0:
-                    print(f"Saving a backup image, for nothing was satisfactory.")
+                    self.update_log(f"Saving a backup image, for nothing was satisfactory.")
                     if numba:
                         self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
                             verbose=verbose,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
@@ -974,8 +980,8 @@ class DicomImage(object):
             var[0] = np.sum(np.multiply(VOI_0,(subimage-mean[0])**2))/np.sum(VOI_0)
             var[1] = np.sum(np.multiply(VOI_1,(subimage-mean[1])**2))/np.sum(VOI_1)
             if verbose:
-                print(f"Average of the groups for iter {iter_now}: {mean[0]:.1f} and {mean[1]:.1f}.")
-                print(f"Variance of the groups for iter {iter_now}: {var[0]:.1f} and {var[1]:.1f}.")
+                self.update_log(f"Average of the groups for iter {iter_now}: {mean[0]:.1f} and {mean[1]:.1f}")
+                self.update_log(f"Variance of the groups for iter {iter_now}: {var[0]:.1f} and {var[1]:.1f}")
 
         VOI = np.zeros_like(self.Image[int(acq),:,:,:])
         for i in range(subimage.shape[0]):
@@ -1031,7 +1037,6 @@ class DicomImage(object):
                         neighbour1 = self.count_neighbours_other_class(old_VOI,[i,j,k],1)
                         E_0 = -np.log(np.exp(-(subimage[i,j,k]-mean[0])**2/(2*var[0]))/(2*3.141592*var[0])**(1/2)) + alpha* neighbour0
                         E_1 = -np.log(np.exp(-(subimage[i,j,k]-mean[1])**2/(2*var[1]))/(2*3.141592*var[1])**(1/2)) + alpha* neighbour1
-                        #print(E_0,E_1)
                         if E_0 > E_1:
                             if new_VOI[i,j,k]==0:
                                 counter += 1
@@ -1043,8 +1048,8 @@ class DicomImage(object):
                             new_VOI[i,j,k] = 0
                             E_tot += E_0
             if (verbose and iter_now%5==0) or (verbose and iter_now==1):
-                print(f"Iter {iter_now}, size of classes: {np.sum(new_VOI):.0f} and {(subinfo[0][1]-subinfo[0][0])*(subinfo[1][1]-subinfo[1][0])*(subinfo[2][1]-subinfo[2][0])-np.sum(new_VOI):.0f}, with total energy {E_tot}")
-                print(f"Number of voxels changed: {counter}")
+                self.update_log(f"Iter {iter_now}, size of classes: {np.sum(new_VOI):.0f} and {(subinfo[0][1]-subinfo[0][0])*(subinfo[1][1]-subinfo[1][0])*(subinfo[2][1]-subinfo[2][0])-np.sum(new_VOI):.0f}, with total energy {E_tot}")
+                self.update_log(f"Number of voxels changed: {counter}")
         for i in range(old_VOI.shape[0]):
             for j in range(old_VOI.shape[1]):
                 for k in range(old_VOI.shape[2]):
@@ -1108,7 +1113,7 @@ class DicomImage(object):
             if pixel != 0:
                 Center = Center/pixel
             else:
-                print("No voxels in the image, center of mass not determined and set to (0,0,0)")
+                self.update_log("No voxels in the image, center of mass not determined and set to (0,0,0)")
         elif D==2:
             Center = np.zeros(len(array.shape))
             pixel = 0
@@ -1121,7 +1126,6 @@ class DicomImage(object):
                 Center = Center/pixel
             else:
                 pass
-                #print("No voxels in the image, center of mass not determined and set to (0,0)")
         return Center
     def moment_of_inertia(self,array:np.ndarray,center:np.ndarray): #Done in 1.2.0
         """
@@ -1144,7 +1148,6 @@ class DicomImage(object):
             moment = moment/pixel
         else:
             pass
-            #print("No voxels in the image, moment of inertia not determined and set to (0,0,0)")
         return moment
     def convert_units(self,target:str,origin:str=''): #Done in 1.2.1
         """Gives the correction factor to go from a given units to a target unit.\n
@@ -1162,7 +1165,7 @@ class DicomImage(object):
         if origin =='SUVbw' and target == 'BQML':
             return (self.Dose_inj*1e6)/(self.mass*1000)
         else:
-            print('Invalid combination of origin and target units, no change made')
+            self.update_log('Invalid combination of origin and target units, no change made')
             return 1
     def mean_stats(self,keys:int=-1,type_stat:str='TAC'):
         """
@@ -1354,7 +1357,7 @@ class DicomImage(object):
             popt, pcov = curve_fit(func,self.time,y_data,p0)
             return popt,np.sqrt(np.diag(pcov)),np.sqrt(np.diag(pcov))
         except RuntimeError:
-            print(f"Error for a fitting, setting all to 0")
+            self.update_log(f"Error for a fitting, setting all to 0")
             return np.zeros(ndim),np.zeros(ndim),np.zeros(ndim)
     def Fit_Dynesty(self,y_data:np.ndarray,e_data:np.ndarray,model,ndim:int=3,keep_im_open:bool=False):
         '''
@@ -1441,14 +1444,14 @@ class DicomImage(object):
         verbose -- print the progress of the process (default False)\n
         """
         if (not isinstance(key,(np.ndarray,list))):
-            if key == -1 and curves == 'Average': key = np.arange(self.voi_counter);print("Selecting all TACs")
-            elif key == -1 and curves == 'Errors': key = np.arange(len(self.voi_statistics_avg));print("Selecting all curves with errors")
+            if key == -1 and curves == 'Average': key = np.arange(self.voi_counter);self.update_log("Selecting all TACs")
+            elif key == -1 and curves == 'Errors': key = np.arange(len(self.voi_statistics_avg));self.update_log("Selecting all curves with errors")
             else:
                 raise Exception("Key argument must be a list or np.array of indices for the curves to fit")
         key = np.array(key)
         if verbose: initial = time.time()
         for i in range(key.shape[0]):
-            if verbose: print(f"Iter {i+1} of {key.shape[0]} after {(time.time()-initial):.2f} s at {time.strftime('%H:%M:%S')}")
+            if verbose: self.update_log(f"Iter {i+1} of {key.shape[0]} after {(time.time()-initial):.2f} s at {time.strftime('%H:%M:%S')}")
             value, error_up, error_down = self.Bayesian_analysis(key[i],curves=curves,method=method,model=model,
                                                                thresh_perc = thresh_perc, thresh_value = thresh_value)
             if i == 0:
@@ -1520,7 +1523,7 @@ class DicomImage(object):
         try:
             value, error_up, error_down = technique(y_data,e_data,model,ndim=ndim)
         except:
-            print(f"Unable to run the parameter extraction on key {key} using method {method}, giving out 0s")
+            self.update_log(f"Unable to run the parameter extraction on key {key} using method {method}, giving out 0s")
             value = np.zeros(ndim)
             error_up = np.zeros(ndim)
             error_down = np.zeros(ndim)
@@ -1539,12 +1542,17 @@ class DicomImage(object):
         noiseSigma -- standard deviation of the noise (default 1)\n
         """
         if noiseType == "Gaussian":
-            pass
+            self.gaussian_noise(noiseMu= noiseMu, noiseSigma=noiseSigma)
         elif noiseType == "Poisson":
             pass
         elif noiseType == "Thermal":
             pass
+        else:
+            self.update_log("No noise was created")
 
+    def gaussian_noise(self,noiseMu:float = 0,noiseSigma:float = 1):
+        noise = np.random.normal(noiseMu,noiseSigma,(self.nb_acq,self.nb_slice,self.width,self.length))
+        self.Image = np.absolute(noise + self.Image)
 ############################################################
 #                                                          #
 # This section deals with the metrics                      #

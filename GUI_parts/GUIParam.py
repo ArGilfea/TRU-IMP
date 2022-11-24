@@ -60,9 +60,9 @@ class GUIParameters(object):
         self.Bayesian_thresh_perc = 0
         self.Bayesian_thresh_value = 0
 
-        self.NoiseType = "Gaussian"
-        self.NoiseSigma = 0
-        self.NoiseMu = 1
+        self.NoiseType = "None"
+        self.NoiseMu = 0.0
+        self.NoiseSigma = 1.0
 
 
         del Image

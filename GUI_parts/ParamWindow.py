@@ -64,10 +64,10 @@ class ParamWindow(QMainWindow):
 
     def initialize_param_window(self):
         """Start the creation of the param window for the widgets"""
-        self.current_line_Segm = 1
-        self.current_line_Error = 1
-        self.current_line_Bayesian = 1
-        self.current_line_Noise = 1
+        self.current_line_Segm = 2
+        self.current_line_Error = 2
+        self.current_line_Bayesian = 2
+        self.current_line_Noise = 2
         self._createParamList()
 
     def _createSeedSliders(self):
@@ -399,6 +399,7 @@ class ParamWindow(QMainWindow):
     def _createNoiseType(self):
         """Creates the Combo Box for the noise"""
         self.NoiseCombo = QComboBox()
+        self.NoiseCombo.addItem("None")
         self.NoiseCombo.addItem("Gaussian")
         self.NoiseCombo.addItem("Poisson")
         self.NoiseCombo.addItem("Thermal")
@@ -409,6 +410,25 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise.addWidget(QLabel("Noise Type"),self.current_line_Noise,0)
         self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseType}"),self.current_line_Noise,1)
         self.generalLayoutNoise.addWidget(self.NoiseCombo,self.current_line_Noise,2)
+        self.current_line_Noise +=1
+    def _createNoiseMu(self):
+        """Creates the QLineEdits for Mu for the Noise"""
+        self.btnMuNoise = self._createFloatInput(self.parameters.NoiseMu)
+
+        self.btnMuNoise.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Noise Mu"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseMu}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnMuNoise,self.current_line_Noise,2)
+        self.current_line_Noise +=1
+    def _createNoiseSigma(self):
+        """Creates the QLineEdits for Sigma for the Noise"""
+        self.btnSigmaNoise = self._createFloatInput(self.parameters.NoiseSigma)
+        self.btnSigmaNoise.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Noise Sigma"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseSigma}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnSigmaNoise,self.current_line_Noise,2)
         self.current_line_Noise +=1
     def _createThreshBaySliders(self):
         btnNew,slider = self._createIntInput(self.parameters.Bayesian_thresh_perc)
@@ -488,6 +508,12 @@ class ParamWindow(QMainWindow):
         layout.addWidget(slider)
         layout.addWidget(number)
         return subWidget,slider
+    def _createFloatInput(self,initvalue:float):
+        """Creates a basic QLineEdit and returns it"""
+        number = QLineEdit()
+        number.setText(str(initvalue))
+        number.setMaximumWidth(75)
+        return number
     def _createAcqValue(self):
         """Creates the slider and the line edit for the choice of acquisition.\n 
         -1 will mean all"""
@@ -767,18 +793,18 @@ class ParamWindow(QMainWindow):
         self.current_line_Segm +=1
     def _createParamList(self):
         """Create all the parameters, depending on the segmentation, error, and Dynesty types"""
-        self.generalLayoutSegm.addWidget(QLabel("Parameter"),0,0)
-        self.generalLayoutSegm.addWidget(QLabel("Values"),0,1)
-        self.generalLayoutSegm.addWidget(QLabel("New Values"),0,2)
-        self.generalLayoutError.addWidget(QLabel("Parameter"),0,0)
-        self.generalLayoutError.addWidget(QLabel("Values"),0,1)
-        self.generalLayoutError.addWidget(QLabel("New Values"),0,2)
-        self.generalLayoutBayesian.addWidget(QLabel("Parameter"),0,0)
-        self.generalLayoutBayesian.addWidget(QLabel("Values"),0,1)
-        self.generalLayoutBayesian.addWidget(QLabel("New Values"),0,2)
-        self.generalLayoutNoise.addWidget(QLabel("Parameter"),0,0)
-        self.generalLayoutNoise.addWidget(QLabel("Values"),0,1)
-        self.generalLayoutNoise.addWidget(QLabel("New Values"),0,2)
+        self.generalLayoutSegm.addWidget(QLabel("Parameter"),1,0)
+        self.generalLayoutSegm.addWidget(QLabel("Values"),1,1)
+        self.generalLayoutSegm.addWidget(QLabel("New Values"),1,2)
+        self.generalLayoutError.addWidget(QLabel("Parameter"),1,0)
+        self.generalLayoutError.addWidget(QLabel("Values"),1,1)
+        self.generalLayoutError.addWidget(QLabel("New Values"),1,2)
+        self.generalLayoutBayesian.addWidget(QLabel("Parameter"),1,0)
+        self.generalLayoutBayesian.addWidget(QLabel("Values"),1,1)
+        self.generalLayoutBayesian.addWidget(QLabel("New Values"),1,2)
+        self.generalLayoutNoise.addWidget(QLabel("Parameter"),1,0)
+        self.generalLayoutNoise.addWidget(QLabel("Values"),1,1)
+        self.generalLayoutNoise.addWidget(QLabel("New Values"),1,2)
 
         #Segmentation Specific
         self._createSegmType()
@@ -819,6 +845,8 @@ class ParamWindow(QMainWindow):
         self._createBayesianValue()
         #Noise Specific
         self._createNoiseType()
+        self._createNoiseMu()
+        self._createNoiseSigma()
         #Utilities
         self._createSaveBox()
         self._createVerbose()
@@ -899,13 +927,13 @@ class ParamWindow(QMainWindow):
         Changes the value of the slider when the lineEdit is changed
         """
         try:
-            lineedit.setText(f"{int(lineedit.text())}")
-        except:
-            lineedit.setText("0")
-        try:
             slider.setValue(int(lineedit.text()))
         except:
             slider.setValue(0)
+        try:
+            lineedit.setText(f"{int(lineedit.text())}")
+        except:
+            lineedit.setText("0")
         try: self.update_seed()
         except: pass
         try: self.update_center_ellipsoid()
@@ -1012,6 +1040,19 @@ class ParamWindow(QMainWindow):
         try:
             self.parameters.factor_Fill_range[1] = float(self.FactorFRangeValueMax.text())
         except: pass
+    def update_QLines(self):
+        """
+        Updates all the float parameters the QLineEdit is changed
+        """   
+        try:
+            self.parameters.NoiseMu = float(self.btnMuNoise.text())
+        except: 
+            self.parameters.NoiseMu = 0
+        try:
+            self.parameters.NoiseSigma = float(self.btnSigmaNoise.text())
+        except: 
+            self.parameters.NoiseSigma = 1
+        self.refresh_app()
     def refresh_app(self):
         """
         When a different segmentation, error or Dynesty scheme is chosen, update the whole window and only display the parameters of interest
