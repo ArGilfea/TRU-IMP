@@ -30,6 +30,8 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 ###
+import markdown
+
 size_Image = 200
 
 class Window(QMainWindow):
@@ -45,6 +47,14 @@ class Window(QMainWindow):
         except:
             self.logText.setText("Nothing started")
         self.generalLayoutLog.addWidget(self.logText)
+    def _createReadMe(self):
+        """Creates a ReadMe tab with the ReadMe file infos"""
+        self.ReadMeText = QTextEdit()
+        self.ReadMeText.setReadOnly(True)
+        f = open('ReadMe.md', 'r')
+        htmlmarkdown = markdown.markdown( f.read() )
+        self.ReadMeText.setText(htmlmarkdown)
+        self.generalLayoutReadMe.addWidget(self.ReadMeText)
     def _createStatusBar(self):
         """Create a status bar at the bottom of the GUI"""
         self.statusBar = QStatusBar()
@@ -1019,12 +1029,16 @@ class Window(QMainWindow):
         self.setWindowTitle("My GUI")
         self.generalLayout = QGridLayout()
         self.generalLayoutLog = QGridLayout()
+        self.generalLayoutReadMe = QGridLayout()
         centralWidget = QWidget(self)
         centralWidgetLog = QWidget(self)
+        centralWidgetReadMe = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
         centralWidgetLog.setLayout(self.generalLayoutLog)
+        centralWidgetReadMe.setLayout(self.generalLayoutReadMe)
         self.tabs.addTab(centralWidget,"Main")
         self.tabs.addTab(centralWidgetLog,"Log")
+        self.tabs.addTab(centralWidgetReadMe,"Read Me")
 
         self.setCentralWidget(self.tabs)
         #First Line
@@ -1046,6 +1060,8 @@ class Window(QMainWindow):
         self._createExitButton() 
         ##Creates the Log Tab
         self._createLog()
+        ##Creates the ReadMe Tab
+        self._createReadMe()
         #Status Bar
         self._createStatusBar()
 
