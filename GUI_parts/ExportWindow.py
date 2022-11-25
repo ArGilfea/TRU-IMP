@@ -54,6 +54,7 @@ class ExportWindow(QMainWindow):
         """
         self.ExportDicom = False
         self.ExportParam = False
+        self.ExportLog = False
         self.ExportTAC = False
         self.ExportSegFlat = False
         self.ExportDice = False
@@ -140,6 +141,16 @@ Useful for the reproducibility of analyses.""")
         self.ParamButton.stateChanged.connect(self.setValueExportParam)
         self.generalLayout.addWidget(QLabel("Parameters"),self.current_line,0)
         self.generalLayout.addWidget(self.ParamButton,self.current_line,1)
+        self.current_line +=1
+    def _createLogSave(self):
+        """
+        Creates the button to determine whether the DicomImage log infos will be saved
+        """
+        self.LogButton = QCheckBox()
+        self.LogButton.setToolTip("")
+        self.LogButton.stateChanged.connect(self.setValueExportLog)
+        self.generalLayout.addWidget(QLabel("Log"),self.current_line,0)
+        self.generalLayout.addWidget(self.LogButton,self.current_line,1)
         self.current_line +=1
     def _createTACsSave(self):
         """
@@ -332,6 +343,7 @@ Useful for the reproducibility of analyses.""")
         self._createHeaderDock()
         self._createDicomSave()
         self._createParamSave()
+        self._createLogSave()
         self._createTACsSave()
         self._createSegmFlatSave()
         self._createDiceSave()
@@ -347,6 +359,9 @@ Useful for the reproducibility of analyses.""")
     def setValueExportParam(self):
         """Set the export GUIParam with the checkbox"""
         self.ExportParam = self.ParamButton.isChecked()
+    def setValueExportLog(self):
+        """Set the export GUILog with the checkbox"""
+        self.ExportLog = self.LogButton.isChecked()
     def setValueTAC(self):
         """Set the export TACs with the checkbox"""
         self.ExportTAC = self.TACButton.isChecked()
@@ -411,6 +426,15 @@ Useful for the reproducibility of analyses.""")
         """Exporting of the GUIParam class"""
         if self.pathName.text() != "" and self.headerName.text() != "":
             PF.pickle_save(self.parameters,self.pathName.text()+self.headerName.text()+"_Parameters.pkl")
+        else:
+            self._createErrorMessage("Unable to Save")
+    def exportLogProcess(self):
+        """Exporting of the DicomImage Log"""
+        if self.pathName.text() != "" and self.headerName.text() != "":
+            file_name = self.pathName.text()+self.headerName.text()+"_Log.txt"
+            text_file = open(file_name,"w")
+            text_file.write(self.Image.progress_log)
+            text_file.close()
         else:
             self._createErrorMessage("Unable to Save")
     def exportDiceProcess(self):
@@ -548,6 +572,8 @@ Useful for the reproducibility of analyses.""")
                 self.exportDicomImageProcess()
             if self.ExportParam:
                 self.exportParamProcess()
+            if self.ExportLog:
+                self.exportLogProcess()
             if self.ExportTAC:
                 self.exportTACProcess()
             if self.ExportSegFlat:
