@@ -18,11 +18,11 @@ import MyFunctions.Batch_Errors
 ###
 import numpy as np
 import time
-import matplotlib.pyplot as plt
 ###
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
+from PyQt5 import QtGui
 from functools import partial
 ###
 import matplotlib
@@ -99,9 +99,25 @@ class Window(QMainWindow):
         """Create an exit button"""
         self.exit = QPushButton("Exit")
         self.exit.setToolTip("Closes the GUI and its dependencies")
-        self.exit.clicked.connect(self.close)
+        self.exit.clicked.connect(self.closing_button)
         self.generalLayout.addWidget(self.exit,self.current_line+1,3)  
         self.current_line += 2
+    def closing_button(self):
+        try:
+            self.generalLayout.removeWidget(self.GraphRunPlot)
+            self.generalLayout.removeWidget(self.GraphTracePlot)
+            self.generalLayout.removeWidget(self.GraphCornerPlot)
+            self.GraphRunPlot.deleteLater()
+            self.GraphTracePlot.deleteLater()
+            self.GraphCornerPlot.deleteLater()
+            self.GraphRunPlot = None
+            self.GraphTracePlot = None
+            self.GraphCornerPlot = None
+            del self.GraphRunPlot
+            del self.GraphTracePlot
+            del self.GraphCornerPlot
+        except: pass
+        self.close()
     def _createExtractDock(self):
         """Create the dock to enter a line and the buttons to extract, load and, browse the origin of the acquisition"""
         subWidget = QWidget()
@@ -118,7 +134,9 @@ class Window(QMainWindow):
         source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
         source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
         source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
-        source.setText("/Users/philippelaporte/Desktop/Test/Fan9_Dyn_DicomImage.pkl")
+        source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_DicomImage.pkl")
+        source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_Errors_DicomImage.pkl")
+        source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_Bayesian_DicomImage.pkl")
         
         btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
@@ -272,6 +290,10 @@ class Window(QMainWindow):
                 self.sliderFitted.setMinimum(-1);self.sliderFitted.setMaximum(-1)
         except:
             pass
+        self.sliderSegm.setValue(-1)
+        self.sliderSegmStats.setValue(-1)
+        self.sliderBayesian.setValue(-1)
+        self.sliderFitted.setValue(-1)
         self.sliderAcq.setTickPosition(QSlider.TicksBothSides)
         self.sliderAxial.setTickPosition(QSlider.TicksBothSides)
         self.sliderSagittal.setTickPosition(QSlider.TicksBothSides)
@@ -412,11 +434,19 @@ class Window(QMainWindow):
 
         self.base_1D_axes()
 
-        self.generalLayout.addWidget(label,self.current_line,0)
-        self.generalLayout.addWidget(self.AxialImage1D,self.current_line,1)
-        self.generalLayout.addWidget(self.SagittalImage1D,self.current_line,3)
-        self.generalLayout.addWidget(self.CoronalImage1D,self.current_line,2)
-        self.current_line += 1
+        if self.lineImage1D == -1:
+            self.generalLayout.addWidget(label,self.current_line,0)
+            self.generalLayout.addWidget(self.AxialImage1D,self.current_line,1)
+            self.generalLayout.addWidget(self.CoronalImage1D,self.current_line,2)
+            self.generalLayout.addWidget(self.SagittalImage1D,self.current_line,3)
+            self.lineImage1D = self.current_line
+            self.current_line += 1
+        else: 
+            self.generalLayout.addWidget(label,self.lineImage1D,0)
+            self.generalLayout.addWidget(self.AxialImage1D,self.lineImage1D,1)
+            self.generalLayout.addWidget(self.CoronalImage1D,self.lineImage1D,2)
+            self.generalLayout.addWidget(self.SagittalImage1D,self.lineImage1D,3)
+        self.BayesianShown = False
     def _createErrorMessage(self,message:str=""):
         """Create an error message and displays it"""
         alert = QMessageBox()
@@ -611,7 +641,11 @@ class Window(QMainWindow):
         elif self.resultView == "Jaccard":
             self.update_Jaccard()
         elif self.resultView == "Bayesian":
-            self.update_Bayesian(self.sliderBayesian.value())
+            try:
+                self.update_Bayesian(self.sliderBayesian.value())
+                self.update_BayesianPlots()
+            except: pass
+
     def update_Dice(self):
         """Shows the Dice coefficients in the middle image"""
         try:
@@ -619,6 +653,7 @@ class Window(QMainWindow):
             im = self.TACImage.axes.pcolormesh(self.Image.dice_all)
             self.base_coeff_axes(im)
             self.TACImage.draw() 
+            self.switch_bottom_view()
         except:
             pass
     def update_Jaccard(self):
@@ -628,6 +663,7 @@ class Window(QMainWindow):
             im = self.TACImage.axes.pcolormesh(self.Image.jaccard_all)
             self.base_coeff_axes(im)
             self.TACImage.draw() 
+            self.switch_bottom_view()
         except:
             pass
     def update_Bayesian(self,param:int=0):
@@ -646,6 +682,85 @@ class Window(QMainWindow):
             self.TACImage.draw() 
         except:
             pass
+    def update_BayesianPlots(self):
+        """Shows the Summary Plots of the Dynesty analyses"""
+        try:
+            key = int(self.sliderFitted.value())
+            if key < 0 or key >= self.Image.bayesian_dynesty_counter:
+                key = 0
+            try: 
+                del self.GraphRunPlot
+                del self.GraphTracePlot
+                del self.GraphRunPlot
+            except: pass
+            if self.Image.bayesian_dynesty_counter != 0:
+                self.switch_bottom_view(current = "Bayesian")
+
+                figRun = self.Image.bayesian_graphs_runplot[f"{key}"]
+                self.GraphRunPlot = FigureCanvasQTAgg(figRun)
+                self.GraphRunPlot.setMinimumSize(size_Image,size_Image)
+                del figRun
+
+                figTrace = self.Image.bayesian_graphs_traceplot[f"{key}"]
+                self.GraphTracePlot = FigureCanvasQTAgg(figTrace)
+                self.GraphTracePlot.setMinimumSize(size_Image,size_Image)
+                del figTrace
+
+                figCorner = self.Image.bayesian_graphs_cornerplot[f"{key}"]
+                self.GraphCornerPlot = FigureCanvasQTAgg(figCorner)
+                self.GraphCornerPlot.setMinimumSize(size_Image,size_Image)
+                del figCorner
+
+                self.generalLayout.addWidget(self.GraphCornerPlot,self.lineImage1D,3)
+                self.generalLayout.addWidget(self.GraphRunPlot,self.lineImage1D,1)
+                self.generalLayout.addWidget(self.GraphTracePlot,self.lineImage1D,2)
+
+                self.BayesianShown = True
+                del key
+        except: pass
+ 
+    def switch_bottom_view(self,current:str=""):
+        """Changes the bottom view to line signal or Bayesian results.\n
+        This part removes the current images, leaving the space empty"""
+        if current == "Bayesian":
+            try: 
+                self.generalLayout.removeWidget(self.GraphRunPlot)
+                self.generalLayout.removeWidget(self.GraphTracePlot)
+                self.generalLayout.removeWidget(self.GraphCornerPlot)
+                self.GraphRunPlot.deleteLater()
+                self.GraphTracePlot.deleteLater()
+                self.GraphCornerPlot.deleteLater()
+                self.GraphRunPlot = None
+                self.GraphTracePlot = None
+                self.GraphCornerPlot = None
+            except: pass
+            if not self.BayesianShown:
+                self.generalLayout.removeWidget(self.AxialImage1D)
+                self.generalLayout.removeWidget(self.CoronalImage1D)
+                self.generalLayout.removeWidget(self.SagittalImage1D)
+                self.AxialImage1D.deleteLater()
+                self.CoronalImage1D.deleteLater()
+                self.SagittalImage1D.deleteLater()
+                self.AxialImage1D = None
+                self.CoronalImage1D = None
+                self.SagittalImage1D = None
+        else:
+            if self.BayesianShown:
+                self.generalLayout.removeWidget(self.GraphRunPlot)
+                self.generalLayout.removeWidget(self.GraphTracePlot)
+                self.generalLayout.removeWidget(self.GraphCornerPlot)
+                self.GraphRunPlot.deleteLater()
+                self.GraphTracePlot.deleteLater()
+                self.GraphCornerPlot.deleteLater()
+                self.GraphRunPlot = None
+                self.GraphTracePlot = None
+                self.GraphCornerPlot = None  
+                del self.GraphRunPlot
+                del self.GraphTracePlot
+                del self.GraphCornerPlot
+
+                self._create1DImage()              
+
     def update_TAC(self):
         """
         Update the 1D TAC image, in the middle of the GUI, according to the position of the sliders sliders.\n
@@ -710,7 +825,8 @@ class Window(QMainWindow):
                 self.TACImage.axes.plot(x_axis,y_axis3,color='g',label="Fit")
             except: pass
             self.base_TAC_axes()
-            self.TACImage.draw()                
+            self.TACImage.draw()    
+            self.switch_bottom_view()            
         except:
             pass
     def update_1D(self):
@@ -802,7 +918,9 @@ class Window(QMainWindow):
         self.CoronalImage1D.axes.set_xlabel("Voxel");self.CoronalImage1D.axes.set_ylabel("Signal")
     def update_view(self):
         """Updates the top images (2D views) according to the parameters input and the determined view requested"""
-        values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
+        try:
+            values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
+        except: pass
         try: SubI = self.parameters.subImage
         except: pass
         #if SubI[0,0] >= SubI[0,1] or SubI[1,0] >= SubI[1,1] or SubI[2,0] >= SubI[2,1] or SubI[3,0] >= SubI[3,1]:
@@ -1024,6 +1142,8 @@ class Window(QMainWindow):
         self.current_line = 0
         #self.displayImageLine = 0
         self.first_pass = True
+        self.lineImage1D = -1
+        self.BayesianShown = False
         super().__init__(parent=None)
         self.setMinimumSize(1200, 800)
         self.setWindowTitle("My GUI")
@@ -1065,6 +1185,9 @@ class Window(QMainWindow):
         #Status Bar
         self._createStatusBar()
 
+        self.generalLayout.setColumnStretch(1,1)
+        self.generalLayout.setColumnStretch(2,1)
+        self.generalLayout.setColumnStretch(3,1)
 def evaluateExpression(expression):
     """Evaluate an expression (Model)."""
     try:
@@ -1110,7 +1233,6 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes = fig.add_subplot(111)
         self.fig = fig
         super(MplCanvas, self).__init__(fig)
-
 
 ###
 if __name__ == "__main__":

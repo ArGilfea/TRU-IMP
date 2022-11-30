@@ -1,6 +1,12 @@
 import pickle
 
 from MyFunctions.DicomImage import DicomImage
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+from dynesty import NestedSampler
+from dynesty import plotting as dyplot
 def pickle_save(obj:DicomImage, filename:str) -> None:
     """
     Saves a pickle file (format .pkl), with a given structure.\n

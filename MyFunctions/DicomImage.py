@@ -57,6 +57,13 @@ class DicomImage(object):
         self.bayesian_results_e_up = []
         self.bayesian_results_e_down = []
         self.bayesian_counter = 0
+        self.bayesian_dynesty_counter = 0
+        self.bayesian_graphs_runplot = {}
+        self.bayesian_graphs_traceplot = {}
+        self.bayesian_graphs_cornerplot = {}
+        self.bayesian_graphs_runplotaxes = {}
+        self.bayesian_graphs_traceplotaxes = {}
+        self.bayesian_graphs_cornerplotaxes = {}
         self.axial_flats = np.zeros((self.nb_acq,self.width,self.length))
         self.coronal_flats = np.zeros((self.nb_acq,self.nb_slice,self.length))
         self.sagittal_flats = np.zeros((self.nb_acq,self.nb_slice,self.width))
@@ -1382,15 +1389,20 @@ class DicomImage(object):
                             logl_args=[self.time,y_data,e_data],ptform_args=[param_init],nlive=1500)
         samplerDynesty.run_nested(maxiter=1e6)
         results = samplerDynesty.results
+        lnz_truth = ndim * -np.log(2 * 10.)  # analytic evidence solution
 
         fig,axes = dyplot.traceplot(results, show_titles=True,trace_cmap='viridis', connect=True,connect_highlight=range(5),title_fmt=".4f")
+        figu, axe = dyplot.runplot(results, lnz_truth=lnz_truth)  # summary (run) plot
+        fg, ax = dyplot.cornerplot(results, color='dodgerblue', show_titles=True,quantiles=None, max_n_ticks=3,title_fmt=".4f")
+
+        self.Bayesian_save_graph(figu,fig,fg)
         std_up = np.zeros(ndim)
         std_down = np.zeros(ndim)
         for i in range(ndim):
             param = axes[i,1].title.get_text()
             std_down[i] = float(param[param.find("-")+1:param.find("^")-1])
             std_up[i] = float(param[param.find("+")+1:param.rfind("}$")])
-        if keep_im_open != True: plt.close()
+        if keep_im_open != True: plt.close('all')
 
         return results.samples[-1,:],std_up,std_down
 ############################################################
@@ -1428,7 +1440,7 @@ class DicomImage(object):
 ############################################################
     def Bayesian_analyses(self,key = -1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2',
                             thresh_perc:float = 0, thresh_value:float = 0,
-                            verbose:bool = False,save:bool = True):
+                            verbose:bool = False,save:bool = True,keep_im_open:bool=False):
         """Takes an array of index for a curve and fit it using a given model and algorithm.
 
         Keyword arguments:\n
@@ -1442,6 +1454,7 @@ class DicomImage(object):
         Other possibilities will include 1-compartment, 2-comparment-with-reference (To be added).\n
         param -- array of the subcharacteristic of the curves to fit (default [])\n
         verbose -- print the progress of the process (default False)\n
+        keep_im_open -- keeps the Dynesty plots open if set to True; otherwise closes it (default False)\n        
         """
         if (not isinstance(key,(np.ndarray,list))):
             if key == -1 and curves == 'Average': key = np.arange(self.voi_counter);self.update_log("Selecting all TACs")
@@ -1453,7 +1466,8 @@ class DicomImage(object):
         for i in range(key.shape[0]):
             if verbose: self.update_log(f"Iter {i+1} of {key.shape[0]} after {(time.time()-initial):.2f} s at {time.strftime('%H:%M:%S')}")
             value, error_up, error_down = self.Bayesian_analysis(key[i],curves=curves,method=method,model=model,
-                                                               thresh_perc = thresh_perc, thresh_value = thresh_value)
+                                                               thresh_perc = thresh_perc, thresh_value = thresh_value,
+                                                               keep_im_open=keep_im_open)
             if i == 0:
                 values = np.zeros((key.shape[0],value.shape[0]))
                 errors_up = np.zeros_like(values)
@@ -1474,7 +1488,7 @@ class DicomImage(object):
         return values, errors_up, errors_down
 
     def Bayesian_analysis(self,key:int=-1,curves:str = 'Average',method:str='Dynesty',model:str='2_Comp_A2',
-                            thresh_perc:float = 0, thresh_value:float = 0):
+                            thresh_perc:float = 0, thresh_value:float = 0,keep_im_open:bool = False):
         """Takes an index for a curve and fit it using a given model and algorithm.\n
         Keyword arguments:\n
         key -- value of the curve to fit (default [-1])\n
@@ -1486,6 +1500,7 @@ class DicomImage(object):
         thresh_value -- percentage of the maximum value to which errors under the threshold will be set (default 0)\n
         Other possibilities will include 1-compartment, 2-comparment-with-reference (To be added).\n
         param -- array of the subcharacteristic of the curves to fit (default [])\n
+        keep_im_open -- keeps the Dynesty plots open if set to True; otherwise closes it (default False)\n        
         """
         if (not isinstance(key,int)):
             if key < 0 or key > self.voi_counter:
@@ -1521,13 +1536,30 @@ class DicomImage(object):
         else:
             raise Exception("Invalid choice of method. Please see function definition for acceptable choices.")
         try:
-            value, error_up, error_down = technique(y_data,e_data,model,ndim=ndim)
+            value, error_up, error_down = technique(y_data,e_data,model,ndim=ndim,keep_im_open=keep_im_open)
         except:
             self.update_log(f"Unable to run the parameter extraction on key {key} using method {method}, giving out 0s")
             value = np.zeros(ndim)
             error_up = np.zeros(ndim)
             error_down = np.zeros(ndim)
         return value,error_up, error_down
+    
+    def Bayesian_save_graph(self,runplot,
+                            traceplot,
+                            cornerplot):
+        """
+        Saves the graphs of the Bayesian Analysis when Dynesty is used.\n
+        Keyword parameters:\n
+        runplot -- Summary (run) plot from the Dynesty analysis\n
+        traceplot -- Traceplot from the Dynesty analysis\n
+        cornerplot -- Cornerplot from the Dynesty analysis\n
+        """
+
+        self.bayesian_graphs_runplot[f"{self.bayesian_dynesty_counter}"] = runplot
+        self.bayesian_graphs_traceplot[f"{self.bayesian_dynesty_counter}"] = traceplot
+        self.bayesian_graphs_cornerplot[f"{self.bayesian_dynesty_counter}"] = cornerplot
+
+        self.bayesian_dynesty_counter += 1
 ############################################################
 #                                                          #
 # This section deals with the noise                        #
