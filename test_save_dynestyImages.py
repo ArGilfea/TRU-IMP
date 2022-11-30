@@ -38,6 +38,9 @@ new_manager = dummy.canvas.manager
 new_manager.canvas.figure = fig
 fig.set_canvas(new_manager.canvas)
 
+fig.savefig("/Users/philippelaporte/Desktop/Test/Test1.png")
+fig2.savefig("/Users/philippelaporte/Desktop/Test/Test2.png")
+
 del dummy
 
 print(type(fig2))

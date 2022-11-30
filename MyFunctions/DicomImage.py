@@ -61,9 +61,6 @@ class DicomImage(object):
         self.bayesian_graphs_runplot = {}
         self.bayesian_graphs_traceplot = {}
         self.bayesian_graphs_cornerplot = {}
-        self.bayesian_graphs_runplotaxes = {}
-        self.bayesian_graphs_traceplotaxes = {}
-        self.bayesian_graphs_cornerplotaxes = {}
         self.axial_flats = np.zeros((self.nb_acq,self.width,self.length))
         self.coronal_flats = np.zeros((self.nb_acq,self.nb_slice,self.length))
         self.sagittal_flats = np.zeros((self.nb_acq,self.nb_slice,self.width))
@@ -1506,11 +1503,11 @@ class DicomImage(object):
             if key < 0 or key > self.voi_counter:
                 raise Exception("Key argument must be integer, greater than 0, and smaller than the total number of segmentations")
         if curves == 'Average':
-            y_data = self.voi_statistics[key]
+            y_data = np.copy(self.voi_statistics[key])
             e_data = np.zeros(self.time)
         elif curves == 'Errors':
-            y_data = self.voi_statistics_avg[key]
-            e_data = self.voi_statistics_std[key]
+            y_data = np.copy(self.voi_statistics_avg[key])
+            e_data = np.copy(self.voi_statistics_std[key])
         else:
             raise Exception("Invalid choice of curves to fit. Please see function definition for acceptable choices.")
         if (thresh_perc > 0 and thresh_perc < 1) and curves == 'Errors':

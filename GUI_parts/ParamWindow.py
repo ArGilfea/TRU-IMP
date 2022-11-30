@@ -403,6 +403,10 @@ class ParamWindow(QMainWindow):
         self.NoiseCombo.addItem("Gaussian")
         self.NoiseCombo.addItem("Poisson")
         self.NoiseCombo.addItem("Thermal")
+        self.NoiseCombo.addItem("Rayleigh")
+        self.NoiseCombo.addItem("Erlang (Gamma)")
+        self.NoiseCombo.addItem("Exponential")
+        self.NoiseCombo.addItem("Uniform")
 
         self.NoiseCombo.setCurrentText(self.parameters.NoiseType)
         self.NoiseCombo.activated[str].connect(self.NoiseMethodCombo_Changed)

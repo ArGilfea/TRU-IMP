@@ -65,6 +65,8 @@ class ExportWindow(QMainWindow):
         self.ErrorTACTypeSave = "Error TAC Images"
         self.ExportDynestyParam = False
         self.DynestyParamTypeSave = "Dynesty Param"
+        self.ExportDynestyGraphs = False
+        self.DynestyGraphTypeSave = "RunPlot"
 
     def initialize_export_window(self):
         """
@@ -324,6 +326,44 @@ Useful for the reproducibility of analyses.""")
         self.generalLayout.addWidget(self.DynestyParamType,self.current_line,3)
         self.current_line +=1
 
+    def _createDynestyGraphsSave(self):
+        """
+        Saves the graphs from Dynesty
+        """
+        self.DynestyGraphButton = QCheckBox()
+        self.DynestyGraphButton.stateChanged.connect(self.setValueDynestyGraph)
+        self.DynestyGraphType = QComboBox()
+        self.DynestyGraphType.addItem("RunPlot")
+        self.DynestyGraphType.addItem("TracePlot")
+        self.DynestyGraphType.addItem("CornerPlot")
+        self.DynestyGraphType.addItem("All")
+        self.DynestyGraphType.setToolTip("Export the specific Dynesty Graphs for a given Dynesty analysis.\n-1 for all of them.")
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+        slider = QSlider(Qt.Horizontal)
+        number = QLineEdit()
+        number.setText(str(-1))
+        slider.setRange(-1,self.Image.bayesian_dynesty_counter-1)
+        slider.setTickPosition(QSlider.TicksBothSides)
+        slider.setSingleStep(1)
+        slider.setValue(-1)
+        number.setFixedWidth(30)
+        slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
+        number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
+        slider.setToolTip("If -1, all Dynesty Analysis will be saved")
+        number.setToolTip("If -1, all Dynesty Analysis will be saved")
+        layout.addWidget(slider)
+        layout.addWidget(number)
+        self.DynestyGraphSaveValues = slider
+        self.DynestyGraphType.activated[str].connect(self.DynestyGraphComboChanged)
+
+        self.generalLayout.addWidget(QLabel("Dynesty Graph"),self.current_line,0)
+        self.generalLayout.addWidget(self.DynestyGraphButton,self.current_line,1)
+        self.generalLayout.addWidget(subWidget,self.current_line,2)
+        self.generalLayout.addWidget(self.DynestyGraphType,self.current_line,3)
+        self.current_line +=1
+
     def _createExportAll(self):
         """
         Create the Export Button
@@ -350,6 +390,7 @@ Useful for the reproducibility of analyses.""")
         self._createJaccardSave()
         self._createErrorTACsSave()
         self._createDynestyResultSave()
+        self._createDynestyGraphsSave()
 
         self._createExportAll()
 
@@ -378,8 +419,11 @@ Useful for the reproducibility of analyses.""")
         """Set the export Error TACs with the checkbox"""
         self.ExportErrorTAC = self.ErrorTACButton.isChecked()
     def setValueDynestyParam(self):
-        """Set the export Error TACs with the checkbox"""
+        """Set the export Dynesty Parameters with the checkbox"""
         self.ExportDynestyParam = self.DynestyParamButton.isChecked()
+    def setValueDynestyGraph(self):
+        """Set the export Dynesty Graphs with the checkbox"""
+        self.ExportDynestyGraphs = self.DynestyGraphButton.isChecked()
     def TACComboChanged(self):
         """Set the type of TACs with the checkbox"""
         self.TACTypeSave = self.TACType.currentText()
@@ -389,6 +433,9 @@ Useful for the reproducibility of analyses.""")
     def DynestyParamComboChanged(self):
         """Set the type of Errors with the checkbox"""
         self.DynestyParamTypeSave = self.DynestyParamType.currentText()
+    def DynestyGraphComboChanged(self):
+        """Set the type of Graphs with the checkbox"""
+        self.DynestyGraphTypeSave = self.DynestyGraphType.currentText()
     def SegFlatComboChanged(self):
         """Set the type of Segmentation Flats with the checkbox"""
         self.SegFlatTypeSave = self.SegFlatType.currentText()
@@ -565,6 +612,37 @@ Useful for the reproducibility of analyses.""")
                 np.savetxt(self.pathName.text()+self.headerName.text()+f"_Param_{k}_Dynesty_Param.csv",arrayTAC,delimiter=';')
         else:
             self._createErrorMessage("Unable to Save")
+    def exportDynestyGraphsProcess(self):
+        """Saving of the Dynesty Graphs"""
+        if self.pathName.text() != "" and self.headerName.text() != "":
+            k = self.DynestyGraphSaveValues.value()
+            if k == -1:
+                z = np.arange(self.Image.bayesian_dynesty_counter)
+            else:
+                z = np.array([k])
+            for i in range(z.shape[0]):
+                if self.DynestyGraphTypeSave in ["All","RunPlot"]:
+                    self.exportDynestyRunPlot(z[i])
+                if self.DynestyGraphTypeSave in ["All","TracePlot"]:
+                    self.exportDynestyTracePlot(z[i])
+                if self.DynestyGraphTypeSave in ["All","CornerPlot"]:
+                    self.exportDynestyCornerPlot(z[i])
+
+    def exportDynestyRunPlot(self,index:int):
+        """Saving the Dynesty RunPlot"""
+        fig = self.Image.bayesian_graphs_runplot[f"{index}"]
+        fig.savefig(self.pathName.text()+self.headerName.text()+f"_Param_{index}_Dynesty_RunPlot.png")
+
+    def exportDynestyTracePlot(self,index:int):
+        """Saving the Dynesty TracePlot"""
+        fig = self.Image.bayesian_graphs_traceplot[f"{index}"]
+        fig.savefig(self.pathName.text()+self.headerName.text()+f"_Param_{index}_Dynesty_TracePlot.png")
+
+    def exportDynestyCornerPlot(self,index:int):
+        """Saving the Dynesty CornerPlot"""
+        fig = self.Image.bayesian_graphs_cornerplot[f"{index}"]
+        fig.savefig(self.pathName.text()+self.headerName.text()+f"_Param_{index}_Dynesty_CornerPlot.png")
+
     def exportInfo(self):
         """Activated when clicked on 'Export'. Undertake all the export processes."""
         try:
@@ -586,6 +664,8 @@ Useful for the reproducibility of analyses.""")
                 self.exportErrorTACProcess()
             if self.ExportDynestyParam:
                 self.exportDynestyParamProcess()
+            if self.ExportDynestyGraphs:
+                self.exportDynestyGraphsProcess()
             self._createErrorMessage("Export Successful")
         except:
             self._createErrorMessage("Unable to Export")
