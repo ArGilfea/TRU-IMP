@@ -135,8 +135,8 @@ class Window(QMainWindow):
         source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
         source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
         source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_DicomImage.pkl")
-        source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_Errors_DicomImage.pkl")
-        source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_Bayesian_DicomImage.pkl")
+        #source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_Errors_DicomImage.pkl")
+        #source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_Bayesian_DicomImage.pkl")
         
         btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
@@ -609,7 +609,9 @@ class Window(QMainWindow):
             initial = time.time()
             self.Image.add_noise(noiseType= self.parameters.NoiseType,
                                     noiseMu = self.parameters.NoiseMu,
-                                    noiseSigma= self.parameters.NoiseSigma)
+                                    noiseSigma= self.parameters.NoiseSigma,
+                                    Rayleigh_a= self.parameters.NoiseARayleigh,
+                                    Rayleigh_b= self.parameters.NoiseBRayleigh)
             if self.parameters.NoiseType != "None":
                 self.displayStatus(f"{self.parameters.NoiseType} noise added",initial)
             else:
@@ -1079,24 +1081,25 @@ class Window(QMainWindow):
         except:
             try:
                 self.Image = Extract_r.Extract_Images(source.text(),verbose=True,save=False)
+                self.displayStatus("File extracted", initial)
+                self._createImageDisplay()
+                self._createImageDisplayBars()
+                self.parameters = GUIParameters(self.Image)
             except:
                 try:
                     self.Image = Extract.Extract_Images(source.text(),verbose=True,save=False)
+                    self.displayStatus("File extracted", initial)
+                    self._createImageDisplay()
+                    self._createImageDisplayBars()
+                    self.parameters = GUIParameters(self.Image)
                 except:
                     self._createErrorMessage("Extraction is not possible")
-                    return 0
-            self.displayStatus("File extracted", initial)
-            self._createImageDisplay()
-            self._createImageDisplayBars()
-            self.parameters = GUIParameters(self.Image)
+
     def load_button(self,source:QLineEdit):
         """Loads the image according to the given QLineEdit.
             Will fail if an image is already loaded."""
         initial = time.time()
         try:
-            self.parameters = PF.pickle_open(source.text())
-            a = self.parameters.SegmAcq
-        except:
             try:
                 a = self.name
                 self._createErrorMessage("An image is already loaded")
@@ -1110,6 +1113,9 @@ class Window(QMainWindow):
                     self.parameters = GUIParameters(self.Image)
                 except:
                     self._createErrorMessage("Loading is not possible")
+        except:
+            self.parameters = PF.pickle_open(source.text())
+            a = self.parameters.SegmAcq
     def browse_button_directory(self,source:QLineEdit):
         """Depleted"""
         text =  QFileDialog.getExistingDirectory()

@@ -1,23 +1,10 @@
-from array import array
-from signal import signal
-from threading import local
-from turtle import color
 import numpy as np
-import os
-import matplotlib.pyplot as plt
 from sympy import Q
-from MyFunctions.DicomImage import DicomImage #Custom Class
-import MyFunctions.Pickle_Functions as PF
-import MyFunctions.Extract_Images_R as Extract_r
-import MyFunctions.Extract_Images as Extract
+import MyFunctions.Statistic_Functions as SF
 from GUI_parts.GUIParam import GUIParameters
-import time
 ###
 import numpy as np
-import time
-import matplotlib.pyplot as plt
 ###
-import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from functools import partial
@@ -26,7 +13,10 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+from scipy.stats import norm
 ###
+
+size_Image = 200
 class ParamWindow(QMainWindow):
     """
     Class to open a parameter window to get user's inputs
@@ -50,16 +40,12 @@ class ParamWindow(QMainWindow):
         centralWidgetErrors.setLayout(self.generalLayoutError)
         centralWidgetBayesian.setLayout(self.generalLayoutBayesian)
         centralWidgetNoise.setLayout(self.generalLayoutNoise)
-        self.layout = QVBoxLayout()
-        
-        
-        #centralWidgetSegm.resize(centralWidgetSegm.sizeHint());
+
         self.tabs.addTab(centralWidgetSegm,"Segm.")
         self.tabs.addTab(centralWidgetErrors,"Errors.")
         self.tabs.addTab(centralWidgetBayesian,"Bayesian.")
         self.tabs.addTab(centralWidgetNoise,"Noise")
         self.setCentralWidget(self.tabs)
-        self.setLayout(self.layout)
         self.initialize_param_window()
 
     def initialize_param_window(self):
@@ -396,6 +382,52 @@ class ParamWindow(QMainWindow):
         self.generalLayoutBayesian.addWidget(QLabel(f"{self.parameters.CurveTypeBayesian}"),self.current_line_Bayesian,1)
         self.generalLayoutBayesian.addWidget(self.CurvesCombo,self.current_line_Bayesian,2)
         self.current_line_Bayesian +=1
+    def _createNoiseGraphs(self):
+        """Creates the Graphs for the Noise Functions"""
+        self.pdfImage = MplCanvas(self, width=1, height=1, dpi=75)
+        self.cdfImage = MplCanvas(self, width=1, height=1, dpi=75)
+
+        self.pdfImage.setMinimumSize(size_Image,size_Image)
+        self.cdfImage.setMinimumSize(size_Image,size_Image)
+
+        self.pdfImage.axes.grid()
+        self.cdfImage.axes.grid()
+
+        if self.parameters.NoiseType == "Rayleigh":
+            mean = self.parameters.NoiseARayleigh + np.sqrt(np.pi * self.parameters.NoiseBRayleigh/4)
+            std = self.parameters.NoiseBRayleigh * (4 - np.pi)/4
+            x = np.arange(self.parameters.NoiseARayleigh,mean+3*std,0.001)
+            ypdf = SF.rayleigh_noise_pdf(x, a= self.parameters.NoiseARayleigh, b= self.parameters.NoiseBRayleigh, type= "pdf")
+            ycdf = SF.rayleigh_noise_pdf(x, a= self.parameters.NoiseARayleigh, b= self.parameters.NoiseBRayleigh, type= "cdf")
+        elif self.parameters.NoiseType == "Gaussian":
+            x = np.arange(self.parameters.NoiseMu - 4 * self.parameters.NoiseSigma,self.parameters.NoiseMu + 4 * self.parameters.NoiseSigma,0.001)
+            ypdf = 1/(self.parameters.NoiseSigma*np.sqrt(4*np.pi))*np.exp(-(x-self.parameters.NoiseMu)**2/(2*self.parameters.NoiseSigma**2))
+            ycdf = norm.cdf(x,loc = self.parameters.NoiseMu, scale=self.parameters.NoiseSigma)
+        elif self.parameters.NoiseType == "Poisson":
+            pass
+        elif self.parameters.NoiseType == "Thermal":
+            pass
+        elif self.parameters.NoiseType == "Erlang (Gamma)":
+            pass
+        elif self.parameters.NoiseType == "Exponential":
+            pass
+        elif self.parameters.NoiseType == "Uniform":
+            pass
+
+        try:
+            self.pdfImage.axes.plot(x,ypdf)
+        except: pass
+        try:
+            self.cdfImage.axes.plot(x,ycdf)
+        except:pass
+        self.generalLayoutNoise.addWidget(QLabel("PDF"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(self.pdfImage,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,5)
+        self.current_line_Noise +=1
+        self.generalLayoutNoise.addWidget(QLabel("CDF"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(self.cdfImage,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,5)
+        self.current_line_Noise +=1
     def _createNoiseType(self):
         """Creates the Combo Box for the noise"""
         self.NoiseCombo = QComboBox()
@@ -414,6 +446,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise.addWidget(QLabel("Noise Type"),self.current_line_Noise,0)
         self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseType}"),self.current_line_Noise,1)
         self.generalLayoutNoise.addWidget(self.NoiseCombo,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
         self.current_line_Noise +=1
     def _createNoiseMu(self):
         """Creates the QLineEdits for Mu for the Noise"""
@@ -424,6 +457,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise.addWidget(QLabel("Noise Mu"),self.current_line_Noise,0)
         self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseMu}"),self.current_line_Noise,1)
         self.generalLayoutNoise.addWidget(self.btnMuNoise,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
         self.current_line_Noise +=1
     def _createNoiseSigma(self):
         """Creates the QLineEdits for Sigma for the Noise"""
@@ -433,6 +467,27 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise.addWidget(QLabel("Noise Sigma"),self.current_line_Noise,0)
         self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseSigma}"),self.current_line_Noise,1)
         self.generalLayoutNoise.addWidget(self.btnSigmaNoise,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+        self.current_line_Noise +=1
+    def _createNoiseRayleighA(self):
+        """Creates the QLineEdits for a for the Rayleigh Noise"""
+        self.btnNoiseRayleighA = self._createFloatInput(self.parameters.NoiseARayleigh)
+        self.btnNoiseRayleighA.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Rayleigh a"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseARayleigh}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnNoiseRayleighA,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+        self.current_line_Noise +=1
+    def _createNoiseRayleighB(self):
+        """Creates the QLineEdits for b for the Rayleigh Noise"""
+        self.btnNoiseRayleighB = self._createFloatInput(self.parameters.NoiseBRayleigh)
+        self.btnNoiseRayleighB.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Rayleigh b"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseBRayleigh}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnNoiseRayleighB,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
         self.current_line_Noise +=1
     def _createThreshBaySliders(self):
         btnNew,slider = self._createIntInput(self.parameters.Bayesian_thresh_perc)
@@ -848,9 +903,14 @@ class ParamWindow(QMainWindow):
             self._createThreshBaySliders()
         self._createBayesianValue()
         #Noise Specific
+        self._createNoiseGraphs()
         self._createNoiseType()
-        self._createNoiseMu()
-        self._createNoiseSigma()
+        if self.parameters.NoiseType == "Gaussian":
+            self._createNoiseMu()
+            self._createNoiseSigma()
+        elif self.parameters.NoiseType == "Rayleigh":
+            self._createNoiseRayleighA()
+            self._createNoiseRayleighB()
         #Utilities
         self._createSaveBox()
         self._createVerbose()
@@ -1051,11 +1111,19 @@ class ParamWindow(QMainWindow):
         try:
             self.parameters.NoiseMu = float(self.btnMuNoise.text())
         except: 
-            self.parameters.NoiseMu = 0
+            self.parameters.NoiseMu = 0.0
         try:
             self.parameters.NoiseSigma = float(self.btnSigmaNoise.text())
         except: 
-            self.parameters.NoiseSigma = 1
+            self.parameters.NoiseSigma = 1.0
+        try:
+            self.parameters.NoiseARayleigh = float(self.btnNoiseRayleighA.text())
+        except: 
+            self.parameters.NoiseARayleigh = 0.0
+        try:
+            self.parameters.NoiseBRayleigh = float(self.btnNoiseRayleighB.text())
+        except: 
+            self.parameters.NoiseBRayleigh = 1.0
         self.refresh_app()
     def refresh_app(self):
         """
@@ -1086,3 +1154,13 @@ class ParamWindow(QMainWindow):
                 if widget is not None:
                     widget.deleteLater()
         self.initialize_param_window()
+
+
+class MplCanvas(FigureCanvasQTAgg):
+    """Class for the images and the graphs as a widget"""
+    def __init__(self, parent=None, width:float=5, height:float=4, dpi:int=75):
+        """Creates an empty figure with axes and fig as parameters"""
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        self.fig = fig
+        super(MplCanvas, self).__init__(fig)

@@ -7,6 +7,7 @@ import time
 from numba import jit
 from dynesty import NestedSampler
 from dynesty import plotting as dyplot
+import MyFunctions.Statistic_Functions as SF
 
 class DicomImage(object):
     """
@@ -1562,13 +1563,16 @@ class DicomImage(object):
 # This section deals with the noise                        #
 #                                                          #
 ############################################################
-    def add_noise(self,noiseType:str = "Gaussian",noiseMu:float = 0,noiseSigma:float = 1):
+    def add_noise(self,noiseType:str = "Gaussian",noiseMu:float = 0,noiseSigma:float = 1,
+                            Rayleigh_a:float = 0, Rayleigh_b:float = 1):
         """
         Adds a noise to the whole acquisition.\n
         Keyword arguments:\n
         noiseType -- Type of noise to add to the whole acquisition (default Gaussian)\n
         noiseMu -- average of the noise (default 0)\n
         noiseSigma -- standard deviation of the noise (default 1)\n
+        Rayleigh_a -- first parameter for the Rayleigh noise distribution, its lowest value (default 0)\n
+        Rayleigh_b -- second parameter for the Rayleigh noise distribution, its spread (default 0)\n
         """
         if noiseType == "Gaussian":
             self.gaussian_noise(noiseMu= noiseMu, noiseSigma=noiseSigma)
@@ -1576,11 +1580,39 @@ class DicomImage(object):
             pass
         elif noiseType == "Thermal":
             pass
+        elif noiseType == "Rayleigh":
+            self.rayleigh_noise(a = Rayleigh_a, b= Rayleigh_b)
+        elif noiseType == "Exponential":
+            pass
+        elif noiseType == "Uniform":
+            pass
+        elif noiseType == "Erlang (Gamma)":
+            pass
         else:
             self.update_log("No noise was created")
 
     def gaussian_noise(self,noiseMu:float = 0,noiseSigma:float = 1):
+        """
+        Creates a Gaussian noise matrix and adds it to the whole image.\n
+        Keyword arguments:\n
+        noiseMu -- average of the Gaussian Distribution(default 0)\n
+        noiseSigma -- Standard deviation of the Gaussian Distribution (default 1)\n        
+        """
         noise = np.random.normal(noiseMu,noiseSigma,(self.nb_acq,self.nb_slice,self.width,self.length))
+        self.Image = np.absolute(noise + self.Image)
+    
+    def rayleigh_noise(self,a:float = 0,b:float = 1):
+        """
+        Creates a Rayleigh noise matrix and adds it to the whole image.\n
+        The distribution is given by 2/b * (z-a)exp(-(z-a)^2/b)
+        The mean is a + sqrt(pi b/4) and the variance is b(4-pi)/4.\n
+        Keyword arguments:\n
+        a -- first parameter for the Rayleigh noise distribution, its lowest value (default 0)\n
+        b -- second parameter for the Rayleigh noise distribution, its spread (default 0)\n  
+        """
+        ones = np.random.rand(self.nb_acq,self.nb_slice,self.width,self.length)
+        noise = SF.rayleigh_noise_pdf(ones, a=a, b=b, type= "icdf")
+        print(noise)
         self.Image = np.absolute(noise + self.Image)
 ############################################################
 #                                                          #

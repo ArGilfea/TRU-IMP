@@ -64,5 +64,7 @@ class GUIParameters(object):
         self.NoiseMu = 0.0
         self.NoiseSigma = 1.0
 
+        self.NoiseARayleigh = 0.0
+        self.NoiseBRayleigh = 1.0
 
         del Image
