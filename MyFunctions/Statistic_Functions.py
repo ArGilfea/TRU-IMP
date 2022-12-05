@@ -1,5 +1,7 @@
 import numpy as np
 import math
+from scipy.integrate import trapezoid
+from functools import partial
 
 def rayleigh_noise_pdf(value:float = 0,a:float = 0.0,b:float = 1.0,type:str = "icdf") -> float:
     """
@@ -22,25 +24,25 @@ def rayleigh_noise_pdf(value:float = 0,a:float = 0.0,b:float = 1.0,type:str = "i
     else: #This is the icdf
         return (-b * np.log(1 - value + 1e-10))**(1/2)+a
 
-def Erlang_noise_pdf(value:float = 0, a:float = 1.0, b:float = 1, type:str = "icdf")-> float:
+def Erlang_noise_pdf(value:float = 0, a:float = 2.0, b:int = 2, type:str = "icdf")-> float:
     """
     Probability Density Function (pdf), Cumulative Density Function (cdf) and inverse cdf for the 
     Erlang (Gamma) noise.\n
     Keyword arguments:\n
     value -- values for which to compute the function\n
-    a -- first parameter for the Erlang noise distribution\n
-    b -- second parameter for the Erlang noise distribution\n 
+    a -- first parameter for the Erlang noise distribution (default 2.0)\n
+    b -- second parameter for the Erlang noise distribution; must be an integer (default 2)\n 
     type -- type of function to use: pdf, cdf or icdf (default "icdf")         
     """
     if type == "pdf":
         return np.where(value >= 0, a**b*value**(b-1)*np.exp(-a*value)/math.factorial(b-1), 0)
     elif type == "cdf":
-        return np.zeros_like(value)
+        return sum_pdf(value,Erlang_noise_pdf,[a,b])
     elif type == "mu":
         return b/a
     elif type == "sigma":
         return np.sqrt(b)/a
-    else: #This is the cdf
+    else: #This is the icdf
         return np.zeros_like(value)
 
 def exponential_noise_pdf(value:float=0, a:float = 1.0, type:str = "icdf")-> float:
@@ -60,7 +62,7 @@ def exponential_noise_pdf(value:float=0, a:float = 1.0, type:str = "icdf")-> flo
         return 1/a
     elif type == "sigma":
         return 1/a
-    else: #This is the cdf
+    else: #This is the icdf
         return -np.log(1 - value + 1e-10)/a
 
 def uniform_noise_pdf(value:float=0, a:float = 0.0,b:float = 1.0, type:str = "icdf")-> float:
@@ -76,11 +78,40 @@ def uniform_noise_pdf(value:float=0, a:float = 0.0,b:float = 1.0, type:str = "ic
     if type == "pdf":
         return np.where((value >= a) & (value <= b), 1/(b-a), 0)
     elif type == "cdf":
-        tmp = np.where(value >= a, (value - a)*(b-a), 0)
+        tmp = np.where(value >= a, (value - a)/(b-a), 0)
         return np.where(value <= b, tmp, 1)
     elif type == "mu":
         return (a+b)/2
     elif type == "sigma":
         return (b-a)/np.sqrt(12)
-    else: #This is the cdf
-        return value/(b-a) + a
+    else: #This is the icdf
+        return value*(b-a) + a
+
+
+def sum_pdf(value: np.ndarray,fct,param:list):
+    """
+    Computes the cdf from the pdf, given the function used\n
+    Keyword arguments:\n
+    value -- values of the pdf to use\n
+    fct -- pdf function to use\n
+    param -- parameters to be fed to the distributions
+    """
+    step = (value[-1] - value[0])/value.shape[0]
+    print(value[-1],value[0])
+    pdf = fct(value,param[0],param[1],type = "pdf")
+    value_tot = np.zeros_like(value)
+    for i in range(value.shape[0]):
+        value_tot[i] = trapezoid(pdf[0:i],dx=step)
+    return value_tot
+
+def inverse_cdf(x,fct,param,stretch = 100):
+    """
+    Keyword arguments:\n
+    x -- values of the pdf to use\n    
+    fct -- pdf function to use\n
+    param -- parameters to be given to the pdf function\n
+    """
+    value = np.copy(x)*stretch
+    cdf = sum_pdf(value,fct,param)
+    icdf = np.interp(x, cdf, x)*stretch
+    return icdf
