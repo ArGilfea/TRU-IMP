@@ -408,12 +408,17 @@ class ParamWindow(QMainWindow):
         elif self.parameters.NoiseType == "Thermal":
             pass
         elif self.parameters.NoiseType == "Erlang (Gamma)":
-            pass
+            x = np.arange(-1, 3*self.parameters.NoiseBErlang/self.parameters.NoiseAErlang, 0.001)
+            ypdf = SF.Erlang_noise_pdf(x, a= self.parameters.NoiseAErlang, b= self.parameters.NoiseBErlang, type= "pdf")
+            ycdf = SF.Erlang_noise_pdf(x, a= self.parameters.NoiseAErlang, b= self.parameters.NoiseBErlang, type= "cdf")
         elif self.parameters.NoiseType == "Exponential":
-            pass
+            x = np.arange(-1, 3/self.parameters.NoiseExponential, 0.001)
+            ypdf = SF.exponential_noise_pdf(x, a= self.parameters.NoiseExponential, type= "pdf")
+            ycdf = SF.exponential_noise_pdf(x, a= self.parameters.NoiseExponential, type= "cdf")
         elif self.parameters.NoiseType == "Uniform":
-            pass
-
+            x = np.arange(-1 + self.parameters.NoiseAUniform, self.parameters.NoiseBUniform + 1, 0.001)
+            ypdf = SF.uniform_noise_pdf(x, a= self.parameters.NoiseAUniform, b= self.parameters.NoiseBUniform, type= "pdf")
+            ycdf = SF.uniform_noise_pdf(x, a= self.parameters.NoiseAUniform, b= self.parameters.NoiseBUniform, type= "cdf")
         try:
             self.pdfImage.axes.plot(x,ypdf)
         except: pass
