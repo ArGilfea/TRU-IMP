@@ -8,12 +8,14 @@ import numpy as np
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from functools import partial
+from PyQt5.QtGui import QPixmap
 ###
 import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from scipy.stats import norm
+from scipy.fft import fft
 ###
 
 size_Image = 200
@@ -385,52 +387,85 @@ class ParamWindow(QMainWindow):
     def _createNoiseGraphs(self):
         """Creates the Graphs for the Noise Functions"""
         self.pdfImage = MplCanvas(self, width=1, height=1, dpi=75)
+        self.pdfImageF = MplCanvas(self, width=1, height=1, dpi=75)
         self.cdfImage = MplCanvas(self, width=1, height=1, dpi=75)
+        self.cdfImageF = MplCanvas(self, width=1, height=1, dpi=75)
 
         self.pdfImage.setMinimumSize(size_Image,size_Image)
         self.cdfImage.setMinimumSize(size_Image,size_Image)
 
         self.pdfImage.axes.grid()
+        self.pdfImageF.axes.grid()
         self.cdfImage.axes.grid()
+        self.cdfImageF.axes.grid()
+        self.pdfImage.axes.set_title("pdf")
+        self.pdfImageF.axes.set_title("Fourier pdf")
+        self.cdfImage.axes.set_title("cdf")
+        self.cdfImageF.axes.set_title("Fourier cdf")
 
         if self.parameters.NoiseType == "Rayleigh":
+            y = np.random.rand(int(1e6))
+            noise = SF.rayleigh_noise_pdf(y, a=self.parameters.NoiseARayleigh, b=self.parameters.NoiseBRayleigh, type= "icdf")
             mean = self.parameters.NoiseARayleigh + np.sqrt(np.pi * self.parameters.NoiseBRayleigh/4)
             std = self.parameters.NoiseBRayleigh * (4 - np.pi)/4
-            x = np.arange(self.parameters.NoiseARayleigh,mean+3*std,0.001)
+            x = np.linspace(self.parameters.NoiseARayleigh,mean+5*std,1000)
+            length = [self.parameters.NoiseARayleigh , mean+5*std]
             ypdf = SF.rayleigh_noise_pdf(x, a= self.parameters.NoiseARayleigh, b= self.parameters.NoiseBRayleigh, type= "pdf")
             ycdf = SF.rayleigh_noise_pdf(x, a= self.parameters.NoiseARayleigh, b= self.parameters.NoiseBRayleigh, type= "cdf")
         elif self.parameters.NoiseType == "Gaussian":
             x = np.arange(self.parameters.NoiseMu - 4 * self.parameters.NoiseSigma,self.parameters.NoiseMu + 4 * self.parameters.NoiseSigma,0.001)
+            x = np.linspace(self.parameters.NoiseMu - 4 * self.parameters.NoiseSigma,self.parameters.NoiseMu + 4 * self.parameters.NoiseSigma,1000)
             ypdf = 1/(self.parameters.NoiseSigma*np.sqrt(4*np.pi))*np.exp(-(x-self.parameters.NoiseMu)**2/(2*self.parameters.NoiseSigma**2))
             ycdf = norm.cdf(x,loc = self.parameters.NoiseMu, scale=self.parameters.NoiseSigma)
         elif self.parameters.NoiseType == "Poisson":
             pass
-        elif self.parameters.NoiseType == "Thermal":
-            pass
         elif self.parameters.NoiseType == "Erlang (Gamma)":
-            x = np.arange(-1, 3*self.parameters.NoiseBErlang/self.parameters.NoiseAErlang, 0.001)
+            y = np.random.rand(int(1e6))
+            noise = SF.get_pdf_from_uniform(y,SF.Erlang_noise_pdf,[self.parameters.NoiseAErlang,self.parameters.NoiseBErlang])
+            x = np.linspace(-1, 5*self.parameters.NoiseBErlang/self.parameters.NoiseAErlang, 1000)
             ypdf = SF.Erlang_noise_pdf(x, a= self.parameters.NoiseAErlang, b= self.parameters.NoiseBErlang, type= "pdf")
             ycdf = SF.Erlang_noise_pdf(x, a= self.parameters.NoiseAErlang, b= self.parameters.NoiseBErlang, type= "cdf")
+            length = [0, 5*self.parameters.NoiseBErlang/self.parameters.NoiseAErlang]
         elif self.parameters.NoiseType == "Exponential":
-            x = np.arange(-1, 3/self.parameters.NoiseExponential, 0.001)
+            y = np.random.rand(int(1e6))
+            noise = SF.exponential_noise_pdf(y, a=self.parameters.NoiseExponential, type= "icdf")
+            x = np.linspace(-1/self.parameters.NoiseExponential, 5/self.parameters.NoiseExponential, 1000)
             ypdf = SF.exponential_noise_pdf(x, a= self.parameters.NoiseExponential, type= "pdf")
             ycdf = SF.exponential_noise_pdf(x, a= self.parameters.NoiseExponential, type= "cdf")
+            length = [0/self.parameters.NoiseExponential, 5/self.parameters.NoiseExponential]
         elif self.parameters.NoiseType == "Uniform":
-            x = np.arange(-1 + self.parameters.NoiseAUniform, self.parameters.NoiseBUniform + 1, 0.001)
+            y = np.random.rand(int(1e6))
+            noise = SF.uniform_noise_pdf(y, a=self.parameters.NoiseAUniform, b=self.parameters.NoiseBUniform, type= "icdf")
+            x = np.linspace(-1 + self.parameters.NoiseAUniform, self.parameters.NoiseBUniform + 1, 1000)
             ypdf = SF.uniform_noise_pdf(x, a= self.parameters.NoiseAUniform, b= self.parameters.NoiseBUniform, type= "pdf")
             ycdf = SF.uniform_noise_pdf(x, a= self.parameters.NoiseAUniform, b= self.parameters.NoiseBUniform, type= "cdf")
+            length = [self.parameters.NoiseAUniform - 0.5,self.parameters.NoiseBUniform + 0.5]
         try:
-            self.pdfImage.axes.plot(x,ypdf)
+            self.pdfImage.axes.plot(x,ypdf,label='pdf')
         except: pass
         try:
             self.cdfImage.axes.plot(x,ycdf)
         except:pass
-        self.generalLayoutNoise.addWidget(QLabel("PDF"),self.current_line_Noise,0)
-        self.generalLayoutNoise.addWidget(self.pdfImage,self.current_line_Noise,2)
+        try:
+            self.pdfImage.axes.hist(noise,100,range=length,density=True,label="hist")
+            self.pdfImage.axes.legend()
+        except: pass
+        
+        try:
+            size = x.shape[0]
+            fx = (np.fft.fftshift(np.fft.fftfreq(size, x[1]-x[0])))
+            self.pdfImageF.axes.plot(fx[int(size/2-50):int(size/2+50)],np.abs(np.fft.fftshift(np.fft.fft(ypdf)))[int(size/2-50):int(size/2+50)]/np.sqrt(x.shape[0]/2),label='pdf')
+            self.cdfImageF.axes.plot(fx[int(size/2-50):int(size/2+50)],np.abs(np.fft.fftshift(np.fft.fft(ycdf)))[int(size/2-50):int(size/2+50)]/np.sqrt(x.shape[0]/2),label='pdf')
+        except: 
+            pass
+        self.generalLayoutNoise.addWidget(QLabel("Dist."),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(self.pdfImage,self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.cdfImage,self.current_line_Noise,2)
         self.generalLayoutNoise.setRowStretch(self.current_line_Noise,5)
         self.current_line_Noise +=1
-        self.generalLayoutNoise.addWidget(QLabel("CDF"),self.current_line_Noise,0)
-        self.generalLayoutNoise.addWidget(self.cdfImage,self.current_line_Noise,2)
+        self.generalLayoutNoise.addWidget(QLabel("Fourier"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(self.pdfImageF,self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.cdfImageF,self.current_line_Noise,2)
         self.generalLayoutNoise.setRowStretch(self.current_line_Noise,5)
         self.current_line_Noise +=1
     def _createNoiseType(self):
@@ -439,7 +474,6 @@ class ParamWindow(QMainWindow):
         self.NoiseCombo.addItem("None")
         self.NoiseCombo.addItem("Gaussian")
         self.NoiseCombo.addItem("Poisson")
-        self.NoiseCombo.addItem("Thermal")
         self.NoiseCombo.addItem("Rayleigh")
         self.NoiseCombo.addItem("Erlang (Gamma)")
         self.NoiseCombo.addItem("Exponential")
@@ -453,6 +487,75 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise.addWidget(self.NoiseCombo,self.current_line_Noise,2)
         self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
         self.current_line_Noise +=1
+    def _createNoiseFormulaeDisplay(self):
+        """Shows the formula of the pdf, the mean (and its value) and the std (and its value)"""
+        if self.parameters.NoiseType == "Gaussian":
+            pdf = "Images/Gaussian_pdf.png"
+            mu = self.parameters.NoiseMu
+            mu_f = "Images/Gaussian_mu.png"
+            sigma = self.parameters.NoiseSigma
+            sigma_f = "Images/Gaussian_sigma.png"
+        elif self.parameters.NoiseType == "Uniform":
+            pdf = "Images/Uniform_pdf.png"
+            mu = SF.uniform_noise_pdf(a=self.parameters.NoiseAUniform,b = self.parameters.NoiseBUniform,type="mu")
+            mu_f = "Images/Uniform_mu.png"
+            sigma = SF.uniform_noise_pdf(a=self.parameters.NoiseAUniform,b = self.parameters.NoiseBUniform,type="sigma")
+            sigma_f = "Images/Uniform_sigma.png"
+        elif self.parameters.NoiseType == "Erlang (Gamma)":
+            pdf = "Images/Erlang_pdf.png"
+            mu = SF.Erlang_noise_pdf(a=self.parameters.NoiseAErlang,b = self.parameters.NoiseBErlang,type="mu")
+            mu_f = "Images/Erlang_mu.png"
+            sigma = SF.Erlang_noise_pdf(a=self.parameters.NoiseAErlang,b = self.parameters.NoiseBErlang,type="sigma")
+            sigma_f = "Images/Erlang_sigma.png"
+        elif self.parameters.NoiseType == "Exponential":
+            pdf = "Images/Exponential_pdf.png"
+            mu = SF.exponential_noise_pdf(a=self.parameters.NoiseExponential,type="mu")
+            mu_f = "Images/Exponential_mu.png"
+            sigma = SF.exponential_noise_pdf(a=self.parameters.NoiseExponential,type="sigma")
+            sigma_f = "Images/Exponential_sigma.png"
+        elif self.parameters.NoiseType == "Rayleigh":
+            pdf = "Images/Rayleigh_pdf.png"
+            mu = SF.rayleigh_noise_pdf(a=self.parameters.NoiseARayleigh,b = self.parameters.NoiseBRayleigh,type="mu")
+            mu_f = "Images/Rayleigh_mu.png"
+            sigma = SF.rayleigh_noise_pdf(a=self.parameters.NoiseARayleigh,b = self.parameters.NoiseBRayleigh,type="sigma")
+            sigma_f = "Images/Rayleigh_sigma.png"
+        else:
+            pdf = "Images/None.png"
+            mu = 0
+            mu_f = "Images/None.png"
+            sigma = 0
+            sigma_f = "Images/None.png"
+        im_pdf = QLabel()
+        im_mu = QLabel()
+        im_sigma = QLabel()
+        try:
+            pixmap_pdf = QPixmap(pdf)
+            im_pdf.resize(self.width()/3, self.width()/12)
+            im_pdf.setPixmap(pixmap_pdf.scaled(im_pdf.size(), Qt.IgnoreAspectRatio))
+            pixmap_mu = QPixmap(mu_f)
+            im_mu.resize(self.width()/3, self.width()/12)
+            im_mu.setPixmap(pixmap_mu.scaled(im_mu.size(), Qt.IgnoreAspectRatio))
+            pixmap_sigma = QPixmap(sigma_f)
+            im_sigma.resize(self.width()/3, self.width()/12)
+            im_sigma.setPixmap(pixmap_sigma.scaled(im_sigma.size(), Qt.IgnoreAspectRatio))
+        except: pass
+
+        self.generalLayoutNoise.addWidget(QLabel(r"Noise PDF"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(im_pdf,self.current_line_Noise,1)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+        self.current_line_Noise +=1
+        self.generalLayoutNoise.addWidget(QLabel(r"Noise μ"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(im_mu,self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(QLabel(f"{mu:.2f}"),self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+        self.current_line_Noise +=1
+        self.generalLayoutNoise.addWidget(QLabel(r"Noise σ"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(im_sigma,self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(QLabel(f"{sigma:.2f}"),self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+        self.current_line_Noise +=1
+
+
     def _createNoiseMu(self):
         """Creates the QLineEdits for Mu for the Noise"""
         self.btnMuNoise = self._createFloatInput(self.parameters.NoiseMu)
@@ -494,6 +597,53 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise.addWidget(self.btnNoiseRayleighB,self.current_line_Noise,2)
         self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
         self.current_line_Noise +=1
+    def _createNoiseErlangA(self):
+        """Creates the QLineEdits for a for the Erlang Noise"""
+        self.btnNoiseErlangA = self._createFloatInput(self.parameters.NoiseAErlang)
+        self.btnNoiseErlangA.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Erlang a"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseAErlang}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnNoiseErlangA,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+        self.current_line_Noise +=1
+    def _createNoiseErlangB(self):
+        """Creates the QLineEdits for b for the Erlang Noise"""
+        self.btnNoiseErlangB = self._createFloatInput(self.parameters.NoiseBErlang)
+        self.btnNoiseErlangB.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Erlang b"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseBErlang}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnNoiseErlangB,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+    def _createNoiseUnifA(self):
+        """Creates the QLineEdits for a for the Unif Noise"""
+        self.btnNoiseUnifA = self._createFloatInput(self.parameters.NoiseAUniform)
+        self.btnNoiseUnifA.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Unif a"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseAUniform}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnNoiseUnifA,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+        self.current_line_Noise +=1
+    def _createNoiseUnifB(self):
+        """Creates the QLineEdits for b for the Unif Noise"""
+        self.btnNoiseUnifB = self._createFloatInput(self.parameters.NoiseBUniform)
+        self.btnNoiseUnifB.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Unif b"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseBUniform}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnNoiseUnifB,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)
+    def _createNoiseExponential(self):
+        """Creates the QLineEdits for the param for the Exponential Noise"""
+        self.btnNoiseExponential = self._createFloatInput(self.parameters.NoiseExponential)
+        self.btnNoiseExponential.editingFinished.connect(self.update_QLines)
+
+        self.generalLayoutNoise.addWidget(QLabel("Exp"),self.current_line_Noise,0)
+        self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseExponential}"),self.current_line_Noise,1)
+        self.generalLayoutNoise.addWidget(self.btnNoiseExponential,self.current_line_Noise,2)
+        self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)        
     def _createThreshBaySliders(self):
         btnNew,slider = self._createIntInput(self.parameters.Bayesian_thresh_perc)
         btnNew2,slider2 = self._createIntInput(self.parameters.Bayesian_thresh_value)
@@ -692,6 +842,30 @@ class ParamWindow(QMainWindow):
         self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.combinationCanny}"),self.current_line_Segm,1)
         self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
         self.current_line_Segm +=1
+    def _createSigmaThreshCanny(self):
+        """Creates the slider for the lower and upper thresholds of the Canny segmentations"""
+        btnNew,slider = self._createIntInput(self.parameters.sigmaThreshLowCanny)
+        btnNew2,slider2 = self._createIntInput(self.parameters.sigmaThreshHighCanny)
+        slider.valueChanged.connect(self.update_int)
+        slider2.valueChanged.connect(self.update_int)
+        slider.setRange(0,100)
+        slider2.setRange(0,100)
+        slider.setTickInterval(10)
+        slider2.setTickInterval(10)
+        slider.setValue(self.parameters.sigmaThreshLowCanny*100)
+        slider2.setValue(self.parameters.sigmaThreshHighCanny*100)
+        self.sliderThreshLow = slider   
+        self.sliderThreshHigh = slider2 
+
+        self.generalLayoutSegm.addWidget(QLabel("Thresh. Low Canny"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.sigmaThreshLowCanny}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+        self.generalLayoutSegm.addWidget(QLabel("Thresh. High Canny"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.sigmaThreshHighCanny}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew2,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+
     def _createMaxiIterICM(self):
         """Creates the slider and the line edit for the max iteration of the ICM (ICM)."""
         btnNew,slider = self._createIntInput(self.parameters.max_iter_ICM)
@@ -878,6 +1052,7 @@ class ParamWindow(QMainWindow):
             self._createMethodCannyType()
             self._createSigmaCanny()
             self._createCombCanny()
+            self._createSigmaThreshCanny()
         elif self.parameters.SegmType == "ICM":
             self._createAlphaICM()
             self._createMaxiIterICM()
@@ -910,12 +1085,21 @@ class ParamWindow(QMainWindow):
         #Noise Specific
         self._createNoiseGraphs()
         self._createNoiseType()
+        self._createNoiseFormulaeDisplay()
         if self.parameters.NoiseType == "Gaussian":
             self._createNoiseMu()
             self._createNoiseSigma()
         elif self.parameters.NoiseType == "Rayleigh":
             self._createNoiseRayleighA()
             self._createNoiseRayleighB()
+        elif self.parameters.NoiseType == "Erlang (Gamma)":
+            self._createNoiseErlangA()
+            self._createNoiseErlangB()
+        elif self.parameters.NoiseType == "Uniform":
+            self._createNoiseUnifA()
+            self._createNoiseUnifB()
+        elif self.parameters.NoiseType == "Exponential":
+            self._createNoiseExponential()
         #Utilities
         self._createSaveBox()
         self._createVerbose()
@@ -923,6 +1107,9 @@ class ParamWindow(QMainWindow):
         self._createCurvesBox()
         self._createCoefficientsBox()
         self._createThresholdBox()
+        self.generalLayoutNoise.setColumnStretch(0,1)
+        self.generalLayoutNoise.setColumnStretch(1,5)
+        self.generalLayoutNoise.setColumnStretch(2,5)
 
     def MethCombo_Changed(self):
         """Links the method of distance computation and the combo box in the parameters (Canny)"""
@@ -1068,6 +1255,12 @@ class ParamWindow(QMainWindow):
             self.parameters.combinationCanny = self.sliderComb.value()
         except: pass
         try:
+            self.parameters.sigmaThreshLowCanny = self.sliderThreshLow.value()/100
+        except: pass
+        try:
+            self.parameters.sigmaThreshHighCanny = self.sliderThreshHigh.value()/100
+        except: pass
+        try:
             self.parameters.max_iter_ICM = self.sliderMaxIter.value()
         except: pass
         try:
@@ -1126,9 +1319,38 @@ class ParamWindow(QMainWindow):
         except: 
             self.parameters.NoiseARayleigh = 0.0
         try:
-            self.parameters.NoiseBRayleigh = float(self.btnNoiseRayleighB.text())
+            if float(self.btnNoiseRayleighB.text()) > 0:
+                self.parameters.NoiseBRayleigh = float(self.btnNoiseRayleighB.text())
+            else:
+                self.parameters.NoiseBRayleigh = 1.0
         except: 
             self.parameters.NoiseBRayleigh = 1.0
+        try:
+            if float(self.btnNoiseErlangA.text()) > 0:
+                self.parameters.NoiseAErlang = float(self.btnNoiseErlangA.text())
+            else:
+                self.parameters.NoiseAErlang = 1.0
+        except: 
+            self.parameters.NoiseAErlang = 1.0
+        try:
+            if float(self.btnNoiseErlangB.text()) > 0:
+                self.parameters.NoiseBErlang = int(self.btnNoiseErlangB.text())
+            else:
+                self.parameters.NoiseBErlang = 1
+        except: 
+            self.parameters.NoiseBErlang = 1
+        try:
+            self.parameters.NoiseAUniform = float(self.btnNoiseUnifA.text())
+        except: 
+            self.parameters.NoiseAUniform = 0.0
+        try:
+            self.parameters.NoiseBUniform = float(self.btnNoiseUnifB.text())
+        except: 
+            self.parameters.NoiseBUniform = 1.0
+        try:
+            self.parameters.NoiseExponential = float(self.btnNoiseExponential.text())
+        except: 
+            self.parameters.NoiseExponential = 1.0
         self.refresh_app()
     def refresh_app(self):
         """

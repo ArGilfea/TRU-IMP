@@ -88,7 +88,7 @@ def uniform_noise_pdf(value:float=0, a:float = 0.0,b:float = 1.0, type:str = "ic
         return value*(b-a) + a
 
 
-def sum_pdf(value: np.ndarray,fct,param:list):
+def sum_pdf(value: np.ndarray,fct,param:list) -> np.ndarray:
     """
     Computes the cdf from the pdf, given the function used\n
     Keyword arguments:\n
@@ -97,15 +97,22 @@ def sum_pdf(value: np.ndarray,fct,param:list):
     param -- parameters to be fed to the distributions
     """
     step = (value[-1] - value[0])/value.shape[0]
-    print(value[-1],value[0])
-    pdf = fct(value,param[0],param[1],type = "pdf")
+    try:
+        pdf = fct(value,param[0],param[1],type = "pdf")
+    except:
+        try:
+            pdf = fct(value,param[0],type = "pdf")
+        except:
+            pdf = np.zeros_like(value)
     value_tot = np.zeros_like(value)
     for i in range(value.shape[0]):
         value_tot[i] = trapezoid(pdf[0:i],dx=step)
     return value_tot
 
-def inverse_cdf(x,fct,param,stretch = 100):
+def inverse_cdf(x:np.ndarray,fct,param:np.ndarray,stretch:float = 100) -> np.ndarray:
     """
+    Determines the inverse CDF to compute probabilities from the original pdf function,
+    by computing as an intermediate state the cdf using sum_pdf function.\n
     Keyword arguments:\n
     x -- values of the pdf to use\n    
     fct -- pdf function to use\n
@@ -115,3 +122,20 @@ def inverse_cdf(x,fct,param,stretch = 100):
     cdf = sum_pdf(value,fct,param)
     icdf = np.interp(x, cdf, x)*stretch
     return icdf
+
+def get_pdf_from_uniform(y:np.ndarray,fct,param:list) -> np.ndarray:
+    """
+    From a given 1-D list values between 0 and 1, return a 1-D array of the values from the ICDF.\n
+    In otherwise, this samples the icdf to return the \n
+    Used to create noise.\n
+    Keyword arguments:\n
+    y -- array of values between 0 and 1 to sample the icdf and obtain the pdf\n    
+    fct -- pdf function to use\n
+    param -- parameters to be given to the pdf function\n    
+    """
+    x = np.arange(0,1,0.0001)
+    y = np.copy(y) * x.shape[0]
+    y = y.astype(int)
+    icdf = inverse_cdf(x,fct,param)
+
+    return icdf[y]

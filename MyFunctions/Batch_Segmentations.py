@@ -6,7 +6,8 @@ from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 
 def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,seed=[[]],k=-1,subimage=[-1],threshold = -1,sigma_Canny=5,
-                            combinationCanny = 2, methodCanny = "Taxicab",sigma_threshold=5,threshold_fill=0.99,
+                            combinationCanny = 2, methodCanny = "TaxiCab",CannyThreshLow:float = 0.1,CannyThreshHigh:float = 0.2,
+                            sigma_threshold=5,threshold_fill=0.99,
                             centerEllipsoid = np.array([2,2,2]),axesEllipsoid = np.array([1,1,1]),
                             alpha=1e1,max_iter_ICM=100,max_iter_kmean_ICM=100,max_iter_Fill=300,factor_fill = 1,
                             factor_Fill_range=[0.1,2.8],steps_Fill = 1000,growth=-1,min_f_growth=0,
@@ -21,6 +22,8 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
     subimage -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
     threshold -- used to resegment the segmentation. Must be between 0 and 1 to be considered (default -1)\n
     sigma_Canny -- used for the Canny segmentation (default 5)\n
+    CannyThreshLow -- lower threshold for the histeresis in the Canny algorithm (default 0.1)\n
+    CannyThreshHigh -- upper threshold for the histeresis in the Canny algorithm (default 0.2)\n
     sigma_threshold -- used for the thresholding (default 5)\n
     alpha -- used for the ICM segmentation (default 1e1)\n
     max_iter_ICM -- used for the ICM segmentation (default 100)\n
@@ -62,7 +65,6 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
         k = np.arange(Image.nb_acq)
     else:
         k = np.array(k)
-    print(k)
     if show_pre:
         print("Showing seed positionning")
         Image.show_point(seed,star=True)
@@ -75,6 +77,7 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
     if segmentation_type == 'Canny' or segmentation_type == 'Canny Filled' or segmentation_type == 'all':
         print('Running the gradient segmentations...')
         Canny_Fill_Batch(Image=Image,k=k,subimage=subimage,sigma_Canny=sigma_Canny,combinationCanny=combinationCanny,methodCanny=methodCanny,
+                            CannyThreshLow = CannyThreshLow,CannyThreshHigh = CannyThreshHigh,
                             name_segmentation=name_segmentation,do_moments=do_moments,do_Stats=do_stats,
                             SaveSegm=SaveSegm)
     if segmentation_type == 'ICM' or segmentation_type == 'all':
@@ -94,6 +97,7 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
     if segmentation_type in ['Canny Contour']:
         print('Running the gradient contour...')
         Canny_Contour_Batch(Image,k,subImage=subimage,combinationCanny=combinationCanny,
+                            CannyThreshLow = CannyThreshLow,CannyThreshHigh = CannyThreshHigh,
                             sigma_Canny=sigma_Canny,name_segmentation=name_segmentation,
                             SaveSegm=SaveSegm)
     if segmentation_type == "Ellipsoid":
@@ -125,7 +129,8 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
     print(f"All the segmentations were done in {(time.time() - initial):.2f} s.")
 
 def Canny_Contour_Batch(Image:DicomImage,k,subImage:list=[-1],combinationCanny:int=2,
-                        sigma_Canny:float=5,name_segmentation:str='',SaveSegm:bool=True,
+                        sigma_Canny:float=5,CannyThreshLow:float = 0.1,CannyThreshHigh:float = 0.2,
+                        name_segmentation:str='',SaveSegm:bool=True,
                         do_moments:bool=True,do_Stats:bool=True):
     """
     Runs Canny Contour Segmentations on many timeframes. Useful to run everything in a single command.\n
@@ -137,6 +142,8 @@ def Canny_Contour_Batch(Image:DicomImage,k,subImage:list=[-1],combinationCanny:i
     subimage -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
     combinationCanny -- combination parameter for the number of necessary 2D Canny on a given voxel to make that voxel part of the 
     sigma_Canny -- used for the Canny segmentation (default 5)\n
+    CannyThreshLow -- lower threshold for the histeresis in the Canny algorithm (default 0.1)\n
+    CannyThreshHigh -- upper threshold for the histeresis in the Canny algorithm (default 0.2)\n
     name_segmentation -- used to name all the segmentations saved (default '')\n
     do_moments -- compute the moments of the resulting segmentations (default True)\n
     do_stats -- compute the mean and std of the segmentations (default True)\n
@@ -144,13 +151,15 @@ def Canny_Contour_Batch(Image:DicomImage,k,subImage:list=[-1],combinationCanny:i
     """
     initial = time.time()
     for i in range(k.shape[0]):
-        Image.VOI_canny(subImage=subImage,combination=combinationCanny,sigma=sigma_Canny,
+        Image.VOI_canny(subinfo=subImage,acq=k[i],combination=combinationCanny,sigma=sigma_Canny,
+                        threshLow=CannyThreshLow,threshHigh=CannyThreshHigh,
                         name=f"{name_segmentation} Canny Contour {k[i]}",
                         do_moments=do_moments,save=SaveSegm,do_stats=do_Stats)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
 def Canny_Fill_Batch(Image:DicomImage,k,subimage:list=[-1],sigma_Canny:float=5,combinationCanny:int=2,
-                    methodCanny:str="Taxicab",name_segmentation:str = '',SaveSegm:bool=True,
+                    CannyThreshLow:float = 0.1,CannyThreshHigh:float = 0.2,
+                    methodCanny:str="TaxiCab",name_segmentation:str = '',SaveSegm:bool=True,
                     do_moments:bool=True,do_Stats:bool=True):
     """
     Runs Canny Segmentation on many timeframes. Useful to run everything in a single command.\n
@@ -163,6 +172,8 @@ def Canny_Fill_Batch(Image:DicomImage,k,subimage:list=[-1],sigma_Canny:float=5,c
     sigma_Canny -- used for the Canny segmentation (default 5)\n
     combinationCanny -- combination parameter for the number of necessary 2D Canny on a given voxel to make that voxel part of the 
     VOI (default 2)\n
+    CannyThreshLow -- lower threshold for the histeresis in the Canny algorithm (default 0.1)\n
+    CannyThreshHigh -- upper threshold for the histeresis in the Canny algorithm (default 0.2)\n
     methodCanny -- method to compute the distance between two voxels (default 'TaxiCab')\n
     name_segmentation -- used to name all the segmentations saved (default '')\n
     do_moments -- compute the moments of the resulting segmentations (default True)\n
@@ -173,6 +184,7 @@ def Canny_Fill_Batch(Image:DicomImage,k,subimage:list=[-1],sigma_Canny:float=5,c
     initial = time.time()
     for i in range(k.shape[0]):
         Image.VOI_Canny_filled(subinfo = subimage,acq=k[i],sigma=sigma_Canny,combination=combinationCanny,
+                                threshLow=CannyThreshLow,threshHigh=CannyThreshHigh,
                                 method=methodCanny,save=SaveSegm,
                                 name=f"{name_segmentation} Canny Filled acq {k[i]}",
                                 do_moments=do_moments,do_stats=do_Stats)

@@ -246,6 +246,8 @@ class Window(QMainWindow):
         self.ResultViewCombo.addItem("Dice")
         self.ResultViewCombo.addItem("Jaccard")
         self.ResultViewCombo.addItem("Bayesian")
+        self.ResultViewCombo.addItem("Center of Mass")
+        self.ResultViewCombo.addItem("Moments")
         self.ResultViewCombo.activated[str].connect(self.combo_box_result_changed)
 
         layout.addWidget(self.ImageViewCombo)
@@ -499,11 +501,15 @@ class Window(QMainWindow):
             self.view_range = "All"
         else:
             self.view_range = "Sub"
-        self.update_all()
+        try:
+            self.update_all()
+        except: pass
     def combo_box_result_changed(self):
         """Update the view between partial and full"""
         self.resultView = self.ResultViewCombo.currentText()
-        self.update_all()
+        try:
+            self.update_all()
+        except: pass
     def open_parameters(self):
         "Open a window to show the basic informations of the acquisition"
         try:
@@ -534,6 +540,7 @@ class Window(QMainWindow):
                                                             seed = self.parameters.seed,k=k,
                                                             subimage=self.parameters.subImage[1:,:],
                                                             sigma_Canny=self.parameters.sigmaCanny,combinationCanny=self.parameters.combinationCanny,
+                                                            CannyThreshLow=self.parameters.sigmaThreshLowCanny,CannyThreshHigh=self.parameters.sigmaThreshHighCanny,
                                                             methodCanny=self.parameters.methodCanny,
                                                             alpha=self.parameters.alphaICM,max_iter_ICM=self.parameters.max_iter_ICM,
                                                             max_iter_kmean_ICM=self.parameters.max_iter_kmean_ICM,
@@ -611,7 +618,13 @@ class Window(QMainWindow):
                                     noiseMu = self.parameters.NoiseMu,
                                     noiseSigma= self.parameters.NoiseSigma,
                                     Rayleigh_a= self.parameters.NoiseARayleigh,
-                                    Rayleigh_b= self.parameters.NoiseBRayleigh)
+                                    Rayleigh_b= self.parameters.NoiseBRayleigh,
+                                    Erlang_a= self.parameters.NoiseAErlang,
+                                    Erlang_b= self.parameters.NoiseBErlang,
+                                    Unif_a= self.parameters.NoiseAUniform,
+                                    Unif_b= self.parameters.NoiseBUniform,
+                                    Exponential= self.parameters.NoiseExponential
+                                    )
             if self.parameters.NoiseType != "None":
                 self.displayStatus(f"{self.parameters.NoiseType} noise added",initial)
             else:
@@ -647,7 +660,10 @@ class Window(QMainWindow):
                 self.update_Bayesian(self.sliderBayesian.value())
                 self.update_BayesianPlots()
             except: pass
-
+        elif self.resultView == "Center of Mass":
+            pass
+        elif self.resultView == "Moments":
+            pass
     def update_Dice(self):
         """Shows the Dice coefficients in the middle image"""
         try:

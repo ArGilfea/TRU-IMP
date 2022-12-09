@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from skimage import feature
+from skimage import dtype_limits
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 import time
@@ -293,9 +294,9 @@ class DicomImage(object):
         """
         new_image = np.zeros_like(self.Image)
         for t in range(self.nb_acq):
-            for i in range(int(dim_sub[0][0]),int(dim_sub[0][1])+1):
-                for j in range(int(dim_sub[1][0]),int(dim_sub[1][1])+1):
-                    for k in range(int(dim_sub[2][0]),int(dim_sub[2][1])+1):
+            for i in range(int(dim_sub[0][0]),int(dim_sub[0][1])):
+                for j in range(int(dim_sub[1][0]),int(dim_sub[1][1])):
+                    for k in range(int(dim_sub[2][0]),int(dim_sub[2][1])):
                         new_image[t,i,j,k] = self.Image[t,i,j,k]
         return new_image
     def linear_shift(self,shifts:np.ndarray=np.array([0,0,0]),counter:int = -1,save:bool=True,name:str=''):
@@ -500,35 +501,44 @@ class DicomImage(object):
             self.save_VOI(new_Im,name=name,do_stats=do_stats,do_moments=do_moments)
         return new_Im        
 
-    def VOI_canny(self,subimage:np.ndarray = np.array([]),combination:int = 2,sigma:float=1,name:str='',do_moments:bool = False,save:bool = True,do_stats:bool=False): #Done in 1.2.0
+    def VOI_canny(self,subimage:np.ndarray = np.array([]),subinfo = [[-1,0],[0,0],[0,0]],acq:int=0,
+                    combination:int = 2,sigma:float=1,
+                    threshLow:float = 0.1,threshHigh:float = 0.2,
+                    name:str='',do_moments:bool = False,save:bool = True,do_stats:bool=False): #Done in 1.2.0
         """This function creates the contour of a 3D image using Canny edge detection algorithm, with sigma for the Gaussian filter.
         The Canny edge detection algorithm works in 2D, so every 2D plane has to be considered individually.
         The combination options determine how many of the voxels in a given dimension have to be on the 2D contour to be counted.        
         Keyword arguments:\n
         subimage -- image on which to apply the Canny edge algorithm (default [], i.e. all the 3D volume)\n
+        subinfo -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
+        acq -- timeframes on which to base the static segmentations (default 0)\n
         combination -- combination parameter for the number of necessary 2D Canny on a given voxel to make that voxel part of the 
         VOI (default 2)\n
         sigma -- standard deviation of the Gaussian filter used in the Canny algorithm (default 1)\n
+        threshLow -- lower threshold for the histeresis in the Canny algorithm; must be between 0 and 1 (default 0.1)\n
+        threshHigh -- upper threshold for the histeresis in the Canny algorithm; must be between 0 and 1 (default 0.2)\n
         name -- name of the VOI (default '')\n
         do_moments -- compute the moments of the VOI and store them (default False)\n
         save -- add the VOI to the dictionary of VOIs, with relevant infos (default True); if False, return instead the VOI alone\n
         do_stats -- compute the TACs relative to the VOI (default False)\n
         """
         if subimage.size == 0:
-            subimage = self.select_acq(0)
+            #Either the subimage is given directly (via Canny_filled), or the
+            #infos for the subimage are given, whence the subimage is selected
+            subimage = self.image_cut(subinfo)[int(acq),:,:,:]
         VOI = np.zeros_like(subimage)
         Canny_2D_sagittal = np.zeros_like(subimage)
         Canny_2D_coronal = np.zeros_like(subimage)
         Canny_2D_axial = np.zeros_like(subimage)
         for i in range(subimage.shape[0]):
             im_tmp = subimage[i,:,:]
-            Canny_2D_axial[i,:,:] = feature.canny(im_tmp,sigma=sigma)
+            Canny_2D_axial[i,:,:] = feature.canny(im_tmp,sigma=sigma,low_threshold=threshLow,high_threshold=threshHigh)
         for j in range(subimage.shape[1]):
             im_tmp = subimage[:,j,:].reshape((subimage.shape[0],subimage.shape[2]))
-            Canny_2D_coronal[:,j,:] = feature.canny(im_tmp,sigma=sigma)
+            Canny_2D_coronal[:,j,:] = feature.canny(im_tmp,sigma=sigma,low_threshold=threshLow,high_threshold=threshHigh)
         for k in range(subimage.shape[2]):
             im_tmp = subimage[:,:,k].reshape((subimage.shape[0],subimage.shape[1]))
-            Canny_2D_sagittal[:,:,k] = feature.canny(im_tmp,sigma=sigma)
+            Canny_2D_sagittal[:,:,k] = feature.canny(im_tmp,sigma=sigma,low_threshold=threshLow,high_threshold=threshHigh)
         Canny_total = Canny_2D_axial+Canny_2D_coronal+Canny_2D_sagittal
         for i in range(subimage.shape[0]):
             for j in range(subimage.shape[1]):
@@ -539,7 +549,8 @@ class DicomImage(object):
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
         return VOI
     def VOI_Canny_filled(self,subinfo = [[-1,0],[0,0],[0,0]],acq=0,combination = 2,
-                        sigma=1,name='',do_moments = False,method='taxicab',
+                        sigma=1,name='',threshLow:float = 0.1,threshHigh:float = 0.2,
+                        do_moments = False,method='TaxiCab',
                         do_stats = False,save=True): #Done in 1.2.0
         """
         Computes a segmentation using Canny for the contour, then filling it.
@@ -549,6 +560,8 @@ class DicomImage(object):
         sigma -- used for the Canny segmentation (default 5)\n
         combination -- combination parameter for the number of necessary 2D Canny on a given voxel to make that voxel part of the 
         VOI (default 2)\n
+        threshLow -- lower threshold for the histeresis in the Canny algorithm (default 0.1)\n
+        threshHigh -- upper threshold for the histeresis in the Canny algorithm (default 0.2)\n
         method -- method to compute the distance between two voxels (default 'TaxiCab')\n
         name -- used to name all the segmentations saved (default '')\n
         do_moments -- compute the moments of the resulting segmentations (default True)\n
@@ -559,7 +572,9 @@ class DicomImage(object):
             Image = self.Image[int(acq),:,:,:]
         else:
             Image = self.image_cut(subinfo)[int(acq),:,:,:]
-        Cannied = self.VOI_canny(Image,combination,sigma,name,do_moments,save=False)
+        Cannied = self.VOI_canny(subimage = Image,combination = combination,sigma = sigma,
+                                threshLow=threshLow,threshHigh=threshHigh,
+                                name=name,do_moments=do_moments,save=False)
         Canny_filled = self.fill_3D(Cannied,method)
         if save:
             self.save_VOI(Canny_filled,name=name,do_stats=do_stats,do_moments=do_moments)
@@ -1564,7 +1579,10 @@ class DicomImage(object):
 #                                                          #
 ############################################################
     def add_noise(self,noiseType:str = "Gaussian",noiseMu:float = 0,noiseSigma:float = 1,
-                            Rayleigh_a:float = 0, Rayleigh_b:float = 1):
+                            Rayleigh_a:float = 0.0, Rayleigh_b:float = 1.0,
+                            Erlang_a:float = 1.0, Erlang_b:float = 1,
+                            Unif_a:float = 0, Unif_b:float = 1,
+                            Exponential:float = 1.0):
         """
         Adds a noise to the whole acquisition.\n
         Keyword arguments:\n
@@ -1578,18 +1596,38 @@ class DicomImage(object):
             self.gaussian_noise(noiseMu= noiseMu, noiseSigma=noiseSigma)
         elif noiseType == "Poisson":
             pass
-        elif noiseType == "Thermal":
-            pass
         elif noiseType == "Rayleigh":
-            self.rayleigh_noise(a = Rayleigh_a, b= Rayleigh_b)
+            self.pdf_noise("Rayleigh",[Rayleigh_a,Rayleigh_b])
         elif noiseType == "Exponential":
-            pass
+            self.pdf_noise("Exponential",Exponential)
         elif noiseType == "Uniform":
-            pass
+            self.pdf_noise("Uniform",[Unif_a,Unif_b])
         elif noiseType == "Erlang (Gamma)":
-            pass
+            self.pdf_noise("Erlang",[Erlang_a,Erlang_b])
         else:
             self.update_log("No noise was created")
+
+    def pdf_noise(self,type:str,param:list = [1,1]):
+        """
+        Computes the noise from a pdf distribution, without explicitely knowing the icdf analytically.\n
+        Will add the noise to the full image.\n
+        Keyword arguments:\n
+        type -- pdf function to use; these come from the Statistic_Functions file\n
+        param -- list of parameters to send to the pdf. 
+        Must have the same size as the required argument number of parameters of the pdf.\n
+        """
+        unif = np.random.rand(self.nb_acq*self.nb_slice*self.width*self.length)
+        if type == "Erlang":
+            noise = SF.get_pdf_from_uniform(unif,SF.Erlang_noise_pdf,param)
+        elif type == "Uniform":
+            noise = SF.uniform_noise_pdf(unif,a=param[0],b = param[1],type = "icdf")
+        elif type == "Exponential":
+            noise = SF.exponential_noise_pdf(unif, a=param, type= "icdf")
+        elif type == "Rayleigh":
+            noise = SF.rayleigh_noise_pdf(unif, a=param[0], b=param[1], type= "icdf")
+        
+        noise = noise.reshape((self.nb_acq,self.nb_slice,self.width,self.length))
+        self.Image = np.absolute(noise + self.Image)
 
     def gaussian_noise(self,noiseMu:float = 0,noiseSigma:float = 1):
         """
@@ -1601,7 +1639,7 @@ class DicomImage(object):
         noise = np.random.normal(noiseMu,noiseSigma,(self.nb_acq,self.nb_slice,self.width,self.length))
         self.Image = np.absolute(noise + self.Image)
     
-    def rayleigh_noise(self,a:float = 0,b:float = 1):
+    def rayleigh_noise(self,a:float = 0,b:float = 1): #Removed
         """
         Creates a Rayleigh noise matrix and adds it to the whole image.\n
         The distribution is given by 2/b * (z-a)exp(-(z-a)^2/b)
@@ -1635,21 +1673,29 @@ class DicomImage(object):
 # This section deals with fillings                         #
 #                                                          #
 ############################################################
-    def fill_2D(self,array,iter_max = 1000,method='taxicab'): #Done in 1.2.0
+    def fill_2D(self,array:np.ndarray,iter_max:int = 1000,method:str='TaxiCab'): #Done in 1.2.0
+        """
+        Fills a 2-D image, by going towards the center and linking adjacent pixels.
+        Acts in a similar way as the ICM.\n
+        Keyword arguments:\n
+        array -- array to fill\n
+        iter_max -- max number of iterations for the filling (default 1000)\n
+        method -- method to compute the distance between pixels (default TaxiCab)\n
+        """
         neighbour_filling = True
-        VOI_pre = 4*array
+        VOI_pre = 4*np.copy(array)
         center_mass = self.center_of_mass(VOI_pre,D=2).astype(int)
         VOI_pre[int(center_mass[0]),int(center_mass[1])] = -1
-        VOI_post = array
+        VOI_post = np.copy(array)
         #Filling by going toward the center
         iter_now = 0
         while (iter_now < iter_max and not(VOI_pre==VOI_post).all()):
-            VOI_post = VOI_pre
+            VOI_post = np.copy(VOI_pre)
             for i in range(array.shape[0]):
                 for j in range(array.shape[1]):
                     if VOI_pre[i,j] > 3.5:
                         #Find neighbor
-                        neigh = self.neighbour_towards_center([i,j],center_mass,method)
+                        neigh = self.neighbour_towards_center(point = [i,j],target = center_mass,method = method)
                         #Set value to 5, except for the CM
                         if ((int(neigh[0])!=center_mass[0] or int(neigh[1])!=center_mass[1]) and VOI_pre[int(neigh[0]),int(neigh[1])]<0.5):
                             VOI_pre[int(neigh[0]),int(neigh[1])] = 5
@@ -1658,14 +1704,16 @@ class DicomImage(object):
                         #(filling 5 ->3)
                         VOI_pre[i,j] -= 2
             iter_now += 1
+        if iter_now == iter_max:
+            self.update_log("Max Iter for Filling reached")
         VOI_post[int(center_mass[0]),int(center_mass[1])] = 4
         #Second part of filling, according to holes left
         iter_now = 0
-        VOI_pre = VOI_post
-        VOI_post = array
+        VOI_pre = np.copy(VOI_post)
+        VOI_post = np.copy(array)
         if neighbour_filling:
             while (iter_now < iter_max and not(VOI_pre==VOI_post).all()):
-                VOI_post = VOI_pre
+                VOI_post = np.copy(VOI_pre)
                 iter_now += 1
                 for i in range(1,array.shape[0]-1):
                     for j in range(1,array.shape[1]-1):
@@ -1681,11 +1729,18 @@ class DicomImage(object):
         return VOI_post
 
 
-    def fill_3D(self,array,method='taxicab'): #Done 1.2.0
-        VOI_filled_3D = np.zeros((self.nb_slice,self.width,self.length))
-        VOI_filled_0 = np.zeros((self.nb_slice,self.width,self.length))
-        VOI_filled_1 = np.zeros((self.nb_slice,self.width,self.length))
-        VOI_filled_2 = np.zeros((self.nb_slice,self.width,self.length))
+    def fill_3D(self,array:np.ndarray,method='TaxiCab'): #Done 1.2.0
+        """
+        Fills a 3-D image, by going towards the center and linking adjacent pixels.
+        Three 2-D images are filled successively and then added.\n
+        Keyword arguments:\n
+        array -- array to fill\n
+        method -- method to compute the distance between pixels (default TaxiCab)\n
+        """
+        VOI_filled_3D = np.zeros_like(array)
+        VOI_filled_0 = np.zeros_like(array)
+        VOI_filled_1 = np.zeros_like(array)
+        VOI_filled_2 = np.zeros_like(array)
 
         for w in range(self.nb_slice):
             VOI_filled_0[w,:,:] = self.fill_2D(array[w,:,:],method=method)
@@ -1701,9 +1756,9 @@ class DicomImage(object):
                         VOI_filled_3D[i,j,k] = 1
         return VOI_filled_3D
 
-    def neighbour_towards_center(self,point,target,method = 'taxicab'): #Done in 1.2.0
+    def neighbour_towards_center(self,point,target,method = 'TaxiCab'): #Done in 1.2.0
         neighbour = np.zeros_like(point)
-        if method == 'taxicab':
+        if method == 'TaxiCab':
             for i in range(len(point)):
                 step = 0
                 diff = target[i] - point[i]

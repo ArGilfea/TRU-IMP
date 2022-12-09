@@ -26,20 +26,26 @@ class GUIParameters(object):
         self.doCoefficients = True
         self.verbose = True
         self.verbosePrecise = True
+
         self.SegmType = "None"
         self.ErrorType = "None"
-        self.alphaICM = 1
+
+        self.alphaICM = 1.0
         self.max_iter_ICM = 100
         self.max_iter_kmean_ICM = 100
-        self.sigmaCanny = 1
+
+        self.sigmaCanny = 1.0
         self.combinationCanny = 2
         self.methodCanny = "TaxiCab"
+        self.sigmaThreshLowCanny = 0.1
+        self.sigmaThreshHighCanny = 0.2
+
         self.steps_filling = 1000
         self.max_iter_fill = 300
         self.factor_Fill_range = [0.1,2.8]
-        self.factor_fill_f = 1
-        self.growth = -1
-        self.min_f_growth = 0
+        self.factor_fill_f = 1.0
+        self.growth = -1.0
+        self.min_f_growth = 0.0
         self.threshold_fill = 0.99
         self.verbose_graph_fill = False
 
@@ -57,8 +63,8 @@ class GUIParameters(object):
         self.BayesianType = "None"
         self.ModelBayesian = "2_Comp_A2"
         self.CurveTypeBayesian = "Average"
-        self.Bayesian_thresh_perc = 0
-        self.Bayesian_thresh_value = 0
+        self.Bayesian_thresh_perc = 0.0
+        self.Bayesian_thresh_value = 0.0
 
         self.NoiseType = "None"
         self.NoiseMu = 0.0
