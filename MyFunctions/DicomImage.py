@@ -1717,8 +1717,12 @@ class DicomImage(object):
                 iter_now += 1
                 for i in range(1,array.shape[0]-1):
                     for j in range(1,array.shape[1]-1):
-                        if (VOI_pre[i,j] < 0.5 and VOI_pre[i+1,j]+VOI_pre[i-1,j]+VOI_pre[i,j+1]+VOI_pre[i,j-1]>5.5):
-                            VOI_pre[i,j] = 2.9
+                        try: 
+                            if (VOI_pre[i,j] < 0.5 and VOI_pre[i+1,j]+VOI_pre[i-1,j]+VOI_pre[i,j+1]+VOI_pre[i,j-1]>5.5):
+                                VOI_pre[i,j] = 2.9
+                        except:
+                            pass
+                iter_now += 1
         VOI_post = np.zeros_like(array)
         for i in range(array.shape[0]):
             for j in range(array.shape[1]):
