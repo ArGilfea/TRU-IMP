@@ -523,9 +523,12 @@ class DicomImage(object):
         do_stats -- compute the TACs relative to the VOI (default False)\n
         """
         if subimage.size == 0:
+            base_Im = False
             #Either the subimage is given directly (via Canny_filled), or the
             #infos for the subimage are given, whence the subimage is selected
             subimage = self.image_cut(subinfo)[int(acq),:,:,:]
+        else:
+            base_Im = True
         VOI = np.zeros_like(subimage)
         Canny_2D_sagittal = np.zeros_like(subimage)
         Canny_2D_coronal = np.zeros_like(subimage)
@@ -545,6 +548,13 @@ class DicomImage(object):
                 for k in range(subimage.shape[2]):
                     if Canny_total[i,j,k] >= int(combination):
                         VOI[i,j,k] = 1
+        if (not base_Im) and (np.sum(subinfo) >= 0):
+            VOI[subinfo[0,0],:,:] = 0
+            VOI[subinfo[0,1],:,:] = 0
+            VOI[:,subinfo[1,0],:] = 0
+            VOI[:,subinfo[1,1],:] = 0
+            VOI[:,:,subinfo[2,0]] = 0
+            VOI[:,:,subinfo[2,1]] = 0
         if save:
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
         return VOI
@@ -575,7 +585,17 @@ class DicomImage(object):
         Cannied = self.VOI_canny(subimage = Image,combination = combination,sigma = sigma,
                                 threshLow=threshLow,threshHigh=threshHigh,
                                 name=name,do_moments=do_moments,save=False)
+        if np.sum(subinfo) > -0.5: #If there is a subimage, this ensure that the contour of the subimage is not taken
+                            #because of the difference in intensity between the background and what is not taken
+            subinfo = np.array(subinfo)
+            Cannied[subinfo[0,0],:,:] = 0
+            Cannied[subinfo[0,1],:,:] = 0
+            Cannied[:,subinfo[1,0],:] = 0
+            Cannied[:,subinfo[1,1],:] = 0
+            Cannied[:,:,subinfo[2,0]] = 0
+            Cannied[:,:,subinfo[2,1]] = 0        
         Canny_filled = self.fill_3D(Cannied,method)
+
         if save:
             self.save_VOI(Canny_filled,name=name,do_stats=do_stats,do_moments=do_moments)
         else:

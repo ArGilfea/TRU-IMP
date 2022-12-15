@@ -661,12 +661,16 @@ class Window(QMainWindow):
                 self.update_BayesianPlots()
             except: pass
         elif self.resultView == "Center of Mass":
-            pass
+            self.update_centerMass()
         elif self.resultView == "Moments":
-            pass
+            self.update_MomentSeg()
     def update_Dice(self):
         """Shows the Dice coefficients in the middle image"""
         try:
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
             self.TACImage.axes.cla()
             im = self.TACImage.axes.pcolormesh(self.Image.dice_all)
             self.base_coeff_axes(im)
@@ -677,10 +681,50 @@ class Window(QMainWindow):
     def update_Jaccard(self):
         """Shows the Jaccard coefficients in the middle image"""
         try:
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
             self.TACImage.axes.cla()
             im = self.TACImage.axes.pcolormesh(self.Image.jaccard_all)
             self.base_coeff_axes(im)
             self.TACImage.draw() 
+            self.switch_bottom_view()
+        except:
+            pass
+    def update_centerMass(self):
+        """Shows the Center of Mass in the middle image"""
+        try:
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
+            self.TACImage.axes.cla()
+            voi_center_of_mass = np.array(self.Image.voi_center_of_mass)
+            voi_center_of_mass = voi_center_of_mass[~np.all(voi_center_of_mass == 0, axis=1)]
+            self.axTAC = self.TACImage.fig.add_subplot(1,1,1,projection='3d')
+            self.axTAC.scatter(voi_center_of_mass[:,0],
+                                        voi_center_of_mass[:,1],
+                                        voi_center_of_mass[:,2])
+            self.TACImage.draw()
+            self.switch_bottom_view()
+        except:
+            pass
+    def update_MomentSeg(self):
+        """Shows the Moments of the segmentations in the middle image"""
+        try:
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
+            self.TACImage.axes.cla()
+            voi_moment_of_inertia = np.array(self.Image.voi_moment_of_inertia)
+            voi_moment_of_inertia = voi_moment_of_inertia[~np.all(voi_moment_of_inertia == 0, axis=1)]
+            self.axTAC = self.TACImage.fig.add_subplot(1,1,1,projection='3d')
+            self.axTAC.scatter(voi_moment_of_inertia[:,0],
+                                        voi_moment_of_inertia[:,1],
+                                        voi_moment_of_inertia[:,2])
+            self.TACImage.draw()
             self.switch_bottom_view()
         except:
             pass
@@ -691,6 +735,10 @@ class Window(QMainWindow):
                 k = np.arange(self.Image.bayesian_results_avg.shape[1])
             else:
                 k = np.array([param])
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
             self.TACImage.axes.cla()
             for i in range(k.shape[0]):
                 self.TACImage.axes.errorbar(np.arange(self.Image.bayesian_results_avg.shape[0]),
@@ -798,6 +846,10 @@ class Window(QMainWindow):
                     else:
                         model = self.Image.model_three_compartment_A2
             except: pass
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
             self.TACImage.axes.cla()
             values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
             subI = self.parameters.subImage[0,:]
