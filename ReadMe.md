@@ -222,17 +222,21 @@ See the reference section for links.
 This will use the first compartment equation for a 3-compartment
 pharmacokinetic model. 
 Three parameters will be extracted:
+
 * The initial activity;
-* An exponential factor;
+* An exponential factor.
+
 The model has the following equation:
 A_1(t) = A_0 e^(-k t)
 ### 2_Comp_A2: 
 This will use the second compartment equation for a 3-compartment
 pharmacokinetic model. 
 Three parameters will be extracted:
+
 * The initial activity;
 * A first exponential factor;
 * A second exponential factor.
+
 The model has the following equation:
 A_2(t) = A_0 [e^(-k_1 t) - e^(-k_2 t)]
 ### 2_Comp_A2_Pause: 
@@ -240,6 +244,7 @@ This will use the second compartment equation for a 3-compartment
 pharmacokinetic model. This will also model that a pause
 happened in the process, for an unknown period of time.
 Five parameters will be extracted:
+
 * The initial activity;
 * A first exponential factor;
 * A second exponential factor.
@@ -251,10 +256,28 @@ Five parameters will be extracted:
 * Errors: This will use the errorbars extracted from the segmentations.
 
 ## Noise Type
-* Gaussian: TBA
-* Poisson: TBA
-* Thermal: TBA
+It is possible to add noise to the whole image. 
+Through the parameters window, noise can be added to the whole image.
+This noise will be added to each voxel of each timeframe in the same fashion.
+The noise is randomly generated from a given probability distribution. 
+When possible, the analytic inverse cumulative distribution is used directly; 
+when this cannot be done, a computational method is done.
 
+The selected noise distribution is shown through the probability density distribution (pdf), 
+with its cumulative density distribution (cdf), to help
+visualise the type and parameters of the needed noise. 
+The Fourier transforms of both the pdf and the cdf are also shown.
+
+For ease of analysis, the pdf, mean, and standard deviation equations and values are shown. 
+
+The currently available types of noise are:
+
+* Gaussian: Traditional gaussian (normal) distribution;
+* Poisson: To be added;
+* Rayleigh;
+* Erlang (Gamma);
+* Exponential: This is the Erlang distribution with the second parameter (b) set to 1;
+* Uniform: Constant distribution, spread equally over a given range.
 
 ## References:
 * Canny: Canny, J. A Computational Approach to Edge Detection. IEEE Transactions on Pattern Analysis and Machine Intelligence 8(6). 1986.
