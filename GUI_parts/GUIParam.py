@@ -36,6 +36,7 @@ class GUIParameters(object):
 
         self.sigmaCanny = 1.0
         self.combinationCanny = 2
+        self.combinationCannyPost = 3
         self.methodCanny = "TaxiCab"
         self.sigmaThreshLowCanny = 0.1
         self.sigmaThreshHighCanny = 0.2

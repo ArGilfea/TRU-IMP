@@ -26,7 +26,7 @@ class ParamWindow(QMainWindow):
     def __init__(self,parameters:GUIParameters,parent=None):
         """Initializes the ParamWindow with the GUI Parameters"""
         super().__init__(parent)
-        self.setMinimumSize(300, 750)
+        self.setMinimumSize(300, 800)
         self.tabs = QTabWidget()
         self.parameters = parameters
         self.setWindowTitle("Parameters")
@@ -842,6 +842,19 @@ class ParamWindow(QMainWindow):
         self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.combinationCanny}"),self.current_line_Segm,1)
         self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
         self.current_line_Segm +=1
+    def _createCombPostCanny(self):
+        """Creates the slider and the line edit for the combination Post (Canny filled)."""
+        btnNew,slider = self._createIntInput(self.parameters.combinationCannyPost)
+        slider.valueChanged.connect(self.update_int)
+        slider.setRange(1,3)
+        slider.setTickInterval(1)
+        slider.setValue(self.parameters.combinationCannyPost)
+        self.sliderCombPost = slider   
+
+        self.generalLayoutSegm.addWidget(QLabel("Comb. Post Canny"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.combinationCannyPost}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createSigmaThreshCanny(self):
         """Creates the slider for the lower and upper thresholds of the Canny segmentations"""
         btnNew,slider = self._createIntInput(self.parameters.sigmaThreshLowCanny)
@@ -1053,6 +1066,8 @@ class ParamWindow(QMainWindow):
             self._createSigmaCanny()
             self._createCombCanny()
             self._createSigmaThreshCanny()
+            if self.parameters.SegmType in ["Canny Filled"]:
+                self._createCombPostCanny()
         elif self.parameters.SegmType == "ICM":
             self._createAlphaICM()
             self._createMaxiIterICM()
@@ -1253,6 +1268,9 @@ class ParamWindow(QMainWindow):
         except: pass
         try:
             self.parameters.combinationCanny = self.sliderComb.value()
+        except: pass
+        try:
+            self.parameters.combinationCannyPost = self.sliderCombPost.value()
         except: pass
         try:
             self.parameters.sigmaThreshLowCanny = self.sliderThreshLow.value()/100

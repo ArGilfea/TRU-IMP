@@ -558,10 +558,11 @@ class DicomImage(object):
         if save:
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
         return VOI
-    def VOI_Canny_filled(self,subinfo = [[-1,0],[0,0],[0,0]],acq=0,combination = 2,
-                        sigma=1,name='',threshLow:float = 0.1,threshHigh:float = 0.2,
-                        do_moments = False,method='TaxiCab',
-                        do_stats = False,save=True): #Done in 1.2.0
+    def VOI_Canny_filled(self,subinfo:np.ndarray = [[-1,0],[0,0],[0,0]],acq:int=0,combination:int = 2,
+                        sigma:float=1.0,name='',threshLow:float = 0.1,threshHigh:float = 0.2,
+                        combinationPost:int = 3,
+                        do_moments:bool = False,method:str='TaxiCab',
+                        do_stats:str = False,save:str=True): #Done in 1.2.0
         """
         Computes a segmentation using Canny for the contour, then filling it.
         Keyword arguments:\n
@@ -572,6 +573,8 @@ class DicomImage(object):
         VOI (default 2)\n
         threshLow -- lower threshold for the histeresis in the Canny algorithm (default 0.1)\n
         threshHigh -- upper threshold for the histeresis in the Canny algorithm (default 0.2)\n
+        combinationPost -- combination parameter for the number of necessary 2D filling on a given voxel to make that voxel part of the 
+        VOI. It is used after the filling section (default 3)\n
         method -- method to compute the distance between two voxels (default 'TaxiCab')\n
         name -- used to name all the segmentations saved (default '')\n
         do_moments -- compute the moments of the resulting segmentations (default True)\n
@@ -594,7 +597,7 @@ class DicomImage(object):
             Cannied[:,subinfo[1,1],:] = 0
             Cannied[:,:,subinfo[2,0]] = 0
             Cannied[:,:,subinfo[2,1]] = 0        
-        Canny_filled = self.fill_3D(Cannied,method)
+        Canny_filled = self.fill_3D(array = Cannied,method=method,combination=combinationPost)
 
         if save:
             self.save_VOI(Canny_filled,name=name,do_stats=do_stats,do_moments=do_moments)
@@ -1299,7 +1302,10 @@ class DicomImage(object):
         Dice = keys.shape[0]*np.sum(intersection)/denominator
         if Dice <0 or Dice > 1:
             raise Exception(f"Dice is out of bound [0,1], with {Dice}\n Keys = {keys.shape[0]},Inter = {np.sum(intersection)}, denom = {denominator}")
-        return Dice
+        if np.isnan(Dice):
+            return 0
+        else:
+            return Dice
     def jaccard_index(self,key1:int,key2:int):#Added in 1.4.0
         """
         Computes the Jaccard index for two segmentations.\n
@@ -1313,7 +1319,10 @@ class DicomImage(object):
         A = self.voi[f"{key1}"]
         B = self.voi[f"{key2}"]
         Jaccard = np.sum(np.multiply(A,B))/(np.sum(A)+np.sum(B)-np.sum(np.multiply(A,B)))
-        return Jaccard
+        if np.isnan(Jaccard):
+            return 0
+        else:
+            return Jaccard
     def Dice_all(self):#Added in 1.4.1
         """
         Computes the Sørensen-Dice coefficient for all VOIs.\n
@@ -1753,13 +1762,14 @@ class DicomImage(object):
         return VOI_post
 
 
-    def fill_3D(self,array:np.ndarray,method='TaxiCab'): #Done 1.2.0
+    def fill_3D(self,array:np.ndarray,method:str='TaxiCab',combination:int = 3)->np.ndarray: #Done 1.2.0
         """
         Fills a 3-D image, by going towards the center and linking adjacent pixels.
         Three 2-D images are filled successively and then added.\n
         Keyword arguments:\n
         array -- array to fill\n
         method -- method to compute the distance between pixels (default TaxiCab)\n
+        combination -- number of combinations for a voxel to be part of the final filling (default 3)\n
         """
         VOI_filled_3D = np.zeros_like(array)
         VOI_filled_0 = np.zeros_like(array)
@@ -1776,7 +1786,7 @@ class DicomImage(object):
         for i in range(self.nb_slice):
             for j in range(self.width):
                 for k in range(self.length):
-                    if(VOI_filled_all[i,j,k]>2.5):
+                    if(VOI_filled_all[i,j,k]>(combination-0.5)):
                         VOI_filled_3D[i,j,k] = 1
         return VOI_filled_3D
 
