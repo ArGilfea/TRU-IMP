@@ -18,10 +18,10 @@ print(f"Loading done in {(time.time()-initial):.2f} s at {time.strftime('%H:%M:%
 Image.VOI_ICM(acq = 20,subinfo=[[10,70],[88,100],[90,112]],do_moments= True, do_stats= True, save= True)
 print(f"ICM done in {(time.time()-initial):.2f} s at {time.strftime('%H:%M:%S')}")
 
-Image.add_VOI_ellipsoid(center = [45,94,101],axes = [35,6,11],do_moments= True, do_stats= True, save= True)
+#Image.add_VOI_ellipsoid(center = [45,94,101],axes = [35,6,11],do_moments= True, do_stats= True, save= True)
 print(f"Ellispoid done in {(time.time()-initial):.2f} s at {time.strftime('%H:%M:%S')}")
 
-angle = np.pi/2
+angle = np.pi/4
 
 Image.rotation_VOI(angles = [angle,0,0], counter = 0)
 print(f"Rotation 1 done in {(time.time()-initial):.2f} s at {time.strftime('%H:%M:%S')}")

@@ -31,19 +31,23 @@ class ParamWindow(QMainWindow):
         self.parameters = parameters
         self.setWindowTitle("Parameters")
         self.generalLayoutSegm = QGridLayout()
+        self.generalLayoutDefor = QGridLayout()
         self.generalLayoutError = QGridLayout()
         self.generalLayoutBayesian = QGridLayout()
         self.generalLayoutNoise = QGridLayout()
         centralWidgetSegm = QWidget(self)
+        centralWidgetDefor = QWidget(self)
         centralWidgetErrors = QWidget(self)
         centralWidgetBayesian = QWidget(self)
         centralWidgetNoise = QWidget(self)
         centralWidgetSegm.setLayout(self.generalLayoutSegm)
+        centralWidgetDefor.setLayout(self.generalLayoutDefor)
         centralWidgetErrors.setLayout(self.generalLayoutError)
         centralWidgetBayesian.setLayout(self.generalLayoutBayesian)
         centralWidgetNoise.setLayout(self.generalLayoutNoise)
 
         self.tabs.addTab(centralWidgetSegm,"Segm.")
+        self.tabs.addTab(centralWidgetDefor,"Defor.")
         self.tabs.addTab(centralWidgetErrors,"Errors.")
         self.tabs.addTab(centralWidgetBayesian,"Bayesian.")
         self.tabs.addTab(centralWidgetNoise,"Noise")
@@ -53,6 +57,7 @@ class ParamWindow(QMainWindow):
     def initialize_param_window(self):
         """Start the creation of the param window for the widgets"""
         self.current_line_Segm = 2
+        self.current_line_Defor = 2
         self.current_line_Error = 2
         self.current_line_Bayesian = 2
         self.current_line_Noise = 2
@@ -337,6 +342,20 @@ class ParamWindow(QMainWindow):
         self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.SegmType}"),self.current_line_Segm,1)
         self.generalLayoutSegm.addWidget(self.SegmCombo,self.current_line_Segm,2)
         self.current_line_Segm +=1
+    def _createDeformationType(self):
+        """Creates the Combo Box for the deformation type method"""
+        self.DeformationCombo = QComboBox()
+        self.DeformationCombo.addItem("None")
+        self.DeformationCombo.addItem("Linear Shift")
+        self.DeformationCombo.addItem("Rotation")
+
+        self.DeformationCombo.setCurrentText(self.parameters.deformationType)
+        self.DeformationCombo.activated[str].connect(self.DeformationMethodCombo_Changed)
+
+        self.generalLayoutDefor.addWidget(QLabel("Deformation Method"),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationType}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(self.DeformationCombo,self.current_line_Defor,2)
+        self.current_line_Defor +=1
     def _createErrorType(self):
         """Creates the Combo Box for the error type method"""
         self.ErrorCombo = QComboBox()
@@ -1047,6 +1066,9 @@ class ParamWindow(QMainWindow):
         self.generalLayoutSegm.addWidget(QLabel("Parameter"),1,0)
         self.generalLayoutSegm.addWidget(QLabel("Values"),1,1)
         self.generalLayoutSegm.addWidget(QLabel("New Values"),1,2)
+        self.generalLayoutDefor.addWidget(QLabel("Parameter"),1,0)
+        self.generalLayoutDefor.addWidget(QLabel("Values"),1,1)
+        self.generalLayoutDefor.addWidget(QLabel("New Values"),1,2)
         self.generalLayoutError.addWidget(QLabel("Parameter"),1,0)
         self.generalLayoutError.addWidget(QLabel("Values"),1,1)
         self.generalLayoutError.addWidget(QLabel("New Values"),1,2)
@@ -1085,6 +1107,8 @@ class ParamWindow(QMainWindow):
         elif self.parameters.SegmType == "Ellipsoid":
             self._createCenterEllipsoidSliders()
             self._createAxesEllipsoidSliders()
+        #Deformation Specific
+        self._createDeformationType()
         #Error Specific
         self._createErrorType()
         if self.parameters.ErrorType != "None":
@@ -1134,8 +1158,12 @@ class ParamWindow(QMainWindow):
         """Links the method of segmentation and the combo box in the parameters"""
         self.parameters.SegmType = self.SegmCombo.currentText()
         self.refresh_app()
+    def DeformationMethodCombo_Changed(self):
+        """Links the method of deformation method and the combo box in the parameters"""
+        self.parameters.deformationType = self.DeformationCombo.currentText()
+        self.refresh_app()
     def ErrorMethodCombo_Changed(self):
-        """Links the method of Bayesian analysis and the combo box in the parameters"""
+        """Links the method of error computation and the combo box in the parameters"""
         self.parameters.ErrorType = self.ErrorCombo.currentText()
         self.refresh_app()
     def BayesianMethodCombo_Changed(self):
@@ -1377,6 +1405,12 @@ class ParamWindow(QMainWindow):
         if self.generalLayoutSegm is not None:
             while self.generalLayoutSegm.count():
                 item = self.generalLayoutSegm.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+        if self.generalLayoutDefor is not None:
+            while self.generalLayoutDefor.count():
+                item = self.generalLayoutDefor.takeAt(0)
                 widget = item.widget()
                 if widget is not None:
                     widget.deleteLater()

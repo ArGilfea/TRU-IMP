@@ -377,7 +377,7 @@ class DicomImage(object):
                 return new_VOI3
         else:
             self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
-    def rotate_slice(self,slice : np.ndarray, center: np.ndarray, angle: float):
+    def rotate_slice(self,slice : np.ndarray, center: np.ndarray, angle: float) -> np.ndarray:
         """Rotate a slice of an array around a point"""
         rotated_array = np.zeros_like(slice)
         for i in range(slice.shape[0]):
@@ -388,7 +388,10 @@ class DicomImage(object):
                 new_Y = -new_I*np.sin(angle)+new_J*np.cos(angle)
                 new_X_replaced = new_X + center[0]
                 new_Y_replaced = new_Y + center[1]
-                inter_value = self.segm_interpolation_2D(slice,new_X_replaced,new_Y_replaced)
+                if (new_X_replaced > 0 and new_X_replaced < slice.shape[0]) and (new_Y_replaced > 0 and new_Y_replaced < slice.shape[1]):
+                    inter_value = self.segm_interpolation_2D(slice,new_X_replaced,new_Y_replaced)
+                else:
+                    inter_value = 0
                 #print("inter_value ",inter_value)
                 if inter_value > 0.5:
                     rotated_array[i,j] = 1
@@ -1893,7 +1896,7 @@ class DicomImage(object):
 # This section deals with interpolations                   #
 #                                                          #
 ############################################################
-    def segm_interpolation_2D(self,slice:np.ndarray,p1:float,p2:float):
+    def segm_interpolation_2D(self,slice:np.ndarray,p1:float,p2:float) -> float:
         """
         This function interpolates the segmentation between two points\n
         Keyword arguments:\n

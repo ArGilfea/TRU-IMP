@@ -244,6 +244,7 @@ class Window(QMainWindow):
         self.ResultViewCombo = QComboBox()
         self.resultView = "TAC"
         self.ResultViewCombo.addItem("TAC")
+        self.ResultViewCombo.addItem("TAC Slice")
         self.ResultViewCombo.addItem("Dice")
         self.ResultViewCombo.addItem("Jaccard")
         self.ResultViewCombo.addItem("Bayesian")
@@ -648,7 +649,13 @@ class Window(QMainWindow):
     def update_all(self):
         """Main function when something is changed to update all the views"""
         self.update_Result()
-        self.update_1D()
+        if self.resultView != "TAC Slice":
+            self.update_1D()
+        else:
+            try:
+                self.update_TAC_slice()
+            except:
+                pass
         self.update_view()
         self.update_segm()
     def update_segm(self):
@@ -662,7 +669,7 @@ class Window(QMainWindow):
         self.sliderBayesian.setMaximum(self.Image.bayesian_counter-1)
     def update_Result(self):
         """Update the middle image according to the type of result to be displayed"""
-        if self.resultView == "TAC":
+        if self.resultView == "TAC" or self.resultView == "TAC Slice":
             self.update_TAC()
         elif self.resultView == "Dice":
             self.update_Dice()
@@ -839,7 +846,54 @@ class Window(QMainWindow):
                 del self.GraphCornerPlot
 
                 self._create1DImage()              
+    def update_TAC_slice(self):
+        """
+        Update the 1D TAC image, in the bottom of the GUI, according to the position of the sliders sliders.\n
+        This TAC will only be for a slice of the image, each image being for a spatial dimension.\n
+        If a subimage view is selected, it will zoom upon the subregion.\n
+        These views are 1D and go along 1 spatial axis.\n
+        For the 1D spatial axes, see update_1D function.
+        """
+        try:
+            self.AxialImage1D.axes.cla()
+            self.SagittalImage1D.axes.cla()
+            self.CoronalImage1D.axes.cla()
+            values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
+            key = self.sliderSegm.value()
+            
+            x_axis = self.Image.time
+            self.AxialImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,:,values[2],values[3]]*self.Image.voi[f"{key}"][:,values[2],values[3]]/np.sum(self.Image.voi[f"{key}"][:,values[2],values[3]]),axis = 1))
+            self.SagittalImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,values[1],values[2],:]*self.Image.voi[f"{key}"][values[1],values[2],:]/np.sum(self.Image.voi[f"{key}"][values[1],values[2],:]),axis=1))
+            self.CoronalImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,values[1],:,values[3]]*self.Image.voi[f"{key}"][values[1],:,values[3]]/np.sum(self.Image.voi[f"{key}"][values[1],:,values[3]]),axis=1))
 
+            if self.showFocus:
+                self.AxialImage1D.axes.axvline(self.Image.time[values[0]],color='r')
+                self.SagittalImage1D.axes.axvline(self.Image.time[values[0]],color='r')
+                self.CoronalImage1D.axes.axvline(self.Image.time[values[0]],color='r')
+            if self.showSubImage:
+                self.AxialImage1D.axes.axvline(x_axis[self.parameters.subImage[0,0]],color='y')
+                try:
+                    self.AxialImage1D.axes.axvline(self.Image.time[self.parameters.subImage[0,1]],color='y')
+                except:
+                    self.AxialImage1D.axes.axvline(self.Image.time[-1],color='y')
+                self.SagittalImage1D.axes.axvline(x_axis[self.parameters.subImage[0,0]],color='y')
+                try: 
+                    self.SagittalImage1D.axes.axvline(self.Image.time[self.parameters.subImage[0,1]],color='y')
+                except: 
+                    self.SagittalImage1D.axes.axvline(self.Image.time[-1],color='y')
+                self.CoronalImage1D.axes.axvline(x_axis[self.parameters.subImage[0,0]],color='y')
+                try:
+                    self.CoronalImage1D.axes.axvline(self.Image.time[self.parameters.subImage[0,1]],color='y')
+                except:
+                    self.CoronalImage1D.axes.axvline(self.Image.time[-1],color='y')
+
+            self.base_1D_TACs_axes()
+            self.AxialImage1D.draw()
+            self.SagittalImage1D.draw()
+            self.CoronalImage1D.draw()
+
+        except:
+            pass
     def update_TAC(self):
         """
         Update the 1D TAC image, in the middle of the GUI, according to the position of the sliders sliders.\n
@@ -1019,6 +1073,14 @@ class Window(QMainWindow):
         self.SagittalImage1D.axes.set_xlabel("Voxel");self.SagittalImage1D.axes.set_ylabel("Signal")
         self.CoronalImage1D.axes.set_title("Coronal Slice");self.CoronalImage1D.axes.grid()
         self.CoronalImage1D.axes.set_xlabel("Voxel");self.CoronalImage1D.axes.set_ylabel("Signal")
+    def base_1D_TACs_axes(self):
+        """Sets the basic axes of the 1D slices TACs (at the bottom"""
+        self.AxialImage1D.axes.set_title("Axial TAC");self.AxialImage1D.axes.grid()
+        self.AxialImage1D.axes.set_xlabel("Time");self.AxialImage1D.axes.set_ylabel("Signal")
+        self.SagittalImage1D.axes.set_title("Sagittal TAC");self.SagittalImage1D.axes.grid()
+        self.SagittalImage1D.axes.set_xlabel("Time");self.SagittalImage1D.axes.set_ylabel("Signal")
+        self.CoronalImage1D.axes.set_title("Coronal TAC");self.CoronalImage1D.axes.grid()
+        self.CoronalImage1D.axes.set_xlabel("Time");self.CoronalImage1D.axes.set_ylabel("Signal")        
     def update_view(self):
         """Updates the top images (2D views) according to the parameters input and the determined view requested"""
         try:

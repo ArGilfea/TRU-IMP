@@ -56,6 +56,11 @@ class GUIParameters(object):
         self.doThreshold = False
         self.threshold = 0.5
 
+        self.deformationType = "None"
+        self.deformationSegm = -1
+        self.deformationDistanceShift = [0,0,0]
+        self.deformationRotate = [0,0,0]
+
         self.orderShift = 1
         self.distanceShift = 1
         self.weightShift = 1
