@@ -304,9 +304,9 @@ class DicomImage(object):
         Shift a given VOI linearly according to the input shifts.\n
         Each voxel of the VOI is shifted linearly along the three axes.\n
         Keyword arguments:\n
-        shifts --
-        counter --
-        save -- save the VOI if True, else, return it as an output (default False)
+        shifts -- 3-D distance to shift, in 3-vector form (default [0,0,0])\n
+        counter -- segmentation to use for the shift (default -1)\n
+        save -- save the VOI if True, else, return it as an output (default True)\n
         name -- name of the new VOI (default '')\n
         """
         if (counter >= 0):
@@ -324,6 +324,78 @@ class DicomImage(object):
                 return new_VOI
         else:
             self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
+    def rotation_VOI(self,angles:np.ndarray = ([0,0,0]),axis: np.ndarray = ([-1,0,0]), counter:int= -1, save:bool = True, name: str= ''):
+        """
+        Rotate a given VOI by given angles around a central axis.\n
+        Since rotations are a non-abelian group, the order of composition is important.
+        Note that the rotation will first be along the first dimension, then the second and, finaly, the third.
+        Plan the angles accordingly.\n
+        Keyword arguments:\n
+        angles -- angles for the rotations: the first one correspond to the axial, then coronal, then sagittal (default [0,0,0])\n
+        axis -- axis around which to do the rotation; if unchanged, will be around the center of mass of the VOI (default [-1,0,0])\n
+        counter -- segmentation to use for the shift (default -1)\n
+        save -- save the VOI if True, else, return it as an output (default True)\n
+        name -- name of the new VOI (default '')\n
+        """
+        if (counter >= 0):
+            new_VOI1 = np.zeros_like(self.voi[f"{counter}"])
+            new_VOI2 = np.zeros_like(self.voi[f"{counter}"])
+            new_VOI3 = np.zeros_like(self.voi[f"{counter}"])
+            old_VOI = self.voi[f"{counter}"]
+            if np.sum(axis) < 0:
+                axis = np.array(self.voi_center_of_mass[counter]).astype(int)
+            print("CoM ",self.voi_center_of_mass[counter])
+            print("Axis ", axis)
+            print("Angles ", angles)
+            if angles[0] > 1e-5 or angles[0] < -1e-5:
+                print("Angle 1: ", angles[0])
+                for i in range(new_VOI1.shape[0]):#self.nb_slice):
+                    new_VOI1[i,:,:] = self.rotate_slice(slice = old_VOI[i,:,:],center = np.array([axis[1],axis[2]]),angle = angles[0])
+            else:
+                print("Angle 1 is 0")
+                new_VOI1 = np.copy(old_VOI)
+            if angles[2] > 1e-5 or angles[2] < -1e-5:
+                print("Angle 2: ", angles[2])
+                for j in range(self.width):
+                    new_VOI2[:,j,:] = self.rotate_slice(slice = new_VOI1[:,j,:],center = np.array([axis[0],axis[1]]),angle = angles[2])
+            else:
+                print("Angle 2 is 0")
+                new_VOI2 = np.copy(new_VOI1)
+            if angles[1] > 1e-5 or angles[1] < -1e-5:
+                print("Angle 3: ", angles[1])
+                for k in range(self.length):
+                    new_VOI3[:,:,k] = self.rotate_slice(slice = new_VOI2[:,:,k],center = np.array([axis[0],axis[2]]),angle = angles[1])
+            else:
+                print("Angle 3 is 0")
+                new_VOI3 = np.copy(new_VOI2)
+            if save:
+                if name == '':
+                    self.save_VOI(new_VOI3,name=f"rotation_{angles}")
+                else:
+                    self.save_VOI(new_VOI3,name=f"rotation_{angles}_{name}")
+            else:
+                return new_VOI3
+        else:
+            self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
+    def rotate_slice(self,slice : np.ndarray, center: np.ndarray, angle: float):
+        """Rotate a slice of an array around a point"""
+        rotated_array = np.zeros_like(slice)
+        for i in range(slice.shape[0]):
+            for j in range(slice.shape[1]):
+                new_I = i - center[0]
+                new_J = j - center[1]
+                new_X = new_I*np.cos(angle)+new_J*np.sin(angle)
+                new_Y = -new_I*np.sin(angle)+new_J*np.cos(angle)
+                new_X_replaced = new_X + center[0]
+                new_Y_replaced = new_Y + center[1]
+                inter_value = self.segm_interpolation_2D(slice,new_X_replaced,new_Y_replaced)
+                #print("inter_value ",inter_value)
+                if inter_value > 0.5:
+                    rotated_array[i,j] = 1
+                else:
+                    rotated_array[i,j] = 0
+        return rotated_array
+        
     def linear_shifts_error(self,key:int=-1,order=1,d=1,weight=1,verbose:bool=False):#Done in 2.0.0
         """
         This function takes a specific segmentation and shifts it linearly, saving only the results,
@@ -1816,6 +1888,36 @@ class DicomImage(object):
                 step[1] = dist[1]/np.abs(dist[1])
             neighbour = point + step
         return neighbour
+############################################################
+#                                                          #
+# This section deals with interpolations                   #
+#                                                          #
+############################################################
+    def segm_interpolation_2D(self,slice:np.ndarray,p1:float,p2:float):
+        """
+        This function interpolates the segmentation between two points\n
+        Keyword arguments:\n
+        slice -- slice to use for the interpolation\n
+        p1 -- point along the first axis\n
+        p2 -- point along the second axis\n
+        """
+        intX = int(p1)
+        intY = int(p2)
+
+        LeftOverX = p1 - intX
+        LeftOverY = p2 - intY
+        try:
+            xp1y = slice[intX+1,intY]
+
+            xprimey = slice[intX,intY]+(xp1y-slice[intX,intY])*LeftOverX
+
+            xprimeyp1 = slice[intX,intY+1]+(slice[intX+1,intY+1]-slice[intX,intY+1])*LeftOverY
+
+            xprimeyprime = xprimey + (xprimeyp1-xprimey)*LeftOverY
+        except: 
+            xprimeyprime = 0
+
+        return xprimeyprime
 
 ############################################################
 #                                                          #

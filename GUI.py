@@ -188,6 +188,7 @@ class Window(QMainWindow):
         self.showFocus = False
         self.showSubImage = False
         self.showLog = False
+        self.showSuperpose = False
         msg_Image = QLabel("View: ")
         msg_Axial = QLabel("Axial")
         msg_Sagittal = QLabel("Sagittal")
@@ -327,6 +328,7 @@ class Window(QMainWindow):
         FittedValueHeader = QLabel("Fit Bay.:")
         self.checkBoxMsgSubImage = QLabel("Sub Image:")
         self.checkBoxMsgFocus = QLabel("Focus:")
+        self.checkBoxMsgSuperpose = QLabel("Sup:")
 
         self.sliderAcqValue = QLineEdit()
         self.sliderAxialValue = QLineEdit()
@@ -339,6 +341,7 @@ class Window(QMainWindow):
         self.checkBoxFocus = QCheckBox()
         self.checkBoxSubImage = QCheckBox()
         self.checkBoxLog = QCheckBox()
+        self.checkBoxSuperpose = QCheckBox()
         self.sliderAcqValue.setFixedWidth(sizeText)
         self.sliderAxialValue.setFixedWidth(sizeText)
         self.sliderSagittalValue.setFixedWidth(sizeText)
@@ -375,6 +378,7 @@ class Window(QMainWindow):
             self.checkBoxFocus.stateChanged.connect(self.set_value_focus)
             self.checkBoxSubImage.stateChanged.connect(self.set_value_subImage)
             self.checkBoxLog.stateChanged.connect(self.set_value_log)
+            self.checkBoxSuperpose.stateChanged.connect(self.set_value_superpose)
         except:
             pass
         checkBoxMsglog = QLabel("log:")
@@ -385,6 +389,8 @@ class Window(QMainWindow):
         sublayout.addWidget(self.checkBoxSubImage,0,3)
         sublayout.addWidget(checkBoxMsglog,0,4)
         sublayout.addWidget(self.checkBoxLog,0,5)
+        sublayout.addWidget(self.checkBoxMsgSuperpose,0,6)
+        sublayout.addWidget(self.checkBoxSuperpose,0,7)
         subWidget.setMinimumHeight(40)
         subWidget.setContentsMargins(0,0,0,0)
 
@@ -482,6 +488,13 @@ class Window(QMainWindow):
             self.showLog = True
         else:
             self.showLog = False
+        self.update_all()
+    def set_value_superpose(self):
+        """Switch the superpose of the image when the box is checked"""
+        if self.checkBoxSuperpose.isChecked() == True:
+            self.showSuperpose = True
+        else:
+            self.showSuperpose = False
         self.update_all()
     def set_value_line_edit(self,slider:QSlider,lineedit:QLineEdit):
         """Link the slider and the lineedit to the same value"""
@@ -916,12 +929,32 @@ class Window(QMainWindow):
                 self.AxialImage1D.axes.plot(np.arange(self.Image.nb_slice),self.Image.Image[values[0],:,values[2],values[3]])
                 self.SagittalImage1D.axes.plot(np.arange(self.Image.length),self.Image.Image[values[0],values[1],values[2],:])
                 self.CoronalImage1D.axes.plot(np.arange(self.Image.width),self.Image.Image[values[0],values[1],:,values[3]])
+                if self.showSuperpose:
+                    S1 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][:,values[2],values[3]]>0.5,1,np.nan)
+                    S2 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][values[1],values[2],:]>0.5,1,np.nan)
+                    S3 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][values[1],:,values[3]]>0.5,1,np.nan)
+                    self.AxialImage1D.axes.fill_between(np.arange(self.Image.nb_slice),
+                                                        self.Image.Image[values[0],:,values[2],values[3]]*S1)
+                    self.SagittalImage1D.axes.fill_between(np.arange(self.Image.length),
+                                                        self.Image.Image[values[0],values[1],values[2],:]*S2)
+                    self.CoronalImage1D.axes.fill_between(np.arange(self.Image.width),
+                                                        self.Image.Image[values[0],values[1],:,values[3]]*S3)
             else:
                 subI = self.parameters.subImage
                 self.AxialImage1D.axes.plot(np.arange(subI[1,0],subI[1,1]+1),self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]])
                 self.SagittalImage1D.axes.plot(np.arange(subI[3,0],subI[3,1]+1),self.Image.Image[values[0],values[1],values[2],subI[3,0]:subI[3,1]+1])
                 self.CoronalImage1D.axes.plot(np.arange(subI[2,0],subI[2,1]+1),self.Image.Image[values[0],values[1],subI[2,0]:subI[2,1]+1,values[3]])
- 
+                if self.showSuperpose:
+                    S1 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][subI[1,0]:subI[1,1]+1,values[2],values[3]]>0.5,1,np.nan)
+                    S2 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][values[1],values[2],subI[3,0]:subI[3,1]+1]>0.5,1,np.nan)
+                    S3 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][values[1],subI[2,0]:subI[2,1]+1,values[3]]>0.5,1,np.nan)
+                    #A1 = self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]]
+                    self.AxialImage1D.axes.fill_between(np.arange(subI[1,0],subI[1,1]+1),
+                                                        self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]]*S1)
+                    self.SagittalImage1D.axes.fill_between(np.arange(subI[3,0],subI[3,1]+1),
+                                                        self.Image.Image[values[0],values[1],values[2],subI[3,0]:subI[3,1]+1]*S2)
+                    self.CoronalImage1D.axes.fill_between(np.arange(subI[2,0],subI[2,1]+1),
+                                                        self.Image.Image[values[0],values[1],subI[2,0]:subI[2,1]+1,values[3]]*S3) 
             if self.showFocus:
                 self.AxialImage1D.axes.axvline(values[1],color='r')
                 self.SagittalImage1D.axes.axvline(values[3],color='r')
@@ -1036,6 +1069,12 @@ class Window(QMainWindow):
                 self.axial.axes.pcolormesh(func(self.Image.Image[values[0],values[1],:,:]))
                 self.sagittal.axes.pcolormesh(func(self.Image.Image[values[0],:,:,values[3]]))
                 self.coronal.axes.pcolormesh(func(self.Image.Image[values[0],:,values[2],:]))
+                if self.showSuperpose:
+                    top_value = np.max([np.max(self.Image.Image[values[0],:,:,:]*self.Image.voi[f"{key}"]),5])
+                    A = np.where(self.Image.voi[f"{key}"]>0.5,top_value,np.nan)
+                    self.axial.axes.pcolormesh(A[values[1],:,:],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                    self.sagittal.axes.pcolormesh(A[:,:,values[3]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                    self.coronal.axes.pcolormesh(A[:,values[2],:],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
             except:
                 pass
         elif self.view == "Flat":
@@ -1064,6 +1103,12 @@ class Window(QMainWindow):
                 self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.Image[values[0],values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
                 self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]]))
                 self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]]))
+                if self.showSuperpose: ###To Do!
+                    top_value = np.max([np.max(self.Image.Image[values[0],:,:,:]*self.Image.voi[f"{key}"]),5])
+                    A = np.where(self.Image.voi[f"{key}"]>0.5,top_value,np.nan)
+                    self.axial.axes.pcolormesh(A[values[1],:,:],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                    self.sagittal.axes.pcolormesh(A[:,:,values[3]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                    self.coronal.axes.pcolormesh(A[:,values[2],:],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)            
             except:
                 self._createErrorMessage("Can't perform this. No SubImage selected")
         elif self.view == "Sub. Flat":
