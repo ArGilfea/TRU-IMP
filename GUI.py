@@ -1103,12 +1103,15 @@ class Window(QMainWindow):
                 self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.Image[values[0],values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
                 self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]]))
                 self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]]))
-                if self.showSuperpose: ###To Do!
-                    top_value = np.max([np.max(self.Image.Image[values[0],:,:,:]*self.Image.voi[f"{key}"]),5])
+                if self.showSuperpose: 
+                    top_value = np.max([np.max(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]*self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]),5])
                     A = np.where(self.Image.voi[f"{key}"]>0.5,top_value,np.nan)
-                    self.axial.axes.pcolormesh(A[values[1],:,:],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
-                    self.sagittal.axes.pcolormesh(A[:,:,values[3]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
-                    self.coronal.axes.pcolormesh(A[:,values[2],:],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)            
+                    self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),
+                                                    A[values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                    self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),
+                                                    A[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                    self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),
+                                                    A[SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)            
             except:
                 self._createErrorMessage("Can't perform this. No SubImage selected")
         elif self.view == "Sub. Flat":
