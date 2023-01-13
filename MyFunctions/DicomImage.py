@@ -344,29 +344,20 @@ class DicomImage(object):
             old_VOI = self.voi[f"{counter}"]
             if np.sum(axis) < 0:
                 axis = np.array(self.voi_center_of_mass[counter]).astype(int)
-            print("CoM ",self.voi_center_of_mass[counter])
-            print("Axis ", axis)
-            print("Angles ", angles)
             if angles[0] > 1e-5 or angles[0] < -1e-5:
-                print("Angle 1: ", angles[0])
                 for i in range(new_VOI1.shape[0]):#self.nb_slice):
                     new_VOI1[i,:,:] = self.rotate_slice(slice = old_VOI[i,:,:],center = np.array([axis[1],axis[2]]),angle = angles[0])
             else:
-                print("Angle 1 is 0")
                 new_VOI1 = np.copy(old_VOI)
             if angles[2] > 1e-5 or angles[2] < -1e-5:
-                print("Angle 2: ", angles[2])
                 for j in range(self.width):
                     new_VOI2[:,j,:] = self.rotate_slice(slice = new_VOI1[:,j,:],center = np.array([axis[0],axis[1]]),angle = angles[2])
             else:
-                print("Angle 2 is 0")
                 new_VOI2 = np.copy(new_VOI1)
             if angles[1] > 1e-5 or angles[1] < -1e-5:
-                print("Angle 3: ", angles[1])
                 for k in range(self.length):
                     new_VOI3[:,:,k] = self.rotate_slice(slice = new_VOI2[:,:,k],center = np.array([axis[0],axis[2]]),angle = angles[1])
             else:
-                print("Angle 3 is 0")
                 new_VOI3 = np.copy(new_VOI2)
             if save:
                 if name == '':
@@ -445,6 +436,53 @@ class DicomImage(object):
             self.linear_shifts_error(keys[i],order=order,d=d,weight=weight,verbose=verbose_precise)
             if verbose: 
                 self.update_log(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+    
+    def rotation_error(self, key:int, angle:float = 0, order:int = 1, verbose: bool = False):
+        """
+        This function takes a specific segmentation and rotates it, saving only the results,
+        in order to save memory space.
+        Keyword arguments:\n
+        key -- segmentation key to use (default -1)\n
+        angle -- angle of rotation (default 0)\n
+        order -- rotation order (default 1)\n
+        verbose -- outputs the progress (default False)\n
+        """
+        initial = time.time()
+        if key < 0 or key >= self.voi_counter:
+            raise Exception(f"Counter must be between 0 and {self.voi_counter}, whereas here it was {key}.")
+        angle_axis = self.axis(order = order,d = angle)
+        stats_curves = np.zeros((angle_axis.shape[0],self.nb_acq))
+        for i in range(angle_axis.shape[0]):
+            print("Angle: ",angle_axis[i,:])
+            VOI_shifted = self.rotation_VOI(angle_axis[i,:],counter=key,save=False)
+            stats_curves[i,:] = self.VOI_statistics(VOI = VOI_shifted)
+            if verbose:
+                self.update_log(f"% done for key {key}: {(i+1)/angle_axis.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+        self.voi_statistics_counter += 1
+        self.voi_statistics_avg.append(np.mean(stats_curves,0))
+        self.voi_statistics_std.append(np.std(stats_curves,0))
+
+    def rotation_errors(self, keys:np.ndarray, angle: float = 0, order: int = 1, verbose: bool = False, verbose_precise: bool = False):
+        """
+        Runs the function linear_shift_errors on a number of segmentations, saving the resulting curves.\n
+        The order and weight parameters will be the same for each computation.\n
+        Keyword arguments:\n
+        keys -- segmentations key to use. Must be a list or an np.ndarray\n
+        angle -- linear shift order (default 0)\n
+        order -- rotation order (default 1)\n
+        verbose -- outputs the progress (default False)\n
+        verbose_precise -- outputs the progress of the underlying process (default False)\n
+        """
+        initial= time.time()
+        if not isinstance(keys,(list,np.ndarray)):
+            raise Exception('''keys must be an array of the segmentations to estimate the error.\n
+                            To use on a single segmentation, use linear_shifts_error (without 's')''')
+        else: keys=np.array(keys)
+        for i in range(keys.shape[0]):
+            self.rotation_error(keys[i],angle = angle,order = order,verbose=verbose_precise)
+            if verbose: 
+                self.update_log(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+
 ############################################################
 #                                                          #
 # This section deals with the adding and removal of VOIs   #
@@ -2072,14 +2110,14 @@ class DicomImage(object):
                                 [1,-1,1],[-1,1,-1],
                                 [-1,1,1],[1,-1,-1]])
         all_orders = np.array([first_order,second_order,third_order],dtype=object)
-        if isinstance(order,(int)) and isinstance(d,(int)):
+        if isinstance(order,(int)) and isinstance(d,(int,float)):
             if order == 1 or order == 2 or order == 3:
                 return d*all_orders[order-1]
             else:
                 raise Exception(f"Invalid value for the order.\nThe value given was {order} and must be 0, 1, or 2.")
         elif isinstance(order,(np.ndarray,list)):
             order = np.array(order) - 1 #To fit with the position of the array
-            if isinstance(d,(int)):
+            if isinstance(d,(int,float)):
                 d = d*np.ones_like(order)
             else: d = np.array(d)
             if order.shape[0]!=d.shape[0]:

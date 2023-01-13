@@ -356,11 +356,95 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationType}"),self.current_line_Defor,1)
         self.generalLayoutDefor.addWidget(self.DeformationCombo,self.current_line_Defor,2)
         self.current_line_Defor +=1
+    def _createDeformationSeg(self):
+        """Creates the slider and the line edit for the choice of segmentation for the deformations.\n 
+        -1 will mean all"""
+        btnNew,slider = self._createIntInput(self.parameters.deformationSegm)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(1)
+        slider.setRange(-1,self.parameters._nbSeg-1)
+        slider.setValue(self.parameters.deformationSegm)
+        self.sliderDeforSeg = slider   
+
+        self.generalLayoutDefor.addWidget(QLabel("Seg. Deform."),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationSegm}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(btnNew,self.current_line_Defor,2)
+        self.current_line_Defor +=1
+
+    def _createDShiftDeformation(self):
+        """Creates the sliders and the line edits for the distance of the deformation."""
+        btnNew1,slider1 = self._createIntInput(self.parameters.deformationDistanceShift[0])
+        btnNew2,slider2 = self._createIntInput(self.parameters.deformationDistanceShift[1])
+        btnNew3,slider3 = self._createIntInput(self.parameters.deformationDistanceShift[2])
+        slider1.valueChanged.connect(self.update_int)
+        slider2.valueChanged.connect(self.update_int)
+        slider3.valueChanged.connect(self.update_int)
+        slider1.setTickInterval(5)
+        slider2.setTickInterval(5)
+        slider3.setTickInterval(5)
+        slider1.setRange(0,50)
+        slider2.setRange(0,50)
+        slider3.setRange(0,50)
+        slider1.setValue(self.parameters.deformationDistanceShift[0])
+        slider2.setValue(self.parameters.deformationDistanceShift[1])
+        slider3.setValue(self.parameters.deformationDistanceShift[2])
+        self.sliderDeformationDistanceShift1 = slider1   
+        self.sliderDeformationDistanceShift2 = slider2   
+        self.sliderDeformationDistanceShift3 = slider3   
+
+        subImageWidget = QWidget()
+        layout = QGridLayout()
+        subImageWidget.setLayout(layout)
+
+        layout.addWidget(btnNew1,0,0)
+        layout.addWidget(btnNew2,1,0)
+        layout.addWidget(btnNew3,2,0)
+
+        self.generalLayoutDefor.addWidget(QLabel("Distance"),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationDistanceShift}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(subImageWidget,self.current_line_Defor,2)
+        self.current_line_Defor +=1
+
+    def _createAngleDeformation(self):
+        """Creates the sliders and the line edits for the angles of the rotation deformation."""
+        btnNew1,slider1 = self._createIntInput(self.parameters.deformationRotate[0])
+        btnNew2,slider2 = self._createIntInput(self.parameters.deformationRotate[1])
+        btnNew3,slider3 = self._createIntInput(self.parameters.deformationRotate[2])
+        slider1.valueChanged.connect(self.update_int)
+        slider2.valueChanged.connect(self.update_int)
+        slider3.valueChanged.connect(self.update_int)
+        slider1.setTickInterval(90)
+        slider2.setTickInterval(90)
+        slider3.setTickInterval(90)
+        slider1.setRange(0,360)
+        slider2.setRange(0,360)
+        slider3.setRange(0,360)
+        slider1.setValue(self.parameters.deformationRotate[0])
+        slider2.setValue(self.parameters.deformationRotate[1])
+        slider3.setValue(self.parameters.deformationRotate[2])
+        self.sliderDeformationRotate1 = slider1   
+        self.sliderDeformationRotate2 = slider2   
+        self.sliderDeformationRotate3 = slider3   
+
+        subImageWidget = QWidget()
+        layout = QGridLayout()
+        subImageWidget.setLayout(layout)
+
+        layout.addWidget(btnNew1,0,0)
+        layout.addWidget(btnNew2,1,0)
+        layout.addWidget(btnNew3,2,0)
+
+        self.generalLayoutDefor.addWidget(QLabel("Angle (degrees)"),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationRotate}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(subImageWidget,self.current_line_Defor,2)
+        self.current_line_Defor +=1
+
     def _createErrorType(self):
         """Creates the Combo Box for the error type method"""
         self.ErrorCombo = QComboBox()
         self.ErrorCombo.addItem("None")
         self.ErrorCombo.addItem("Linear Shift")
+        self.ErrorCombo.addItem("Rotation")
 
         self.ErrorCombo.setCurrentText(self.parameters.ErrorType)
         self.ErrorCombo.activated[str].connect(self.ErrorMethodCombo_Changed)
@@ -818,6 +902,20 @@ class ParamWindow(QMainWindow):
         self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
         self.current_line_Error +=1
 
+    def _createAngleError(self):
+        """Creates the slider and the line edit for the distance of the shift (linear shift error)."""
+        btnNew,slider = self._createIntInput(self.parameters.angleError)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(90)
+        slider.setRange(0,360)
+        slider.setValue(self.parameters.angleError)
+        self.sliderErrorAngle = slider   
+
+        self.generalLayoutError.addWidget(QLabel("Angle (Degrees)"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel(f"{self.parameters.angleError}"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
+        self.current_line_Error +=1
+
     def _createSigmaCanny(self):
         """Creates the slider and the line edit for the sigma (Canny)."""
         btnNew,slider = self._createIntInput(self.parameters.sigmaCanny)
@@ -1109,6 +1207,9 @@ class ParamWindow(QMainWindow):
             self._createAxesEllipsoidSliders()
         #Deformation Specific
         self._createDeformationType()
+        self._createDeformationSeg()
+        self._createDShiftDeformation()
+        self._createAngleDeformation()
         #Error Specific
         self._createErrorType()
         if self.parameters.ErrorType != "None":
@@ -1116,6 +1217,9 @@ class ParamWindow(QMainWindow):
         if self.parameters.ErrorType == "Linear Shift":
             self._createOrderShiftError()
             self._createDShiftError()
+        if self.parameters.ErrorType == "Rotation":
+            self._createOrderShiftError()
+            self._createAngleError()
         #Bayesian Specific
         self._createBayesianType()
         if self.parameters.CurveTypeBayesian == "Errors":
@@ -1331,6 +1435,9 @@ class ParamWindow(QMainWindow):
             self.parameters.distanceShift = self.sliderErrorDistanceShift.value()
         except: pass
         try:
+            self.parameters.angleError = self.sliderErrorAngle.value()
+        except: pass
+        try:
             self.parameters.threshold = self.sliderThresh.value()/100
         except: pass
         try:
@@ -1348,6 +1455,22 @@ class ParamWindow(QMainWindow):
         try:
             self.parameters.factor_Fill_range[1] = float(self.FactorFRangeValueMax.text())
         except: pass
+        try:
+            self.parameters.deformationSegm = self.sliderDeforSeg.value()
+        except:
+            pass
+        try:
+            self.parameters.deformationDistanceShift[0] = self.sliderDeformationDistanceShift1.value()
+            self.parameters.deformationDistanceShift[1] = self.sliderDeformationDistanceShift2.value()
+            self.parameters.deformationDistanceShift[2] = self.sliderDeformationDistanceShift3.value()
+        except:
+            pass
+        try:
+            self.parameters.deformationRotate[0] = self.sliderDeformationRotate1.value()
+            self.parameters.deformationRotate[1] = self.sliderDeformationRotate2.value()
+            self.parameters.deformationRotate[2] = self.sliderDeformationRotate3.value()
+        except:
+            pass
     def update_QLines(self):
         """
         Updates all the float parameters the QLineEdit is changed

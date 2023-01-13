@@ -15,6 +15,7 @@ from GUI_parts.ExportWindow import ExportWindow
 import time
 import MyFunctions.Batch_Segmentations
 import MyFunctions.Batch_Errors
+import MyFunctions.Batch_Deform
 ###
 import numpy as np
 import time
@@ -70,7 +71,12 @@ class Window(QMainWindow):
         btn_noise.setToolTip("Adds the noise to the images according to the selected parameters")
         btn_noise.clicked.connect(self.run_noise)
 
+        btn_deform = QPushButton("Deform.")
+        btn_deform.setToolTip("Makes a deformation on a segmentation according to the selected parameters")
+        btn_deform.clicked.connect(self.run_deform)
+
         layout.addWidget(btn_noise)
+        layout.addWidget(btn_deform)
         self.generalLayout.addWidget(subWidget,self.current_line,3)    
         self.current_line += 1
     def _createInfoParam(self):
@@ -594,6 +600,7 @@ class Window(QMainWindow):
                 k=-1
             MyFunctions.Batch_Errors.Batch_Errors(Image=self.Image,error_type=self.parameters.ErrorType,k=k,
                                                     order=self.parameters.orderShift,d=self.parameters.distanceShift,
+                                                    angle = self.parameters.angleError*2*np.pi/360,
                                                     verbose=self.parameters.verbose)
             self.displayStatus(f"{self.parameters.ErrorType} errors",initial)
             self.update_segm()
@@ -646,6 +653,25 @@ class Window(QMainWindow):
             self.update_all()
         except:
             self._createErrorMessage("Unable to add the noise")
+    def run_deform(self):
+        """
+        Function to deform segmentations.
+        """
+        try:
+            initial = time.time()
+            MyFunctions.Batch_Deform.Batch_Deform(Image = self.Image, deform_type= self.parameters.deformationType,
+                                                    k = self.parameters.deformationSegm,
+                                                    linear_d= self.parameters.deformationDistanceShift,
+                                                    rotate_angle= self.parameters.deformationRotate*2*np.pi/360,
+                                                    verbose= self.parameters.verbose)
+
+            if self.parameters.deformationType != "None":
+                self.displayStatus(f"{self.parameters.deformationType} deformations done",initial)
+            else:
+                self.displayStatus("",initial)
+            self.update_all()
+        except:
+            self._createErrorMessage("Unable to deform the segmentations")
     def update_all(self):
         """Main function when something is changed to update all the views"""
         self.update_Result()
