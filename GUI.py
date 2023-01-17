@@ -1352,8 +1352,6 @@ class Window(QMainWindow):
         self.current_line = 0
         #self.displayImageLine = 0
         self.first_pass = True
-        self.lineImage1D = -1
-        self.BayesianShown = False
         super().__init__(parent=None)
         self.setMinimumSize(1200, 800)
         self.setWindowTitle("My GUI")
