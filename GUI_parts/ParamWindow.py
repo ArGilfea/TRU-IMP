@@ -341,6 +341,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutSegm.addWidget(QLabel("Segm. Method"),self.current_line_Segm,0)
         self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.SegmType}"),self.current_line_Segm,1)
         self.generalLayoutSegm.addWidget(self.SegmCombo,self.current_line_Segm,2)
+        self.generalLayoutSegm.setRowStretch(self.current_line_Segm,1)
         self.current_line_Segm +=1
     def _createDeformationType(self):
         """Creates the Combo Box for the deformation type method"""
@@ -355,6 +356,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.addWidget(QLabel("Deformation Method"),self.current_line_Defor,0)
         self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationType}"),self.current_line_Defor,1)
         self.generalLayoutDefor.addWidget(self.DeformationCombo,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,1)
         self.current_line_Defor +=1
     def _createDeformationSeg(self):
         """Creates the slider and the line edit for the choice of segmentation for the deformations.\n 
@@ -369,6 +371,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.addWidget(QLabel("Seg. Deform."),self.current_line_Defor,0)
         self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationSegm}"),self.current_line_Defor,1)
         self.generalLayoutDefor.addWidget(btnNew,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,1)
         self.current_line_Defor +=1
 
     def _createDShiftDeformation(self):
@@ -403,6 +406,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.addWidget(QLabel("Distance"),self.current_line_Defor,0)
         self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationDistanceShift}"),self.current_line_Defor,1)
         self.generalLayoutDefor.addWidget(subImageWidget,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,3)
         self.current_line_Defor +=1
 
     def _createAngleDeformation(self):
@@ -437,6 +441,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.addWidget(QLabel("Angle (degrees)"),self.current_line_Defor,0)
         self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationRotate}"),self.current_line_Defor,1)
         self.generalLayoutDefor.addWidget(subImageWidget,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,3)
         self.current_line_Defor +=1
 
     def _createErrorType(self):
