@@ -1355,7 +1355,7 @@ class Window(QMainWindow):
         self.lineImage1D = -1
         super().__init__(parent=None)
         self.setMinimumSize(1200, 800)
-        self.setWindowTitle("My GUI")
+        self.setWindowTitle("TRU-MPI")
         self.generalLayout = QGridLayout()
         self.generalLayoutLog = QGridLayout()
         self.generalLayoutReadMe = QGridLayout()
