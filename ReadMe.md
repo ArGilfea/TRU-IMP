@@ -1,4 +1,6 @@
 # README File
+# TRU-MPI
+# Techniques for Reliable Use of Medical Physics Images
 
 ## Use:
 This package and the GUI are used to visualize dynamic images, segment them and extract parameters. 
