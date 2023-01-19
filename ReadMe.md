@@ -52,15 +52,19 @@ A drop-down menu, initially set at "Slice" can allow different views of the imag
 * The "Segm. Sub. Slice" shows the slices of the subsegmentation;
 * The "Segm. Sub. Flat" shows the flattened subsegmentation;
 ### Visualising a TAC:
-The middle image, in its default setting, shows the Time-Activity Curve for the 
+- The middle image, in its default setting, shows the Time-Activity Curve for the 
 voxel selected by the sliders on the left.
-If focus is toggled, the focus on the views will be the point for the central TAC.
-If the subimage button is toggled, lines will be added to limit the TACs.
+- If focus is toggled, the focus on the views will be the point for the central TAC.
+- If the subimage button is toggled, lines will be added to limit the TACs.
+- If the superpose button is toggled, the selected segmentation will be superposed to the image.
 ### Visualising Sliced Signal:
 The botton row of images show slices at the position of the sliders.
 The y-axis represents the signal in that specific slice.
-If the focus button is toggled, a red line will indicate the position on those slices.
-If the subimage button is toggled, yellow lines will delimitate the subimage.
+- If the focus button is toggled, a red line will indicate the position on those slices.
+- If the subimage button is toggled, yellow lines will delimitate the subimage.
+- If the superpose button is toggled and a segmentation selected, the sliced signal will show where the segmentation overlap, as the curve will be filled where the segmentation is present.
+
+Once a segmentation is computed and selected, the bottom row of images can be modified to show the slice TACs. These slice TACs are computed like normal TACs. The only noteworthy detail is that, for each slice, the slice is considered as the whole spatial image (it impacts the denominator in the averaging)
 ### Infos Button:
 This button will create a pop-up with the basic information of the acquisition.
 ### Parameters Button:
@@ -70,6 +74,12 @@ Each tab represents one family of parameters.
 For each tab, a specific model can be selected: this will make the relevant parameters appear.
 Even if a new model is selected, the parameters are kept.
 The verbose parameter (default True) is recommended, as it allows to see the progresses.
+### Noise Button:
+This will add noise to the whole image, i.e. to all timeframes and all voxels, according to the parameters.
+Only one method will be used, as specified in the parameters window.
+### Deformation Button:
+This will deform a given segmentation, according to the specified parameters. The result will be stored as a new segmentation.
+Only one method will be used, as specified in the parameters window.
 ### Segmentation Button:
 This will segment the images according to the selected parameters.
 Only one method will be used, as specified in the parameters window.
@@ -95,6 +105,7 @@ Shows the TAC of the voxel, of a segmentation or of a segmentation error scheme,
 depending on the position of the sliders "Segm" and "Segm.Errors". 
 If both are -1, it will show the voxel of the leftern sliders;
 otherwise, it will show the curves for the sliders not equal to -1.
+* TAC Slice: Shows the TAC slices in the bottom row of images.
 * Dice:
 This will show the Dice coefficients for all segmentations,
 if they have been computed.
@@ -106,6 +117,9 @@ This will show the parameters extracted with Bayesian analyses.
 The parameter shown will be the one given by the "Bay. Values" slider.
 If it is set to -1, it will show them all:
 this can be hard to visualise if they don't have the same magnitude.
+The bottom row will be updated to show the Bayesian processes done by Dynesty, for the selected segmentation. 
+* Center of Mass: shows a 3D representation of the center of mass of the segmentations.
+* Moments Shows: a 3D representation of the 2nd moments of the segmentations.
 ### Exporting Results:
 Clicking the Export Button will open a window from where the exportation can be done.
 Whatever will be checked will be exported.
@@ -198,10 +212,29 @@ In topological terms, this represents L1,
 i.e. the distance between two points (x0,y0,z0) and (x1,y1,z1)
 is |x1-x0| + |y1-y0| + |z1-z0|
 
+## Deformation Schemes:
+
+This allows the modification of a segmentation by specific spatial transformations (all segmentations if set to -1). In each cases, it takes a segmentation, modifies it, saves the new result, along with the new TAC.
+
+### Linear Shift:
+This will shift the whole segmentation by a number of voxel in each spatial dimension, as specified. 
+
+The units are in voxels.
+### Rotate:
+This will rotate the whole segmentation by a number of degree in each spatial dimensions. Note, the order of rotation is fixed. The first value is the first axis of rotation, and so forth. Plan accordingly the desired values.
+
+The units are in degrees (they are converted in radiants inside the program).
 ## Error Bar Schemes:
 ### Linear Shift: 
 This will take a given segmentation and shift it by
-a number of voxels, as specified in the parameters.
+a number of voxels, as specified in the parameters (all if -1).
+The result will be a new TAC with an error bar,
+corresponding to the average of the new segmentations 
+and its standard deviation.
+Only the resulting curve will be saved.
+### Rotation
+This will take a given segmentation and rotate it by
+a certain degree, as specified in the parameters (all if -1).
 The result will be a new TAC with an error bar,
 corresponding to the average of the new segmentations 
 and its standard deviation.
