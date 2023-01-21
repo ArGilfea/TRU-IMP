@@ -221,9 +221,14 @@ This will shift the whole segmentation by a number of voxel in each spatial dime
 
 The units are in voxels.
 ### Rotate:
-This will rotate the whole segmentation by a number of degree in each spatial dimensions. Note, the order of rotation is fixed. The first value is the first axis of rotation, and so forth. Plan accordingly the desired values.
+This will rotate the whole segmentation by a number of degree in each spatial dimensions, according to its center of mass. 
+Note, the order of rotation is fixed. The first value is the first axis of rotation, and so forth. Plan accordingly the desired values.
 
 The units are in degrees (they are converted in radiants inside the program).
+### Expansion:
+This will expand the whole segmentation around its center of mass. Each factor representes an axis.
+
+The units are proportions (unitless), with 1 being an identity expansion.
 ## Error Bar Schemes:
 ### Linear Shift: 
 This will take a given segmentation and shift it by
@@ -235,6 +240,15 @@ Only the resulting curve will be saved.
 ### Rotation
 This will take a given segmentation and rotate it by
 a certain degree, as specified in the parameters (all if -1).
+The result will be a new TAC with an error bar,
+corresponding to the average of the new segmentations 
+and its standard deviation.
+Only the resulting curve will be saved.
+### Expansion
+This will take a given segmentation and expand it by
+a certain proportion, as specified in the parameters (all if -1).
+The factor used will both be used for an expansion and a contraction, i.e.
+both an expansion by the factor and 1/factor.
 The result will be a new TAC with an error bar,
 corresponding to the average of the new segmentations 
 and its standard deviation.

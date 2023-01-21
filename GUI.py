@@ -601,6 +601,7 @@ class Window(QMainWindow):
             MyFunctions.Batch_Errors.Batch_Errors(Image=self.Image,error_type=self.parameters.ErrorType,k=k,
                                                     order=self.parameters.orderShift,d=self.parameters.distanceShift,
                                                     angle = self.parameters.angleError*2*np.pi/360,
+                                                    factor= self.parameters.factorError,
                                                     verbose=self.parameters.verbose)
             self.displayStatus(f"{self.parameters.ErrorType} errors",initial)
             self.update_segm()
@@ -663,6 +664,7 @@ class Window(QMainWindow):
                                                     k = self.parameters.deformationSegm,
                                                     linear_d= self.parameters.deformationDistanceShift,
                                                     rotate_angle= self.parameters.deformationRotate*2*np.pi/360,
+                                                    factors_exp= self.parameters.deformationExpansion,
                                                     verbose= self.parameters.verbose)
 
             if self.parameters.deformationType != "None":

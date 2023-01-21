@@ -60,11 +60,13 @@ class GUIParameters(object):
         self.deformationSegm = -1
         self.deformationDistanceShift = np.array([0,0,0])
         self.deformationRotate = np.array([0,0,0])
+        self.deformationExpansion = np.array([1.0,1.0,1.0])
 
         self.orderShift = 1
         self.distanceShift = 1
         self.weightShift = 1
         self.angleError = 0
+        self.factorError = 1.0
 
         self.BayesianAcq = -1
         self.BayesianType = "None"

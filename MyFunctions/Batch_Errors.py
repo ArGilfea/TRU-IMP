@@ -6,7 +6,7 @@ import MyFunctions.Pickle_Functions as PF
 
 def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
                 path_in:str='',name_in:str='',path_out:str = '',name_out:str='',saveResult:bool = False,
-                verbose:bool=False,order:int=1,d:float=1,weight=1, angle:float = 0):
+                verbose:bool=False,order:int=1,d:float=1,weight=1, angle:float = 0,factor:float = 1):
     """
     Computes errors on segmentations of a DicomImage class, which is either given directly as a parameter or whose path is given.
     This will compute the errors on TACs from segmentations. 
@@ -25,6 +25,7 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
     d -- distance of the shift (default 1)\n
     weight -- weight for each axis, if compounded [TBA] (default 1)\n
     angle -- angle of rotation for the rotation error in radians (default 0)\n
+    factor -- factor of expansion for the expansion error (default 1)\n
     verbose -- outputs the progress (default False)\n
     """
     initial = time.time()
@@ -50,6 +51,8 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
         Linear_Shift_Errors_Batch(Image,k=k,order=order,d=d,weight=weight,verbose=verbose)
     if error_type == "Rotation":
         Rotation_Error_Batch(Image,k=k,order=order,angle = angle, verbose = verbose)
+    if error_type == "Expansion":
+        Expansion_Error_Batch(Image,k=k,order=order,factor = factor, verbose = verbose)
 
     if saveResult:
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
@@ -75,8 +78,21 @@ def Rotation_Error_Batch(Image:DicomImage,k:np.ndarray,order:int=1,angle:float=0
     Image -- DicomImage class used\n
     k -- segmentation for which to compute the errors. -1 for all (default -1)\n
     order -- linear shift order (default 1)\n
-    d -- distance of the shift (default 1)\n
+    angle -- angle of the rotation (default 0)\n
     weight -- weight for each axis, if compounded [TBA] (default 1)\n
     verbose -- outputs the progress (default False)\n
     """
     Image.rotation_errors(keys = k, angle = angle, order = order, verbose = verbose)
+
+def Expansion_Error_Batch(Image:DicomImage,k:np.ndarray,order:int=1,factor:float=1,verbose:bool=True):
+    """
+    Compute the expansion errors of the curves based upon the given parameters.\n
+    Keyword arguments:\n
+    Image -- DicomImage class used\n
+    k -- segmentation for which to compute the errors. -1 for all (default -1)\n
+    order -- linear shift order (default 1)\n
+    d -- factor of the expansion (default 1)\n
+    weight -- weight for each axis, if compounded [TBA] (default 1)\n
+    verbose -- outputs the progress (default False)\n
+    """
+    Image.expansion_errors(keys = k, factor = factor, order = order, verbose = verbose)

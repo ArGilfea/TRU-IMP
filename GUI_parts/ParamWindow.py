@@ -349,6 +349,7 @@ class ParamWindow(QMainWindow):
         self.DeformationCombo.addItem("None")
         self.DeformationCombo.addItem("Linear Shift")
         self.DeformationCombo.addItem("Rotation")
+        self.DeformationCombo.addItem("Expansion")
 
         self.DeformationCombo.setCurrentText(self.parameters.deformationType)
         self.DeformationCombo.activated[str].connect(self.DeformationMethodCombo_Changed)
@@ -444,12 +445,48 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.setRowStretch(self.current_line_Defor,3)
         self.current_line_Defor +=1
 
+    def _createFactorDeformation(self):
+        """Creates the sliders and the line edits for the angles of the rotation deformation."""
+        btnNew1,slider1 = self._createIntInput(self.parameters.deformationExpansion[0])
+        btnNew2,slider2 = self._createIntInput(self.parameters.deformationExpansion[1])
+        btnNew3,slider3 = self._createIntInput(self.parameters.deformationExpansion[2])
+        slider1.valueChanged.connect(self.update_int)
+        slider2.valueChanged.connect(self.update_int)
+        slider3.valueChanged.connect(self.update_int)
+        slider1.setTickInterval(100)
+        slider2.setTickInterval(100)
+        slider3.setTickInterval(100)
+        slider1.setRange(0,1000)
+        slider2.setRange(0,1000)
+        slider3.setRange(0,1000)
+        slider1.setValue(self.parameters.deformationExpansion[0]*100)
+        slider2.setValue(self.parameters.deformationExpansion[1]*100)
+        slider3.setValue(self.parameters.deformationExpansion[2]*100)
+        self.sliderDeformationExpansion1 = slider1   
+        self.sliderDeformationExpansion2 = slider2   
+        self.sliderDeformationExpansion3 = slider3   
+
+        subImageWidget = QWidget()
+        layout = QGridLayout()
+        subImageWidget.setLayout(layout)
+
+        layout.addWidget(btnNew1,0,0)
+        layout.addWidget(btnNew2,1,0)
+        layout.addWidget(btnNew3,2,0)
+
+        self.generalLayoutDefor.addWidget(QLabel("Factor"),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationExpansion}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(subImageWidget,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,3)
+        self.current_line_Defor +=1       
+
     def _createErrorType(self):
         """Creates the Combo Box for the error type method"""
         self.ErrorCombo = QComboBox()
         self.ErrorCombo.addItem("None")
         self.ErrorCombo.addItem("Linear Shift")
         self.ErrorCombo.addItem("Rotation")
+        self.ErrorCombo.addItem("Expansion")
 
         self.ErrorCombo.setCurrentText(self.parameters.ErrorType)
         self.ErrorCombo.activated[str].connect(self.ErrorMethodCombo_Changed)
@@ -916,11 +953,24 @@ class ParamWindow(QMainWindow):
         slider.setValue(self.parameters.angleError)
         self.sliderErrorAngle = slider   
 
-        self.generalLayoutError.addWidget(QLabel("Angle (Degrees)"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel("Angle (degrees)"),self.current_line_Error,0)
         self.generalLayoutError.addWidget(QLabel(f"{self.parameters.angleError}"),self.current_line_Error,1)
         self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
         self.current_line_Error +=1
 
+    def _createExpansionError(self):
+        """Creates the slider and the line edit for the factor of the expansion (expansion error)."""
+        btnNew,slider = self._createIntInput(self.parameters.factorError)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(100)
+        slider.setRange(0,1000)
+        slider.setValue(self.parameters.factorError*100)
+        self.sliderErrorFactor = slider   
+
+        self.generalLayoutError.addWidget(QLabel("Factor"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel(f"{self.parameters.factorError}"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
+        self.current_line_Error +=1
     def _createSigmaCanny(self):
         """Creates the slider and the line edit for the sigma (Canny)."""
         btnNew,slider = self._createIntInput(self.parameters.sigmaCanny)
@@ -1215,6 +1265,7 @@ class ParamWindow(QMainWindow):
         self._createDeformationSeg()
         self._createDShiftDeformation()
         self._createAngleDeformation()
+        self._createFactorDeformation()
         #Error Specific
         self._createErrorType()
         if self.parameters.ErrorType != "None":
@@ -1225,6 +1276,9 @@ class ParamWindow(QMainWindow):
         if self.parameters.ErrorType == "Rotation":
             self._createOrderShiftError()
             self._createAngleError()
+        if self.parameters.ErrorType == "Expansion":
+            self._createOrderShiftError()
+            self._createExpansionError()
         #Bayesian Specific
         self._createBayesianType()
         if self.parameters.CurveTypeBayesian == "Errors":
@@ -1443,6 +1497,10 @@ class ParamWindow(QMainWindow):
             self.parameters.angleError = self.sliderErrorAngle.value()
         except: pass
         try:
+            self.parameters.factorError = self.sliderErrorFactor.value()/100
+        except:
+            pass
+        try:
             self.parameters.threshold = self.sliderThresh.value()/100
         except: pass
         try:
@@ -1474,6 +1532,12 @@ class ParamWindow(QMainWindow):
             self.parameters.deformationRotate[0] = self.sliderDeformationRotate1.value()
             self.parameters.deformationRotate[1] = self.sliderDeformationRotate2.value()
             self.parameters.deformationRotate[2] = self.sliderDeformationRotate3.value()
+        except:
+            pass
+        try:
+            self.parameters.deformationExpansion[0] = self.sliderDeformationExpansion1.value()/100
+            self.parameters.deformationExpansion[1] = self.sliderDeformationExpansion2.value()/100
+            self.parameters.deformationExpansion[2] = self.sliderDeformationExpansion3.value()/100
         except:
             pass
     def update_QLines(self):

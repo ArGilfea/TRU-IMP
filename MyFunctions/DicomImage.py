@@ -383,12 +383,78 @@ class DicomImage(object):
                     inter_value = self.segm_interpolation_2D(slice,new_X_replaced,new_Y_replaced)
                 else:
                     inter_value = 0
-                #print("inter_value ",inter_value)
                 if inter_value > 0.5:
                     rotated_array[i,j] = 1
                 else:
                     rotated_array[i,j] = 0
         return rotated_array
+
+    def expand_VOI(self,factors:np.ndarray = ([0,0,0]),axis: np.ndarray = ([-1,0,0]), counter:int= -1, save:bool = True, name: str= ''):
+        """
+        This function takes a segmentation and expands it around the center of mass.\n
+        Plan the angles accordingly.\n
+        Keyword arguments:\n
+        factors -- factors for the expansion: each factor will be about an axis (default [0,0,0])\n
+        axis -- central point around which to do the expansion; if undefined, will be around the center of mass of the VOI (default [-1,0,0])\n
+        counter -- segmentation to use for the shift (default -1)\n
+        save -- save the VOI if True, else, return it as an output (default True)\n
+        name -- name of the new VOI (default '')\n
+        """
+        if (counter >= 0):
+            new_VOI = np.zeros_like(self.voi[f"{counter}"])
+            old_VOI = self.voi[f"{counter}"]
+            if np.sum(axis) < 0:
+                axis = np.array(self.voi_center_of_mass[counter]).astype(int)
+
+            for i in range(new_VOI.shape[0]):
+                for j in range(new_VOI.shape[1]):
+                    for k in range(new_VOI.shape[2]):
+                        #This is done backward. We look at a voxel and the new image.
+                        #If it falls within the segmentation of the original VOI, we add it.
+                        #Otherwise, no
+                        #First, shift the image around the axis
+                        x1 = i - axis[0]
+                        y1 = j - axis[1]
+                        z1 = k - axis[2]
+                        #Then, expand (inversely)
+                        if factors[0] == 0:
+                            factors[0] = 1
+                        if factors[1] == 0:
+                            factors[1] = 1
+                        if factors[2] == 0:
+                            factors[2] = 1
+                        x2 = x1/factors[0]
+                        y2 = y1/factors[1]
+                        z2 = z1/factors[2]
+                        #Check if it falls within the segmentation
+                        x3 = x2 + axis[0]
+                        y3 = y2 + axis[1]
+                        z3 = z2 + axis[2]
+                        if (x3 > 0 and x3 < old_VOI.shape[0]-1) and (y3 > 0 and y3 < old_VOI.shape[1]-1) and (z3 > 0 and z3 < old_VOI.shape[2]-1):
+                            box = np.array([old_VOI[int(x3),int(y3),int(z3)],old_VOI[int(x3)+1,int(y3),int(z3)],
+                                            old_VOI[int(x3),int(y3)+1,int(z3)],old_VOI[int(x3),int(y3),int(z3)+1],
+                                            old_VOI[int(x3)+1,int(y3)+1,int(z3)],old_VOI[int(x3)+1,int(y3),int(z3)+1],
+                                            old_VOI[int(x3),int(y3)+1,int(z3)+1],old_VOI[int(x3)+1,int(y3)+1,int(z3)+1]])
+                            if np.sum(box) == 8:
+                                value = 1
+                            elif np.sum(box) == 0:
+                                value = 0
+                            else:
+                                value = self.segm_interpolation_3D(boxArray = box,point = np.array([x2,y2,z2]))
+                        else:
+                            value = 0
+                        #Finaly, return in a usual position
+                        if value > 0.5:
+                            new_VOI[i,j,k] = 1
+            if save:
+                if name == '':
+                    self.save_VOI(new_VOI,name=f"expansion_{factors}")
+                else:
+                    self.save_VOI(new_VOI,name=f"expansion_{factors}_{name}")
+            else:
+                return new_VOI
+        else:
+            self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
         
     def linear_shifts_error(self,key:int=-1,order=1,d=1,weight=1,verbose:bool=False):#Done in 2.0.0
         """
@@ -464,11 +530,11 @@ class DicomImage(object):
 
     def rotation_errors(self, keys:np.ndarray, angle: float = 0, order: int = 1, verbose: bool = False, verbose_precise: bool = False):
         """
-        Runs the function linear_shift_errors on a number of segmentations, saving the resulting curves.\n
+        Runs the function rotation_error on a number of segmentations, saving the resulting curves.\n
         The order and weight parameters will be the same for each computation.\n
         Keyword arguments:\n
         keys -- segmentations key to use. Must be a list or an np.ndarray\n
-        angle -- linear shift order (default 0)\n
+        angle -- rotation angle (default 0)\n
         order -- rotation order (default 1)\n
         verbose -- outputs the progress (default False)\n
         verbose_precise -- outputs the progress of the underlying process (default False)\n
@@ -476,13 +542,70 @@ class DicomImage(object):
         initial= time.time()
         if not isinstance(keys,(list,np.ndarray)):
             raise Exception('''keys must be an array of the segmentations to estimate the error.\n
-                            To use on a single segmentation, use linear_shifts_error (without 's')''')
+                            To use on a single segmentation, use rotation_error (without 's')''')
         else: keys=np.array(keys)
         for i in range(keys.shape[0]):
             self.rotation_error(keys[i],angle = angle,order = order,verbose=verbose_precise)
             if verbose: 
                 self.update_log(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
+    def expansion_error(self, key:int, factor:float = 1, order:int = 1, verbose: bool = False):
+        """
+        This function takes a specific segmentation and expands it, saving only the results,
+        in order to save memory space.
+        Keyword arguments:\n
+        key -- segmentation key to use (default -1)\n
+        factor -- factor of the expansion (default 1)\n
+        order -- expansion order (default 1)\n
+        verbose -- outputs the progress (default False)\n
+        """
+        initial = time.time()
+        if key < 0 or key >= self.voi_counter:
+            raise Exception(f"Counter must be between 0 and {self.voi_counter}, whereas here it was {key}.")
+        if order == 1:
+            factor_axis = np.array([[factor,0,0],[1/factor,0,0],
+                                [0,factor,0],[0,1/factor,0],
+                                [0,0,factor],[0,0,1/factor]])
+        elif order == 2:
+            factor_axis = np.array([[factor,factor,0],[1/factor,1/factor,0],[1/factor,factor,0],[factor,1/factor,0],
+                                [0,factor,factor],[0,1/factor,1/factor],[0,1/factor,factor],[0,factor,1/factor],
+                                [factor,0,factor],[1/factor,0,1/factor],[1/factor,0,factor],[factor,0,1/factor]])
+        elif order == 3:
+            factor_axis = np.array([[factor,factor,factor],[1/factor,1/factor,1/factor],
+                                [factor,factor,1/factor],[1/factor,1/factor,factor],
+                                [factor,1/factor,factor],[1/factor,factor,1/factor],
+                                [1/factor,factor,factor],[factor,1/factor,1/factor]])
+        stats_curves = np.zeros((factor_axis.shape[0],self.nb_acq))
+        for i in range(factor_axis.shape[0]):
+            print("Factor: ",factor_axis[i,:])
+            VOI_shifted = self.expand_VOI(factor_axis[i,:],counter=key,save=False)
+            stats_curves[i,:] = self.VOI_statistics(VOI = VOI_shifted)
+            if verbose:
+                self.update_log(f"% done for key {key}: {(i+1)/factor_axis.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+        self.voi_statistics_counter += 1
+        self.voi_statistics_avg.append(np.mean(stats_curves,0))
+        self.voi_statistics_std.append(np.std(stats_curves,0))
+
+    def expansion_errors(self, keys:np.ndarray, factor: float = 1, order: int = 1, verbose: bool = False, verbose_precise: bool = False):
+        """
+        Runs the function rotation_error on a number of segmentations, saving the resulting curves.\n
+        The order and weight parameters will be the same for each computation.\n
+        Keyword arguments:\n
+        keys -- segmentations key to use. Must be a list or an np.ndarray\n
+        factor -- factor for the expansion (default 1)\n
+        order -- expansion order (default 1)\n
+        verbose -- outputs the progress (default False)\n
+        verbose_precise -- outputs the progress of the underlying process (default False)\n
+        """
+        initial= time.time()
+        if not isinstance(keys,(list,np.ndarray)):
+            raise Exception('''keys must be an array of the segmentations to estimate the error.\n
+                            To use on a single segmentation, use expansion_error (without 's')''')
+        else: keys=np.array(keys)
+        for i in range(keys.shape[0]):
+            self.expansion_error(keys[i],factor = factor,order = order,verbose=verbose_precise)
+            if verbose: 
+                self.update_log(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
 ############################################################
 #                                                          #
 # This section deals with the adding and removal of VOIs   #
@@ -1960,6 +2083,32 @@ class DicomImage(object):
 
         return xprimeyprime
 
+    def segm_interpolation_3D(self,boxArray:np.ndarray,point:np.ndarray) -> float:
+        """
+        This function interpolates the segmentation between two 3D points\n
+        Keyword arguments:\n
+        boxArray -- slice to use for the interpolation\n
+        point -- point along the first axis
+        """
+
+        try:
+            xd = point[0] - int(point[0])
+            yd = point[1] - int(point[1])
+            zd = point[2] - int(point[2])
+
+            c00 = boxArray[0]*(1 - xd) + boxArray[1] * xd
+            c01 = boxArray[3]*(1 - xd) + boxArray[5] * xd
+            c10 = boxArray[2]*(1 - xd) + boxArray[4] * xd
+            c11 = boxArray[6]*(1 - xd) + boxArray[7] * xd
+
+            c0 = c00*(1-yd) + c10 * yd
+            c1 = c01*(1-yd) + c11 * yd
+
+            return c0*(1 - zd) + c1*zd
+
+        except:
+            return 0
+
 ############################################################
 #                                                          #
 # This section deals with neighbours                       #
@@ -2097,7 +2246,7 @@ class DicomImage(object):
         Gives the neighbours for 1st, 2nd, and 3rd.\n
         Keyword arguments:\n
         order -- order of the neighbours to look at. Can be 1, 2, or 3, or an array of these.\n
-        d -- distance to stretch the axes
+        d -- distance to stretch the axes (default 1)\n
         """
         first_order = np.array([[1,0,0],[-1,0,0],
                                 [0,1,0],[0,-1,0],
