@@ -1,7 +1,7 @@
 import numpy as np
-from sympy import Q
 import MyFunctions.Statistic_Functions as SF
 from GUI_parts.GUIParam import GUIParameters
+import os
 ###
 import numpy as np
 ###
@@ -26,7 +26,7 @@ class ParamWindow(QMainWindow):
     def __init__(self,parameters:GUIParameters,parent=None):
         """Initializes the ParamWindow with the GUI Parameters"""
         super().__init__(parent)
-        self.setMinimumSize(300, 800)
+        self.setMinimumSize(300, 750)
         self.tabs = QTabWidget()
         self.parameters = parameters
         self.setWindowTitle("Parameters")
@@ -35,22 +35,26 @@ class ParamWindow(QMainWindow):
         self.generalLayoutError = QGridLayout()
         self.generalLayoutBayesian = QGridLayout()
         self.generalLayoutNoise = QGridLayout()
+        self.generalLayoutErase = QGridLayout()
         centralWidgetSegm = QWidget(self)
         centralWidgetDefor = QWidget(self)
         centralWidgetErrors = QWidget(self)
         centralWidgetBayesian = QWidget(self)
         centralWidgetNoise = QWidget(self)
+        centralWidgetErase = QWidget(self)
         centralWidgetSegm.setLayout(self.generalLayoutSegm)
         centralWidgetDefor.setLayout(self.generalLayoutDefor)
         centralWidgetErrors.setLayout(self.generalLayoutError)
         centralWidgetBayesian.setLayout(self.generalLayoutBayesian)
         centralWidgetNoise.setLayout(self.generalLayoutNoise)
+        centralWidgetErase.setLayout(self.generalLayoutErase)
 
         self.tabs.addTab(centralWidgetSegm,"Segm.")
         self.tabs.addTab(centralWidgetDefor,"Defor.")
         self.tabs.addTab(centralWidgetErrors,"Errors.")
         self.tabs.addTab(centralWidgetBayesian,"Bayesian.")
         self.tabs.addTab(centralWidgetNoise,"Noise")
+        self.tabs.addTab(centralWidgetErase,"Erase")
         self.setCentralWidget(self.tabs)
         self.initialize_param_window()
 
@@ -61,6 +65,7 @@ class ParamWindow(QMainWindow):
         self.current_line_Error = 2
         self.current_line_Bayesian = 2
         self.current_line_Noise = 2
+        self.current_line_Erase = 2
         self._createParamList()
 
     def _createSeedSliders(self):
@@ -350,6 +355,7 @@ class ParamWindow(QMainWindow):
         self.DeformationCombo.addItem("Linear Shift")
         self.DeformationCombo.addItem("Rotation")
         self.DeformationCombo.addItem("Expansion")
+        self.DeformationCombo.addItem("Reflection")
 
         self.DeformationCombo.setCurrentText(self.parameters.deformationType)
         self.DeformationCombo.activated[str].connect(self.DeformationMethodCombo_Changed)
@@ -480,6 +486,20 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.setRowStretch(self.current_line_Defor,3)
         self.current_line_Defor +=1       
 
+    def _createAxisReflectionDeformation(self):
+        """Create the slider for the axis of reflection"""
+        btnNew,slider = self._createIntInput(self.parameters.deformationReflectionAxis)
+        self.sliderDeformationAxisReflection = slider
+        slider.valueChanged.connect(self.update_int)
+        slider.setRange(0,2)
+        slider.setValue(self.parameters.deformationReflectionAxis)
+
+
+        self.generalLayoutDefor.addWidget(QLabel("Ax. Refl."),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deformationReflectionAxis}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(btnNew,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,1)
+        self.current_line_Defor +=1   
     def _createErrorType(self):
         """Creates the Combo Box for the error type method"""
         self.ErrorCombo = QComboBox()
@@ -487,6 +507,7 @@ class ParamWindow(QMainWindow):
         self.ErrorCombo.addItem("Linear Shift")
         self.ErrorCombo.addItem("Rotation")
         self.ErrorCombo.addItem("Expansion")
+        self.ErrorCombo.addItem("Reflection")
 
         self.ErrorCombo.setCurrentText(self.parameters.ErrorType)
         self.ErrorCombo.activated[str].connect(self.ErrorMethodCombo_Changed)
@@ -634,42 +655,43 @@ class ParamWindow(QMainWindow):
         self.current_line_Noise +=1
     def _createNoiseFormulaeDisplay(self):
         """Shows the formula of the pdf, the mean (and its value) and the std (and its value)"""
+        basedir = os.path.dirname(__file__)
         if self.parameters.NoiseType == "Gaussian":
-            pdf = "Images/Gaussian_pdf.png"
+            pdf = f"{basedir}/../Images/Gaussian_pdf.png"
             mu = self.parameters.NoiseMu
-            mu_f = "Images/Gaussian_mu.png"
+            mu_f = f"{basedir}/../Images/Gaussian_mu.png"
             sigma = self.parameters.NoiseSigma
-            sigma_f = "Images/Gaussian_sigma.png"
+            sigma_f = f"{basedir}/../Images/Gaussian_sigma.png"
         elif self.parameters.NoiseType == "Uniform":
-            pdf = "Images/Uniform_pdf.png"
+            pdf = f"{basedir}/../Images/Uniform_pdf.png"
             mu = SF.uniform_noise_pdf(a=self.parameters.NoiseAUniform,b = self.parameters.NoiseBUniform,type="mu")
-            mu_f = "Images/Uniform_mu.png"
+            mu_f = f"{basedir}/../Images/Uniform_mu.png"
             sigma = SF.uniform_noise_pdf(a=self.parameters.NoiseAUniform,b = self.parameters.NoiseBUniform,type="sigma")
-            sigma_f = "Images/Uniform_sigma.png"
+            sigma_f = f"{basedir}/../Images/Uniform_sigma.png"
         elif self.parameters.NoiseType == "Erlang (Gamma)":
-            pdf = "Images/Erlang_pdf.png"
+            pdf = f"{basedir}/../Images/Erlang_pdf.png"
             mu = SF.Erlang_noise_pdf(a=self.parameters.NoiseAErlang,b = self.parameters.NoiseBErlang,type="mu")
-            mu_f = "Images/Erlang_mu.png"
+            mu_f = f"{basedir}/../Images/Erlang_mu.png"
             sigma = SF.Erlang_noise_pdf(a=self.parameters.NoiseAErlang,b = self.parameters.NoiseBErlang,type="sigma")
-            sigma_f = "Images/Erlang_sigma.png"
+            sigma_f = f"{basedir}/../Images/Erlang_sigma.png"
         elif self.parameters.NoiseType == "Exponential":
-            pdf = "Images/Exponential_pdf.png"
+            pdf = f"{basedir}/../Images/Exponential_pdf.png"
             mu = SF.exponential_noise_pdf(a=self.parameters.NoiseExponential,type="mu")
-            mu_f = "Images/Exponential_mu.png"
+            mu_f = f"{basedir}/../Images/Exponential_mu.png"
             sigma = SF.exponential_noise_pdf(a=self.parameters.NoiseExponential,type="sigma")
-            sigma_f = "Images/Exponential_sigma.png"
+            sigma_f = f"{basedir}/../Images/Exponential_sigma.png"
         elif self.parameters.NoiseType == "Rayleigh":
-            pdf = "Images/Rayleigh_pdf.png"
+            pdf = f"{basedir}/../Images/Rayleigh_pdf.png"
             mu = SF.rayleigh_noise_pdf(a=self.parameters.NoiseARayleigh,b = self.parameters.NoiseBRayleigh,type="mu")
-            mu_f = "Images/Rayleigh_mu.png"
+            mu_f = f"{basedir}/../Images/Rayleigh_mu.png"
             sigma = SF.rayleigh_noise_pdf(a=self.parameters.NoiseARayleigh,b = self.parameters.NoiseBRayleigh,type="sigma")
-            sigma_f = "Images/Rayleigh_sigma.png"
+            sigma_f = f"{basedir}/../Images/Rayleigh_sigma.png"
         else:
-            pdf = "Images/None.png"
+            pdf = f"{basedir}/../Images/None.png"
             mu = 0
-            mu_f = "Images/None.png"
+            mu_f = f"{basedir}/../Images/None.png"
             sigma = 0
-            sigma_f = "Images/None.png"
+            sigma_f = f"{basedir}/../Images/None.png"
         im_pdf = QLabel()
         im_mu = QLabel()
         im_sigma = QLabel()
@@ -789,6 +811,113 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise.addWidget(QLabel(f"{self.parameters.NoiseExponential}"),self.current_line_Noise,1)
         self.generalLayoutNoise.addWidget(self.btnNoiseExponential,self.current_line_Noise,2)
         self.generalLayoutNoise.setRowStretch(self.current_line_Noise,1)        
+    def _createHeadersErase(self):
+        """Creates the Values for the Erase Button"""
+        self.EraseTypeChoice = QComboBox()
+        self.EraseTypeChoice.addItem("None")
+        self.EraseTypeChoice.addItem("Segmentation")
+        self.EraseTypeChoice.addItem("Error")
+        self.EraseTypeChoice.addItem("Bayesian")
+        self.EraseTypeChoice.setCurrentText(self.parameters.EraseType)
+        self.EraseTypeChoice.activated[str].connect(self.EraseChoiceComboChanged)
+
+        SegmNumber = QLineEdit()
+        SegmNumber.setText(str(self.parameters._nbSeg))
+        SegmNumber.setFixedWidth(70)
+        SegmNumber.setReadOnly(True)
+        ErrorNumber = QLineEdit()
+        ErrorNumber.setText(str(self.parameters._nbError))
+        ErrorNumber.setFixedWidth(70)
+        ErrorNumber.setReadOnly(True)
+        BayesianNumber = QLineEdit()
+        BayesianNumber.setText(str(self.parameters._nbBayesian))
+        BayesianNumber.setFixedWidth(70)
+        BayesianNumber.setReadOnly(True)
+
+        btnNewSegm,sliderSegm = self._createIntInput(self.parameters.EraseSegm)
+        btnNewError,sliderError = self._createIntInput(self.parameters.EraseError)
+        btnNewBayesian,sliderBayesian = self._createIntInput(self.parameters.EraseBayesian)
+        self.sliderEraseSegm = sliderSegm
+        self.sliderEraseError = sliderError
+        self.sliderEraseBayesian = sliderBayesian
+        sliderSegm.valueChanged.connect(self.update_EraseValues)
+        sliderSegm.setTickInterval(1)
+        sliderSegm.setRange(-1,self.parameters._nbSeg-1)
+        sliderSegm.setValue(self.parameters.EraseSegm)
+        sliderError.valueChanged.connect(self.update_EraseValues)
+        sliderError.setTickInterval(1)
+        sliderError.setRange(-1,self.parameters._nbError-1)
+        sliderError.setValue(self.parameters.EraseError)
+        sliderBayesian.valueChanged.connect(self.update_EraseValues)
+        sliderBayesian.setTickInterval(1)
+        sliderBayesian.setRange(-1,self.parameters._nbBayesian-1)
+        sliderBayesian.setValue(self.parameters.EraseBayesian)
+
+        self.generalLayoutErase.addWidget(QLabel("Current Number of Segmentations"),self.current_line_Erase,0)
+        self.generalLayoutErase.addWidget(SegmNumber,self.current_line_Erase,1)
+        self.current_line_Erase += 1
+        self.generalLayoutErase.addWidget(QLabel("Current Number of Errors"),self.current_line_Erase,0)
+        self.generalLayoutErase.addWidget(ErrorNumber,self.current_line_Erase,1)
+        self.current_line_Erase += 1
+        self.generalLayoutErase.addWidget(QLabel("Current Number of Bayesian Analyses"),self.current_line_Erase,0)
+        self.generalLayoutErase.addWidget(BayesianNumber,self.current_line_Erase,1)
+        self.current_line_Erase += 1
+
+        self.generalLayoutErase.addWidget(QLabel("Type"),self.current_line_Erase,0)
+        self.generalLayoutErase.addWidget(QLabel(self.parameters.EraseType),self.current_line_Erase,1)
+        self.generalLayoutErase.addWidget(self.EraseTypeChoice,self.current_line_Erase,2)
+        self.current_line_Erase += 1
+
+        self.generalLayoutErase.addWidget(QLabel("Segmentation"),self.current_line_Erase,0)
+        self.generalLayoutErase.addWidget(QLabel(str(self.parameters.EraseSegm)),self.current_line_Erase,1)
+        self.generalLayoutErase.addWidget(btnNewSegm,self.current_line_Erase,2)
+        self.current_line_Erase += 1
+
+        self.generalLayoutErase.addWidget(QLabel("Error"),self.current_line_Erase,0)
+        self.generalLayoutErase.addWidget(QLabel(str(self.parameters.EraseError)),self.current_line_Erase,1)
+        self.generalLayoutErase.addWidget(btnNewError,self.current_line_Erase,2)
+        self.current_line_Erase += 1
+
+        self.generalLayoutErase.addWidget(QLabel("Bayesian"),self.current_line_Erase,0)
+        self.generalLayoutErase.addWidget(QLabel(str(self.parameters.EraseBayesian)),self.current_line_Erase,1)
+        self.generalLayoutErase.addWidget(btnNewBayesian,self.current_line_Erase,2)
+        self.current_line_Erase += 1
+    def _createEraseButton(self):
+        """Creates the dangerous erase button"""
+        self.EraseButton = QPushButton("Erase")
+        self.EraseButton.setToolTip("Danger! Will erase a calculated aspect as specified")
+        self.EraseButton.clicked.connect(self.EraseButtonClicked)
+
+        self.generalLayoutErase.addWidget(self.EraseButton,self.current_line_Erase,1)
+        self.current_line_Erase += 1
+
+    def _createExitButtons(self):
+        """Creates exit buttons for the param window"""
+        self.exitSegm = QPushButton("Close")
+        self.exitNoise = QPushButton("Close")
+        self.exitError = QPushButton("Close")
+        self.exitBayesian = QPushButton("Close")
+        self.exitDeform = QPushButton("Close")
+        self.exitErase = QPushButton("Close")
+
+        self.exitSegm.clicked.connect(self.close)
+        self.exitNoise.clicked.connect(self.close)
+        self.exitError.clicked.connect(self.close)
+        self.exitBayesian.clicked.connect(self.close)
+        self.exitDeform.clicked.connect(self.close)
+        self.exitErase.clicked.connect(self.close)
+        self.generalLayoutSegm.addWidget(self.exitSegm,self.current_line_Segm,3)  
+        self.generalLayoutNoise.addWidget(self.exitNoise,self.current_line_Noise,3)  
+        self.generalLayoutError.addWidget(self.exitError,self.current_line_Error,3)  
+        self.generalLayoutBayesian.addWidget(self.exitBayesian,self.current_line_Bayesian,3)  
+        self.generalLayoutDefor.addWidget(self.exitDeform,self.current_line_Defor,3)  
+        self.generalLayoutErase.addWidget(self.exitErase,self.current_line_Erase,3)  
+        self.current_line_Segm += 1
+        self.current_line_Noise += 1
+        self.current_line_Error += 1
+        self.current_line_Bayesian += 1
+        self.current_line_Defor += 1
+        self.current_line_Erase += 1
     def _createThreshBaySliders(self):
         btnNew,slider = self._createIntInput(self.parameters.Bayesian_thresh_perc)
         btnNew2,slider2 = self._createIntInput(self.parameters.Bayesian_thresh_value)
@@ -1266,6 +1395,7 @@ class ParamWindow(QMainWindow):
         self._createDShiftDeformation()
         self._createAngleDeformation()
         self._createFactorDeformation()
+        self._createAxisReflectionDeformation()
         #Error Specific
         self._createErrorType()
         if self.parameters.ErrorType != "None":
@@ -1302,6 +1432,9 @@ class ParamWindow(QMainWindow):
             self._createNoiseUnifB()
         elif self.parameters.NoiseType == "Exponential":
             self._createNoiseExponential()
+        #Erase Specific
+        self._createHeadersErase()
+        #self._createEraseButton()
         #Utilities
         self._createSaveBox()
         self._createVerbose()
@@ -1309,6 +1442,8 @@ class ParamWindow(QMainWindow):
         self._createCurvesBox()
         self._createCoefficientsBox()
         self._createThresholdBox()
+        #Exit
+        self._createExitButtons()
         self.generalLayoutNoise.setColumnStretch(0,1)
         self.generalLayoutNoise.setColumnStretch(1,5)
         self.generalLayoutNoise.setColumnStretch(2,5)
@@ -1540,6 +1675,26 @@ class ParamWindow(QMainWindow):
             self.parameters.deformationExpansion[2] = self.sliderDeformationExpansion3.value()/100
         except:
             pass
+
+        try:
+            self.parameters.deformationReflectionAxis = self.sliderDeformationAxisReflection.value()
+        except:
+            pass
+
+    def update_EraseValues(self):
+        """Updates the parameters for the erase values"""
+        try:
+            self.parameters.EraseSegm = int(self.sliderEraseSegm.value())
+        except:
+            self.parameters.EraseSegm = -1
+        try:
+            self.parameters.EraseError = int(self.sliderEraseError.value())
+        except:
+            self.parameters.EraseError = -1
+        try:
+            self.parameters.EraseBayesian = int(self.sliderEraseBayesian.value())
+        except:
+            self.parameters.EraseBayesian = -1
     def update_QLines(self):
         """
         Updates all the float parameters the QLineEdit is changed
@@ -1590,6 +1745,14 @@ class ParamWindow(QMainWindow):
         except: 
             self.parameters.NoiseExponential = 1.0
         self.refresh_app()
+    def EraseChoiceComboChanged(self):
+        """Changes the Type of Erasure to do"""
+        self.parameters.EraseType = self.EraseTypeChoice.currentText()
+        self.refresh_app()
+    def EraseButtonClicked(self):
+        """Activate the Erase Button"""
+        
+        self.refresh_app()
     def refresh_app(self):
         """
         When a different segmentation, error or Dynesty scheme is chosen, update the whole window and only display the parameters of interest
@@ -1624,6 +1787,12 @@ class ParamWindow(QMainWindow):
                 widget = item.widget()
                 if widget is not None:
                     widget.deleteLater()
+        if self.generalLayoutErase is not None:
+            while self.generalLayoutErase.count():
+                item = self.generalLayoutErase.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
         self.initialize_param_window()
 
 
@@ -1631,7 +1800,7 @@ class MplCanvas(FigureCanvasQTAgg):
     """Class for the images and the graphs as a widget"""
     def __init__(self, parent=None, width:float=5, height:float=4, dpi:int=75):
         """Creates an empty figure with axes and fig as parameters"""
-        fig = Figure(figsize=(width, height), dpi=dpi)
+        fig = Figure(figsize=(width, height), dpi=dpi, tight_layout= True)
         self.axes = fig.add_subplot(111)
         self.fig = fig
         super(MplCanvas, self).__init__(fig)

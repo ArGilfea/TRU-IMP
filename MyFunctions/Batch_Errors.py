@@ -46,13 +46,14 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
         k = np.arange(Image.voi_counter)
     else:
         k = np.array(k)
-
     if error_type == "Linear Shift":
         Linear_Shift_Errors_Batch(Image,k=k,order=order,d=d,weight=weight,verbose=verbose)
     if error_type == "Rotation":
         Rotation_Error_Batch(Image,k=k,order=order,angle = angle, verbose = verbose)
     if error_type == "Expansion":
         Expansion_Error_Batch(Image,k=k,order=order,factor = factor, verbose = verbose)
+    if error_type == "Reflection":
+        Reflection_Error_Batch(Image,k=k, verbose = verbose)
 
     if saveResult:
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
@@ -96,3 +97,13 @@ def Expansion_Error_Batch(Image:DicomImage,k:np.ndarray,order:int=1,factor:float
     verbose -- outputs the progress (default False)\n
     """
     Image.expansion_errors(keys = k, factor = factor, order = order, verbose = verbose)
+
+def Reflection_Error_Batch(Image:DicomImage,k:np.ndarray,verbose:bool=True):
+    """
+    Compute the reflection errors of the curves based upon the given parameters.\n
+    Keyword arguments:\n
+    Image -- DicomImage class used\n
+    k -- segmentation for which to compute the errors. -1 for all (default -1)\n
+    verbose -- outputs the progress (default False)\n
+    """
+    Image.reflection_errors(keys = k, verbose = verbose)

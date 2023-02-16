@@ -5,7 +5,6 @@ from turtle import color
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from sympy import Q
 from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 import MyFunctions.Extract_Images_R as Extract_r

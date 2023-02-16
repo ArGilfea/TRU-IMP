@@ -229,6 +229,9 @@ The units are in degrees (they are converted in radiants inside the program).
 This will expand the whole segmentation around its center of mass. Each factor representes an axis.
 
 The units are proportions (unitless), with 1 being an identity expansion.
+### Reflection
+This will reflect the whole segmentation along an axis centered on the center of mass.
+The choice of axis will determine along which axis the segmentation is reflected, 0 being axis, 1 being coronal, and 2 being sagittal. 
 ## Error Bar Schemes:
 ### Linear Shift: 
 This will take a given segmentation and shift it by
@@ -249,6 +252,13 @@ This will take a given segmentation and expand it by
 a certain proportion, as specified in the parameters (all if -1).
 The factor used will both be used for an expansion and a contraction, i.e.
 both an expansion by the factor and 1/factor.
+The result will be a new TAC with an error bar,
+corresponding to the average of the new segmentations 
+and its standard deviation.
+Only the resulting curve will be saved.
+### Reflection
+This will take a given segmentation and reflect it along the three axis from the center of masse, 
+as specified in the parameters (all if -1).
 The result will be a new TAC with an error bar,
 corresponding to the average of the new segmentations 
 and its standard deviation.

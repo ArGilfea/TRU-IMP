@@ -1,10 +1,8 @@
 from re import sub
-from inflection import parameterize
 import numpy as np
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+#os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import matplotlib.pyplot as plt
-from sympy import Q
 from MyFunctions.DicomImage import DicomImage #Custom Class
 import MyFunctions.Pickle_Functions as PF
 import MyFunctions.Extract_Images_R as Extract_r
@@ -39,6 +37,66 @@ class Window(QMainWindow):
     """
     Main window of the GUI.
     """    
+    def __init__(self):
+        """Initializes the GUI Window"""
+        self.tabs = QTabWidget()
+        self.BUTTON_SIZE = 40
+        self.DISPLAY_HEIGHT = 35
+        self.current_line = 0
+        #self.displayImageLine = 0
+        self.first_pass = True
+        self.lineImage1D = -1
+        super().__init__(parent=None)
+        self.setMinimumSize(1200, 775)
+        self.setWindowTitle("TRU-MPI")
+        self.generalLayout = QGridLayout()
+        self.generalLayoutLog = QGridLayout()
+        self.generalLayoutReadMe = QGridLayout()
+        centralWidget = QWidget(self)
+        centralWidgetLog = QWidget(self)
+        centralWidgetReadMe = QWidget(self)
+        centralWidget.setLayout(self.generalLayout)
+        centralWidgetLog.setLayout(self.generalLayoutLog)
+        centralWidgetReadMe.setLayout(self.generalLayoutReadMe)
+        self.tabs.addTab(centralWidget,"Main")
+        self.tabs.addTab(centralWidgetLog,"Log")
+        self.tabs.addTab(centralWidgetReadMe,"Read Me")
+
+        self.setCentralWidget(self.tabs)
+        #First Line
+        self._createExtractDock()
+        self._createNoiseButtons()
+        #Next Line
+        #Second Line
+        self._createSavingDock()
+        self._createInfoParam()
+        self._createImageDisplayType()
+        #self._createImageDisplayBars()
+        #Line 4
+        self._createImageDisplay()
+        #Next Line
+        self._createTACImage()
+        #Next Line
+        self._create1DImage()
+        #Last Line
+        self._createExitButton() 
+        ##Creates the Log Tab
+        self._createLog()
+        ##Creates the ReadMe Tab
+        self._createReadMe()
+        #Status Bar
+        self._createStatusBar()
+
+        #self.setGeometry(0,0,100,100)
+
+        self.generalLayout.setColumnStretch(1,1)
+        self.generalLayout.setColumnStretch(2,1)
+        self.generalLayout.setColumnStretch(3,1)
+        self.generalLayout.setRowStretch(0,1)
+        self.generalLayout.setRowStretch(1,1)
+        self.generalLayout.setRowStretch(2,3)
+        self.generalLayout.setRowStretch(3,3)
+        self.showMaximized()
     def _createLog(self):
         """Create a Log tab to keep track of the processes"""
         self.logText = QTextEdit()
@@ -52,9 +110,11 @@ class Window(QMainWindow):
         """Creates a ReadMe tab with the ReadMe file infos"""
         self.ReadMeText = QTextEdit()
         self.ReadMeText.setReadOnly(True)
-        f = open('ReadMe.md', 'r')
-        htmlmarkdown = markdown.markdown( f.read() )
-        self.ReadMeText.setText(htmlmarkdown)
+        try:
+            f = open('ReadMe.md', 'r')
+            htmlmarkdown = markdown.markdown( f.read() )
+            self.ReadMeText.setText(htmlmarkdown)
+        except: pass
         self.generalLayoutReadMe.addWidget(self.ReadMeText)
     def _createStatusBar(self):
         """Create a status bar at the bottom of the GUI"""
@@ -75,9 +135,14 @@ class Window(QMainWindow):
         btn_deform.setToolTip("Makes a deformation on a segmentation according to the selected parameters")
         btn_deform.clicked.connect(self.run_deform)
 
+        btn_erase = QPushButton("Erase")
+        btn_erase.setToolTip("Danger! Will erase a calculated aspect as specified")
+        btn_erase.clicked.connect(self.run_erase)
+
         layout.addWidget(btn_noise)
         layout.addWidget(btn_deform)
-        self.generalLayout.addWidget(subWidget,self.current_line,3)    
+        layout.addWidget(btn_erase)
+        self.generalLayout.addWidget(subWidget,self.current_line,3,1,1)    
         self.current_line += 1
     def _createInfoParam(self):
         """Create the dock at the top from where the parameters, the infos and the lauch buttons are"""
@@ -106,7 +171,7 @@ class Window(QMainWindow):
         self.exit = QPushButton("Exit")
         self.exit.setToolTip("Closes the GUI and its dependencies")
         self.exit.clicked.connect(self.closing_button)
-        self.generalLayout.addWidget(self.exit,self.current_line+1,3)  
+        self.generalLayout.addWidget(self.exit,self.current_line,3)  
         self.current_line += 2
     def closing_button(self):
         try:
@@ -199,9 +264,9 @@ class Window(QMainWindow):
         msg_Axial = QLabel("Axial")
         msg_Sagittal = QLabel("Sagittal")
         msg_Coronal = QLabel("Coronal")
-        self.axial = MplCanvas(self, width=1, height=1, dpi=75)
-        self.sagittal = MplCanvas(self, width=1, height=1, dpi=75)
-        self.coronal = MplCanvas(self, width=1, height=1, dpi=75)
+        self.axial = MplCanvas(self)
+        self.sagittal = MplCanvas(self)
+        self.coronal = MplCanvas(self)
         try:
             self.axial.axes.pcolormesh(self.Image.Image[0,0,:,:])  
             self.sagittal.axes.pcolormesh(self.Image.Image[0,:,0,:])  
@@ -432,7 +497,7 @@ class Window(QMainWindow):
         self.slider_widget.resize(500,500)
     def _createTACImage(self):
         """Create an empty image for where the TAC and the results will be"""
-        self.TACImage = MplCanvas(self, width=5, height=4, dpi=75)
+        self.TACImage = MplCanvas(self)
         self.TACImage.setMinimumSize(size_Image,size_Image)
         self.base_TAC_axes()
         self.generalLayout.addWidget(self.TACImage,self.current_line,2)
@@ -440,9 +505,9 @@ class Window(QMainWindow):
     def _create1DImage(self):
         """Create the dock for the 1D Image (i.e. the slices)"""
         label = QLabel("Slices")
-        self.AxialImage1D = MplCanvas(self,width=5,height=4,dpi=75)
-        self.SagittalImage1D = MplCanvas(self,width=5,height=4,dpi=75)
-        self.CoronalImage1D = MplCanvas(self,width=5,height=4,dpi=75)
+        self.AxialImage1D = MplCanvas(self)
+        self.SagittalImage1D = MplCanvas(self)
+        self.CoronalImage1D = MplCanvas(self)
         self.AxialImage1D.setMinimumSize(size_Image,size_Image)
         self.SagittalImage1D.setMinimumSize(size_Image,size_Image)
         self.CoronalImage1D.setMinimumSize(size_Image,size_Image)
@@ -550,8 +615,9 @@ class Window(QMainWindow):
         """
         Function to run the segmentations based on the input parameters
         """
+        initial = time.time()
+        self.displayStatus(f"{self.parameters.SegmType} segmentation",what = 'starting', time_i = initial)
         try:
-            initial = time.time()
             if self.parameters.SegmAcq >= 0:
                 k = np.array([self.parameters.SegmAcq])
             else:
@@ -586,14 +652,16 @@ class Window(QMainWindow):
                     self.parameters._nbSeg += 1
             self.displayStatus(f"{self.parameters.SegmType} segmentation",initial)
             self.update_segm()
+            self.parameters.ErrorType = "None" #Avoid running twice
         except:
             self._createErrorMessage("Unable to run the segmentation")
     def run_errors(self):
         """
         Function to run the errors based on the input parameters
         """
+        initial = time.time()
+        self.displayStatus(f"{self.parameters.ErrorType} errors",what = 'starting',time_i = initial)
         try:
-            initial = time.time()
             if self.parameters.ErrorSegm >= 0:
                 k = np.array([self.parameters.ErrorSegm])
             else:
@@ -607,14 +675,16 @@ class Window(QMainWindow):
             self.update_segm()
             if self.parameters.ErrorType != "None":
                 self.parameters._nbError = self.Image.voi_statistics_counter
+                self.parameters.ErrorType = "None" #Avoid running twice
         except:
             self._createErrorMessage("Unable to run the error bars production")
     def run_Bayesian(self):
         """
         Function to run the Bayesian Analyses to extract the coefficients based on the input parameters
         """
+        initial = time.time()
+        self.displayStatus(f"{self.parameters.BayesianType} Bayesian analyses",what = 'starting',time_i = initial)
         try:
-            initial = time.time()
             if self.parameters.BayesianAcq >= 0:
                 k = np.array([self.parameters.BayesianAcq])
             else:
@@ -627,6 +697,9 @@ class Window(QMainWindow):
                                         save=True)
             self.displayStatus(f"{self.parameters.BayesianType} Bayesian analyses",initial)
             self.update_segm()
+            if self.parameters.BayesianType != "None":
+                self.parameters._nbBayesian = self.Image.bayesian_dynesty_counter
+                self.parameters.BayesianType = "None" #Avoid running twice
         except:
             self._createErrorMessage("Unable to run the Bayesian analyses")
     def run_noise(self):
@@ -634,8 +707,9 @@ class Window(QMainWindow):
         Function to add noise to the image.
         For now, the resulting image will overwrite the previous (or basic) one
         """   
+        initial = time.time()
+        self.displayStatus(f"{self.parameters.NoiseType} noise",what = 'starting',time_i = initial)
         try:
-            initial = time.time()
             self.Image.add_noise(noiseType= self.parameters.NoiseType,
                                     noiseMu = self.parameters.NoiseMu,
                                     noiseSigma= self.parameters.NoiseSigma,
@@ -649,6 +723,7 @@ class Window(QMainWindow):
                                     )
             if self.parameters.NoiseType != "None":
                 self.displayStatus(f"{self.parameters.NoiseType} noise added",initial)
+                self.parameters.NoiseType = "None" #Avoid running twice
             else:
                 self.displayStatus("",initial)
             self.update_all()
@@ -658,22 +733,51 @@ class Window(QMainWindow):
         """
         Function to deform segmentations.
         """
+        initial = time.time()
+        self.displayStatus(f"{self.parameters.deformationType} deformations",what = 'starting', time_i = initial)
         try:
-            initial = time.time()
             MyFunctions.Batch_Deform.Batch_Deform(Image = self.Image, deform_type= self.parameters.deformationType,
                                                     k = self.parameters.deformationSegm,
                                                     linear_d= self.parameters.deformationDistanceShift,
                                                     rotate_angle= self.parameters.deformationRotate*2*np.pi/360,
                                                     factors_exp= self.parameters.deformationExpansion,
+                                                    reflection_axis = self.parameters.deformationReflectionAxis,
                                                     verbose= self.parameters.verbose)
 
             if self.parameters.deformationType != "None":
                 self.displayStatus(f"{self.parameters.deformationType} deformations done",initial)
+                self.parameters.deformationType = "None" #Avoid running twice
             else:
                 self.displayStatus("",initial)
             self.update_all()
         except:
             self._createErrorMessage("Unable to deform the segmentations")
+    def run_erase(self):
+        """
+        Function to erase computations
+        """
+        initial = time.time()
+        self.displayStatus(f"{self.parameters.EraseType} removal",what = 'starting', time_i = initial)
+        try:
+
+            if self.parameters.EraseType == "Segmentation":
+                self.Image.remove_VOI(self.parameters.EraseSegm)
+                self.parameters._nbSeg = self.Image.voi_counter
+            elif self.parameters.EraseType == "Error":
+                self.Image.remove_Error(self.parameters.EraseError)                                
+                self.parameters._nbError = self.Image.voi_statistics_counter
+            elif self.parameters.EraseType == "Bayesian":
+                self.Image.remove_Bayesian(self.parameters.EraseBayesian)
+                self.parameters._nbBayesian = self.Image.bayesian_dynesty_counter
+            if self.parameters.EraseType != "None":
+                self.displayStatus(f"{self.parameters.EraseType} removal done",initial)
+                self.parameters.EraseType = "None" #Avoids erasing twice
+            else:
+                self.displayStatus("",initial)
+            self.update_all()
+        except:
+            self._createErrorMessage("Unable to erase the selected computation")
+
     def update_all(self):
         """Main function when something is changed to update all the views"""
         self.update_Result()
@@ -1237,14 +1341,21 @@ class Window(QMainWindow):
         """Set the display's text (unused, part of the basic model used)."""
         self.display.setText(text)
         self.display.setFocus()
-    def displayStatus(self,action:str="",time_i=time.time()):
+    def displayStatus(self,action:str="",time_i=time.time(),what = 'done'):
         """Updates the display bar (far bottom)"""
         if action != "":
-            new_status = f"{action} done in {(time.time()-time_i):.2f}' s at {time.strftime('%H:%M:%S')}"
+            if what == 'done':
+                new_status = f"{action} done in {(time.time()-time_i):.2f}' s at {time.strftime('%H:%M:%S')}"
+            else:
+                new_status = f"{action} started at {time.strftime('%H:%M:%S')}"
             self.statusBar.showMessage(new_status)
-            self.Image.progress_log += "\n" + new_status
-            self.logText.textCursor().insertHtml(new_status + '<br>')
-        self.logText.setText(self.Image.progress_log)
+            try:
+                self.Image.progress_log += "\n" + new_status
+                self.logText.textCursor().insertHtml(new_status + '<br>')
+            except: pass
+        try:
+            self.logText.setText(self.Image.progress_log)
+        except: pass
     def displayText(self):
         """Get the display's text (unused, part of the basic model used)."""
         return self.display.text()
@@ -1281,6 +1392,7 @@ class Window(QMainWindow):
             Will try both methods of extraction to see which one works.
             Fails if an image is already loaded."""
         initial = time.time()
+        self.displayStatus("File extracted",what = 'starting' ,time_i = initial)
         try:
             a = self.name
             self._createErrorMessage("An image is already loaded")
@@ -1305,6 +1417,7 @@ class Window(QMainWindow):
         """Loads the image according to the given QLineEdit.
             Will fail if an image is already loaded."""
         initial = time.time()
+        self.displayStatus(action = "File loading", what = 'starting' ,time_i = initial)
         try:
             try:
                 a = self.name
@@ -1313,7 +1426,7 @@ class Window(QMainWindow):
                 try:
                     self.Image = PF.pickle_open(source.text())
                     self.name = self.Image.version
-                    self.displayStatus("File loading", initial)
+                    self.displayStatus(action = "File loading", time_i = initial)
                     self._createImageDisplay()
                     self._createImageDisplayBars()
                     self.parameters = GUIParameters(self.Image)
@@ -1333,6 +1446,7 @@ class Window(QMainWindow):
     def save_button(self,path:QLineEdit,path_name:QLineEdit):
         """Depleted"""
         initial = time.time()
+        self.displayStatus("File saved", what = 'starting' ,time_i = initial)
         if path.text() == "" or path_name.text()=="":
             self._createErrorMessage("Empty path. Please specify where to save.")
         else:
@@ -1345,60 +1459,6 @@ class Window(QMainWindow):
             except:
                 self._createErrorMessage(f"Impossible to save to the desired folder")
         self.displayStatus("File saved", initial)
-
-    def __init__(self):
-        """Initializes the GUI Window"""
-        self.tabs = QTabWidget()
-        self.BUTTON_SIZE = 40
-        self.DISPLAY_HEIGHT = 35
-        self.current_line = 0
-        #self.displayImageLine = 0
-        self.first_pass = True
-        self.lineImage1D = -1
-        super().__init__(parent=None)
-        self.setMinimumSize(1200, 800)
-        self.setWindowTitle("TRU-MPI")
-        self.generalLayout = QGridLayout()
-        self.generalLayoutLog = QGridLayout()
-        self.generalLayoutReadMe = QGridLayout()
-        centralWidget = QWidget(self)
-        centralWidgetLog = QWidget(self)
-        centralWidgetReadMe = QWidget(self)
-        centralWidget.setLayout(self.generalLayout)
-        centralWidgetLog.setLayout(self.generalLayoutLog)
-        centralWidgetReadMe.setLayout(self.generalLayoutReadMe)
-        self.tabs.addTab(centralWidget,"Main")
-        self.tabs.addTab(centralWidgetLog,"Log")
-        self.tabs.addTab(centralWidgetReadMe,"Read Me")
-
-        self.setCentralWidget(self.tabs)
-        #First Line
-        self._createExtractDock()
-        self._createNoiseButtons()
-        #Next Line
-        #Second Line
-        self._createSavingDock()
-        self._createInfoParam()
-        self._createImageDisplayType()
-        #self._createImageDisplayBars()
-        #Line 4
-        self._createImageDisplay()
-        #Next Line
-        self._createTACImage()
-        #Next Line
-        self._create1DImage()
-        #Last Line
-        self._createExitButton() 
-        ##Creates the Log Tab
-        self._createLog()
-        ##Creates the ReadMe Tab
-        self._createReadMe()
-        #Status Bar
-        self._createStatusBar()
-
-        self.generalLayout.setColumnStretch(1,1)
-        self.generalLayout.setColumnStretch(2,1)
-        self.generalLayout.setColumnStretch(3,1)
 def evaluateExpression(expression):
     """Evaluate an expression (Model)."""
     try:
@@ -1438,9 +1498,9 @@ class PySeg:
 
 class MplCanvas(FigureCanvasQTAgg):
     """Class for the images and the graphs as a widget"""
-    def __init__(self, parent=None, width:float=5, height:float=4, dpi:int=75):
+    def __init__(self, parent=None, width:float=5, height:float=5, dpi:int=75):
         """Creates an empty figure with axes and fig as parameters"""
-        fig = Figure(figsize=(width, height), dpi=dpi)
+        fig = Figure(figsize=(width, height), dpi=dpi, tight_layout= True)
         self.axes = fig.add_subplot(111)
         self.fig = fig
         super(MplCanvas, self).__init__(fig)

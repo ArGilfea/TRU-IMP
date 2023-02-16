@@ -455,7 +455,61 @@ class DicomImage(object):
                 return new_VOI
         else:
             self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
-        
+
+    def reflection_ROI(self,axis: np.ndarray = ([-1,0,0]), axisNumber: int = 0,counter:int= -1, save:bool = True, name: str= ''):
+        """
+        This function takes a segmentation and rotates it around the center of mass.\n
+        Plan the angles accordingly.\n
+        Keyword arguments:\n
+        axis -- central point around which to do the expansion; if undefined, will be around the center of mass of the VOI (default [-1,0,0])\n
+        axisNumber -- axis around which to rotate the image (default 0)\n
+        counter -- segmentation to use for the shift (default -1)\n
+        save -- save the VOI if True, else, return it as an output (default True)\n
+        name -- name of the new VOI (default '')\n
+        """
+        if (counter >= 0):
+            new_VOI = np.zeros_like(self.voi[f"{counter}"])
+            old_VOI = self.voi[f"{counter}"]
+            if np.sum(axis) < 0:
+                axis = np.array(self.voi_center_of_mass[counter]).astype(int)
+
+            if axisNumber == 0:
+                for i in range(old_VOI.shape[0]):
+                    if axis[0] + i < old_VOI.shape[0] and axis[0] - i >= 0:
+                        if i != axis[0]:
+                            new_VOI[axis[0] - i,:,:] = old_VOI[axis[0] + i,:,:]
+                            new_VOI[axis[0] + i,:,:] = old_VOI[axis[0] - i,:,:]
+                        elif i == axis[0]:
+                            new_VOI[i,:,:] = old_VOI[i,:,:]
+
+            elif axisNumber == 1:
+                for i in range(old_VOI.shape[1]):
+                    if axis[1] + i < old_VOI.shape[1] and axis[1] - i >= 0:
+                        if i < axis[1]:
+                            new_VOI[:,axis[1] - i,:] = old_VOI[:,axis[1] + i,:]
+                            new_VOI[:,axis[1] + i,:] = old_VOI[:,axis[1] - i,:]
+                        elif i == axis[1]:
+                            new_VOI[:,i,:] = old_VOI[:,i,:]
+            elif axisNumber == 2:
+                for i in range(old_VOI.shape[2]):
+                    if axis[2] + i < old_VOI.shape[2] and axis[2] - i >= 0:
+                        if i < axis[2]:
+                            new_VOI[:,:,axis[2] - i] = old_VOI[:,:,axis[2] + i]
+                            new_VOI[:,:,axis[2] + i] = old_VOI[:,:,axis[2] - i]
+                        elif i == axis[2]:
+                            new_VOI[:,:,i] = old_VOI[:,:,i]
+            else:
+                raise Exception(f"Invalid choice of Axis for the Rotation. Choice must be 0, 1, or 2 and it was: {axisNumber}")
+
+            if save:
+                if name == '':
+                    self.save_VOI(new_VOI,name=f"Reflection around {axis} with axis {axisNumber}")
+                else:
+                    self.save_VOI(new_VOI,name=f"Reflection around {axis} with axis {axisNumber} {name}")
+            else:
+                return new_VOI
+        else:
+            self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
     def linear_shifts_error(self,key:int=-1,order=1,d=1,weight=1,verbose:bool=False):#Done in 2.0.0
         """
         This function takes a specific segmentation and shifts it linearly, saving only the results,
@@ -519,7 +573,6 @@ class DicomImage(object):
         angle_axis = self.axis(order = order,d = angle)
         stats_curves = np.zeros((angle_axis.shape[0],self.nb_acq))
         for i in range(angle_axis.shape[0]):
-            print("Angle: ",angle_axis[i,:])
             VOI_shifted = self.rotation_VOI(angle_axis[i,:],counter=key,save=False)
             stats_curves[i,:] = self.VOI_statistics(VOI = VOI_shifted)
             if verbose:
@@ -577,7 +630,6 @@ class DicomImage(object):
                                 [1/factor,factor,factor],[factor,1/factor,1/factor]])
         stats_curves = np.zeros((factor_axis.shape[0],self.nb_acq))
         for i in range(factor_axis.shape[0]):
-            print("Factor: ",factor_axis[i,:])
             VOI_shifted = self.expand_VOI(factor_axis[i,:],counter=key,save=False)
             stats_curves[i,:] = self.VOI_statistics(VOI = VOI_shifted)
             if verbose:
@@ -606,6 +658,46 @@ class DicomImage(object):
             self.expansion_error(keys[i],factor = factor,order = order,verbose=verbose_precise)
             if verbose: 
                 self.update_log(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+
+    def reflection_error(self, key:int, verbose: bool = False):
+        """
+        This function takes a specific segmentation and expands it, saving only the results,
+        in order to save memory space.
+        Keyword arguments:\n
+        key -- segmentation key to use (default -1)\n
+        verbose -- outputs the progress (default False)\n
+        """
+        initial = time.time()
+        if key < 0 or key >= self.voi_counter:
+            raise Exception(f"Counter must be between 0 and {self.voi_counter}, whereas here it was {key}.")
+        axes = np.array([0,1,2])
+        stats_curves = np.zeros((axes.shape[0],self.nb_acq))
+        for i in range(axes.shape[0]):
+            VOI_shifted = self.reflection_ROI(axisNumber = axes[i],counter=key,save=False)
+            stats_curves[i,:] = self.VOI_statistics(VOI = VOI_shifted)
+            if verbose:
+                self.update_log(f"% done for key {key}: {(i+1)/axes.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+        self.voi_statistics_counter += 1
+        self.voi_statistics_avg.append(np.mean(stats_curves,0))
+        self.voi_statistics_std.append(np.std(stats_curves,0))
+    def reflection_errors(self, keys:np.ndarray, verbose: bool = False, verbose_precise: bool = False):
+        """
+        Runs the function rotation_error on a number of segmentations, saving the resulting curves.\n
+        The order and weight parameters will be the same for each computation.\n
+        Keyword arguments:\n
+        keys -- segmentations key to use. Must be a list or an np.ndarray\n
+        verbose -- outputs the progress (default False)\n
+        verbose_precise -- outputs the progress of the underlying process (default False)\n
+        """
+        initial= time.time()
+        if not isinstance(keys,(list,np.ndarray)):
+            raise Exception('''keys must be an array of the segmentations to estimate the error.\n
+                            To use on a single segmentation, use expansion_error (without 's')''')
+        else: keys=np.array(keys)
+        for i in range(keys.shape[0]):
+            self.reflection_error(keys[i],verbose=verbose_precise)
+            if verbose: 
+                self.update_log(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")    
 ############################################################
 #                                                          #
 # This section deals with the adding and removal of VOIs   #
@@ -645,28 +737,70 @@ class DicomImage(object):
         key -- entry of the dictionary of VOIs to be deleted (default -1)
         """
         if(key >= 0):
-            new_voxels = []
-            new_name = []
-            new_CM = []
-            new_moment = []
-            new_stats = []
-            for i in range(key,self.voi_counter):
-                self.voi[f"{i-1}"] = self.voi[f"{i}"]
+            new_dict = {}
             for i in range(self.voi_counter):
-                if i!=key:
-                    new_voxels.append(self.voi_voxels[i])
-                    new_name.append(self.voi_name[i])
-                    new_CM.append(self.voi_center_of_mass[key])
-                    new_moment.append(self.voi_moment_of_inertia[key])
-                    new_stats.append(self.voi_statistics[key])
-            del self.voi[f"{key}"]
+                if i < key:
+                    new_dict[f"{i}"] = self.voi[f"{i}"]
+                elif i > key:
+                    new_dict[f"{i-1}"] = self.voi[f"{i}"]
+
             self.voi_counter -= 1
-            self.voi_voxels = new_voxels
-            self.voi_name = new_name
-            self.voi_center_of_mass = new_CM
-            self.voi_moment_of_inertia = new_moment
-            self.voi_statistics = new_stats
-                
+            self.voi = new_dict
+            del self.voi_voxels[key]
+            del self.voi_name[key]
+            del self.voi_center_of_mass[key]
+            del self.voi_moment_of_inertia[key]
+            del self.voi_statistics[key]
+            self.dice_all = np.delete(self.dice_all, key, 0)
+            self.jaccard_all = np.delete(self.dice_all, key, 0)
+            self.dice_all = np.delete(self.dice_all, key, 1)
+            self.jaccard_all = np.delete(self.dice_all, key, 1)
+            self.update_log(f"Segmentation {key} removed")
+
+    def remove_Error(self,key: int = -1):
+        """Removes a specific Error entry.
+        This will make and fill a gap in the lists and other arrays containing
+        aspects computed with respect to the VOI.
+        
+        Keyword arguments:\n
+        key -- entry of the error to be deleted (default -1)
+        """                
+        if(key >= 0):
+            self.voi_statistics_counter -= 1
+            del self.voi_statistics_avg[key]
+            del self.voi_statistics_std[key]
+            self.update_log(f"Error {key} removed")
+
+    def remove_Bayesian(self,key: int = -1):
+        """Removes a specific Bayesian analysis entry.
+        This will make and fill a gap in the lists and other arrays containing
+        aspects computed with respect to the VOI.
+        
+        Keyword arguments:\n
+        key -- entry of the error to be deleted (default -1)
+        """                
+        if(key >= 0):
+            new_dict_run = {}
+            new_dict_trace = {}
+            new_dict_corner = {}
+            for i in range(self.bayesian_dynesty_counter):
+                if i < key:
+                    new_dict_run[f"{i}"] = self.bayesian_graphs_runplot[f"{i}"]
+                    new_dict_trace[f"{i}"] = self.bayesian_graphs_traceplot[f"{i}"]
+                    new_dict_corner[f"{i}"] = self.bayesian_graphs_cornerplot[f"{i}"]
+                elif i > key:
+                    new_dict_run[f"{i-1}"] = self.bayesian_graphs_runplot[f"{i}"]
+                    new_dict_trace[f"{i-1}"] = self.bayesian_graphs_traceplot[f"{i}"]
+                    new_dict_corner[f"{i-1}"] = self.bayesian_graphs_cornerplot[f"{i}"]
+            self.bayesian_dynesty_counter -= 1
+            self.bayesian_results_avg = np.delete(self.bayesian_results_avg, key, 0)
+            self.bayesian_results_e_up = np.delete(self.bayesian_results_e_up, key, 0)
+            self.bayesian_results_e_down = np.delete(self.bayesian_results_e_down, key, 0)
+
+            self.bayesian_graphs_runplot = new_dict_run
+            self.bayesian_graphs_traceplot = new_dict_trace
+            self.bayesian_graphs_cornerplot = new_dict_corner
+            self.update_log(f"Bayesian analysis {key} removed")
     def duplicate_VOI(self,key:int = -1): #Done in 1.2.0
         """Adds a new VOI entry to the dictionary of VOIs, which will be placed
         at the end. Also copies all other computed aspects, i.e. number of voxels, name,
@@ -942,13 +1076,10 @@ class DicomImage(object):
         size_VOI = np.sum(VOI)
         fraction_VOI = np.sum(VOI)/(self.nb_acq*self.width*self.length)
         if fraction_VOI >= fraction_f[0] and fraction_VOI <= fraction_f[1]:
-            #print(f"Saving VOI with f = {factor}, for size = {fraction_VOI} is within the range [{fraction_f[0]},{fraction_f[1]}].")
             save_between = True
         if size_VOI*self.voxel_volume/1000 >= size_f[0] and size_VOI*self.voxel_volume/1000 <= size_f[1]:
-            #print(f"Saving VOI with f = {factor}, for size = {size_VOI*self.voxel_volume/1000} is within the range [{size_f[0]},{size_f[1]}].")
             save_between = True
         if size_VOI >= voxels_f[0] and size_VOI <= voxels_f[1]:
-            #print(f"Saving VOI with f = {factor:.3f}, for size = {size_VOI} is within the range [{voxels_f[0]:.3f},{voxels_f[1]:.3f}].")
             save_between = True
         if verbose:
             self.update_log('Stopped the filling at iter', {iteration},', while the max_iter was ',{max_iter})
@@ -1044,13 +1175,10 @@ class DicomImage(object):
         size_VOI = np.sum(VOI)
         fraction_VOI = np.sum(VOI)/(self.nb_acq*self.width*self.length)
         if fraction_VOI >= fraction_f[0] and fraction_VOI <= fraction_f[1]:
-            #print(f"Saving VOI with f = {factor}, for size = {fraction_VOI} is within the range [{fraction_f[0]},{fraction_f[1]}].")
             save_between = True
         if size_VOI*self.voxel_volume/1000 >= size_f[0] and size_VOI*self.voxel_volume/1000 <= size_f[1]:
-            #print(f"Saving VOI with f = {factor}, for size = {size_VOI*self.voxel_volume/1000} is within the range [{size_f[0]},{size_f[1]}].")
             save_between = True
         if size_VOI >= voxels_f[0] and size_VOI <= voxels_f[1]:
-            #print(f"Saving VOI with f = {factor:.3f}, for size = {size_VOI} is within the range [{voxels_f[0]:.3f},{voxels_f[1]:.3f}].")
             save_between = True
         if verbose:
             self.update_log('Stopped the filling at iter', {iteration},', while the max_iter was ',{max_iter})
@@ -1327,7 +1455,7 @@ class DicomImage(object):
                             new_VOI[i,j,k] = 0
                             E_tot += E_0
             if (verbose and iter_now%5==0) or (verbose and iter_now==1):
-                self.update_log(f"Iter {iter_now}, size of classes: {np.sum(new_VOI):.0f} and {(subinfo[0][1]-subinfo[0][0])*(subinfo[1][1]-subinfo[1][0])*(subinfo[2][1]-subinfo[2][0])-np.sum(new_VOI):.0f}, with total energy {E_tot}")
+                self.update_log(f"Iter {iter_now}, size of classes: {np.sum(new_VOI):.0f} and {(subinfo[0][1]-subinfo[0][0])*(subinfo[1][1]-subinfo[1][0])*(subinfo[2][1]-subinfo[2][0])-np.sum(new_VOI):.0f}, with total energy {E_tot:.3f}")
                 self.update_log(f"Number of voxels changed: {counter}")
         for i in range(old_VOI.shape[0]):
             for j in range(old_VOI.shape[1]):
@@ -1915,7 +2043,6 @@ class DicomImage(object):
         """
         ones = np.random.rand(self.nb_acq,self.nb_slice,self.width,self.length)
         noise = SF.rayleigh_noise_pdf(ones, a=a, b=b, type= "icdf")
-        print(noise)
         self.Image = np.absolute(noise + self.Image)
 ############################################################
 #                                                          #

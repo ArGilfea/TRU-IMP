@@ -7,7 +7,7 @@ import MyFunctions.Pickle_Functions as PF
 def Batch_Deform(Image:DicomImage = None,deform_type:str = "None", k:int =-1,
                 path_in:str='',name_in:str='',path_out:str = '',name_out:str='',saveResult:bool = False,
                 linear_d: np.ndarray = np.array([0,0,0]), rotate_angle: np.ndarray = np.array([0,0,0]),
-                factors_exp: np.ndarray = np.array([1,1,1]),
+                factors_exp: np.ndarray = np.array([1,1,1]), reflection_axis: int = -1,
                 verbose:bool=False):
     """
     Makes many deformations of given segmentations for a DicomImage, either loaded directly as a parameter or whose path is given.\n
@@ -24,6 +24,7 @@ def Batch_Deform(Image:DicomImage = None,deform_type:str = "None", k:int =-1,
     linear_d -- linear shift distance (default [0,0,0])\n
     rotate_angle -- angle for the rotations, in degrees (default [0,0,0])\n
     factors_exp -- factor for the expansions (default [1,1,1])\n
+    reflection_axis -- axis around which to do the reflection (default -1)\n
     verbose -- outputs the progress (default False)\n
     """
     initial = time.time()
@@ -50,14 +51,16 @@ def Batch_Deform(Image:DicomImage = None,deform_type:str = "None", k:int =-1,
         Rotation_Batch(Image = Image, k = k, angle = rotate_angle, verbose = verbose)
     if deform_type == "Expansion":
         Expansion_Batch(Image = Image, k = k, factors= factors_exp, verbose= verbose)
-    
+    if deform_type == "Reflection":
+        Reflection_Batch(Image = Image, k = k, reflection_axis= reflection_axis, verbose= verbose)
+
     if saveResult:
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
     print(f"All the deformations were made in {(time.time() - initial):.2f} s.")
 
 def Linear_Shift_Batch(Image:DicomImage,k:np.ndarray,d=[0,0,0],verbose:bool=True):
     """
-    Compute the linear errors of the curves based upon the given parameters.\n
+    Compute the linear deformations of the selected segmentations based upon the given parameters.\n
     Keyword arguments:\n
     Image -- DicomImage class used\n
     k -- segmentation for which to compute the errors\n
@@ -72,7 +75,7 @@ def Linear_Shift_Batch(Image:DicomImage,k:np.ndarray,d=[0,0,0],verbose:bool=True
 
 def Rotation_Batch(Image:DicomImage,k:np.ndarray,angle:np.ndarray = np.array([0,0,0]),verbose:bool=True):
     """
-    Compute the linear errors of the curves based upon the given parameters.\n
+    Compute the rotation deformations of the selected segmentations based upon the given parameters.\n
     Keyword arguments:\n
     Image -- DicomImage class used\n
     k -- segmentation for which to compute the errors\n
@@ -87,7 +90,7 @@ def Rotation_Batch(Image:DicomImage,k:np.ndarray,angle:np.ndarray = np.array([0,
 
 def Expansion_Batch(Image:DicomImage,k:np.ndarray,factors:np.ndarray = np.array([1,1,1]),verbose:bool=True):
     """
-    Compute the linear errors of the curves based upon the given parameters.\n
+    Compute the expansion deformations of the selected segmentations based upon the given parameters.\n
     Keyword arguments:\n
     Image -- DicomImage class used\n
     k -- segmentation for which to compute the errors\n
@@ -99,3 +102,18 @@ def Expansion_Batch(Image:DicomImage,k:np.ndarray,factors:np.ndarray = np.array(
         Image.expand_VOI(factors= factors, counter = k[i], save = True)
         if verbose:
             Image.update_log(f"Expansion deformation {i + 1} of {k.shape[0]} done in {(time.time() - initial):.2f} s. at {time.strftime('%H:%M:%S')}")
+
+def Reflection_Batch(Image:DicomImage,k:np.ndarray,reflection_axis:int = -1,verbose:bool=True):
+    """
+    Compute the reflection deformations of the selected segmentations based upon the given parameters.\n
+    Keyword arguments:\n
+    Image -- DicomImage class used\n
+    k -- segmentation for which to compute the errors\n
+    reflection_axis -- axis around which to do the reflection (default -1)\n
+    verbose -- outputs the progress (default True)\n
+    """
+    initial = time.time()
+    for i in range(k.shape[0]):
+        Image.reflection_ROI(axisNumber= reflection_axis, counter = k[i], save = True)
+        if verbose:
+            Image.update_log(f"Reflection deformation {i + 1} of {k.shape[0]} done in {(time.time() - initial):.2f} s. at {time.strftime('%H:%M:%S')}")

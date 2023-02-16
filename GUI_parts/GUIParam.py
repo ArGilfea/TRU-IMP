@@ -15,6 +15,7 @@ class GUIParameters(object):
         self._size = np.array([Image.nb_acq,Image.nb_slice,Image.width,Image.length])
         self._nbSeg = Image.voi_counter
         self._nbError = Image.voi_statistics_counter
+        self._nbBayesian = Image.bayesian_dynesty_counter
         self.seed = np.array([0,0,0])
         self.subImage = np.array([[0,Image.nb_acq],[0,Image.nb_slice],[0,Image.width],[0,Image.length]])
         self.SegmAcq = 0
@@ -61,6 +62,7 @@ class GUIParameters(object):
         self.deformationDistanceShift = np.array([0,0,0])
         self.deformationRotate = np.array([0,0,0])
         self.deformationExpansion = np.array([1.0,1.0,1.0])
+        self.deformationReflectionAxis = 0
 
         self.orderShift = 1
         self.distanceShift = 1
@@ -89,5 +91,10 @@ class GUIParameters(object):
 
         self.NoiseAUniform = 0.0
         self.NoiseBUniform = 1.0
+
+        self.EraseType = "None"
+        self.EraseSegm = -1
+        self.EraseError = -1
+        self.EraseBayesian = -1
 
         del Image
