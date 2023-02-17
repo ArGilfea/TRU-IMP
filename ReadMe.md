@@ -96,6 +96,11 @@ according to the parameters selected.
 Only one method will be used, as specified in the parameters window.
 This step can take a lot of time, depending upon the method selected.
 The results will be stored in the instance of the GUI.
+### Erase Button:
+This will use erase a previously computed aspect, either a segmentation,
+an error bar, or a Bayesian analysis, as determined by the parameters.
+This option is not retrievable, meaning that whatever will have been discarded
+will be permanently gone.
 ### Visualising Results:
 The initial results that can be seen is "TAC".
 The results can be seen in the central image.
