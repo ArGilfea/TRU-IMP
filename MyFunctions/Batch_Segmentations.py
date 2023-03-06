@@ -270,11 +270,11 @@ def Filling_Batch_f(Image:DicomImage,k,seed:list=[[]],subimage:list=[-1],max_ite
     '''
     initial = time.time()
     for i in range(k.shape[0]):
-        Image.VOI_filled_f(seed=[seed[1:]],factor=factor_Fill,steps = steps_Fill,acq=k[i],sub_im=subimage,
+        Image.VOI_filled_f(seed=seed,factor=factor_Fill,steps = steps_Fill,acq=k[i],sub_im=subimage,
                     max_iter=max_iter_Fill,verbose=False,verbose_graphs=verbose_graph_fill,max_number_save=1,
                     save_between=False,growth=growth,min_f_growth=min_f_growth,threshold=threshold_fill,
                     name=f"{name_segmentation} Filled f acq {k[i]}",do_moments=do_moments,do_stats=do_stats,break_after_f=True,
-                    SaveSegm=SaveSegm)
+                    numba=False)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
 def Filling_Batch(Image:DicomImage,k:np.ndarray,seed:list=[[]],subimage:list = [-1],factor:float=1,

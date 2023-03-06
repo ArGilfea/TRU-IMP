@@ -1466,6 +1466,12 @@ class DicomImage(object):
         if not save:
             return VOI, E_tot
         return E_tot
+    def VOI_FCM(self):
+        """
+        Fuzzy C-Mean Segmentation technique
+        """
+
+        pass
 ############################################################
 #                                                          #
 # This section deals with the statistics of VOIs           #

@@ -1,5 +1,5 @@
 # README File
-# TRU-MPI
+# TRU-M.P.I.
 # Techniques for Reliable Use of Medical Physics Images
 
 ## Use:
@@ -318,6 +318,10 @@ Five parameters will be extracted:
 ## Bayesian Curves Used:
 * Average: This will use the TACs from the segmentations directly.
 * Errors: This will use the errorbars extracted from the segmentations.
+
+When using the curve with errors, the user can select a minimal value for errorbars. 
+The Thresh Perc option will take all errorbars that are smaller than that percentage of the maximum value of the curve
+and will bring them to the selected percentage of the maximal value, as given by Thresh Value.
 
 ## Noise Type
 It is possible to add noise to the whole image. 
