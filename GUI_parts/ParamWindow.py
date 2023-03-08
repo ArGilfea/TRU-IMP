@@ -26,7 +26,7 @@ class ParamWindow(QMainWindow):
     def __init__(self,parameters:GUIParameters,parent=None):
         """Initializes the ParamWindow with the GUI Parameters"""
         super().__init__(parent)
-        self.setMinimumSize(300, 750)
+        self.setMinimumSize(300, 850)
         self.tabs = QTabWidget()
         self.parameters = parameters
         self.setWindowTitle("Parameters")
@@ -97,8 +97,8 @@ class ParamWindow(QMainWindow):
         self.sliderCoronalValueSeed.setFixedWidth(sizeText)
 
         self.sliderAxialValueSeed.setText(f"{self.parameters.seed[0]}")
-        self.sliderSagittalValueSeed.setText(f"{self.parameters.seed[1]}")
-        self.sliderCoronalValueSeed.setText(f"{self.parameters.seed[2]}")
+        self.sliderSagittalValueSeed.setText(f"{self.parameters.seed[2]}")
+        self.sliderCoronalValueSeed.setText(f"{self.parameters.seed[1]}")
         
         self.sliderAxialValueSeed.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSeedAxial,self.sliderAxialValueSeed))
         self.sliderSagittalValueSeed.editingFinished.connect(partial(self.set_value_line_edit,self.sliderSeedSagittal,self.sliderSagittalValueSeed))
@@ -112,8 +112,8 @@ class ParamWindow(QMainWindow):
         layout.addWidget(SagittalValueHeaderSeed,3,0)
         layout.addWidget(CoronalValueHeaderSeed,2,0)
         layout.addWidget(self.sliderSeedAxial,1,1)
-        layout.addWidget(self.sliderSeedSagittal,3,1)
         layout.addWidget(self.sliderSeedCoronal,2,1)
+        layout.addWidget(self.sliderSeedSagittal,3,1)
         layout.addWidget(self.sliderAxialValueSeed,1,2)
         layout.addWidget(self.sliderCoronalValueSeed,2,2)
         layout.addWidget(self.sliderSagittalValueSeed,3,2)

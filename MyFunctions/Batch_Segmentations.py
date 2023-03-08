@@ -95,7 +95,8 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
                         growth=growth,min_f_growth=min_f_growth,
                         name_segmentation=name_segmentation,SaveSegm=SaveSegm,
                         verbose_graph_fill = verbose_graph_fill,
-                        do_moments=do_moments,do_stats=do_stats)
+                        do_moments=do_moments,do_stats=do_stats,
+                        verbose= verbose)
 
     if segmentation_type in ['Canny Contour']:
         print('Running the gradient contour...')
@@ -241,7 +242,7 @@ def kMean_Batch(Image:DicomImage,k:np.ndarray,subimage:np.ndarray=[-1],max_iter_
 
 def Filling_Batch_f(Image:DicomImage,k,seed:list=[[]],subimage:list=[-1],max_iter_Fill:int=300,factor_Fill:list=[0.1,2.8],steps_Fill:int = 1000,
                     threshold_fill:float = 0.99,growth:float=-1,min_f_growth:float=0,name_segmentation:str = '',verbose_graph_fill:bool=False,
-                    SaveSegm:bool=True,do_moments:bool=True,do_stats:bool=True):
+                    SaveSegm:bool=True,do_moments:bool=True,do_stats:bool=True,verbose:bool = False):
     '''
     Runs Filling Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
@@ -271,7 +272,7 @@ def Filling_Batch_f(Image:DicomImage,k,seed:list=[[]],subimage:list=[-1],max_ite
     initial = time.time()
     for i in range(k.shape[0]):
         Image.VOI_filled_f(seed=seed,factor=factor_Fill,steps = steps_Fill,acq=k[i],sub_im=subimage,
-                    max_iter=max_iter_Fill,verbose=False,verbose_graphs=verbose_graph_fill,max_number_save=1,
+                    max_iter=max_iter_Fill,verbose=verbose,verbose_graphs=verbose_graph_fill,max_number_save=1,
                     save_between=False,growth=growth,min_f_growth=min_f_growth,threshold=threshold_fill,
                     name=f"{name_segmentation} Filled f acq {k[i]}",do_moments=do_moments,do_stats=do_stats,break_after_f=True,
                     numba=False)

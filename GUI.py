@@ -622,6 +622,8 @@ class Window(QMainWindow):
                 k = np.array([self.parameters.SegmAcq])
             else:
                 k=-1
+        except: pass
+        if True:
             MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
                                                             seed = self.parameters.seed,k=k,
                                                             subimage=self.parameters.subImage[1:,:],
@@ -653,6 +655,8 @@ class Window(QMainWindow):
             self.displayStatus(f"{self.parameters.SegmType} segmentation",initial)
             self.update_segm()
             self.parameters.ErrorType = "None" #Avoid running twice
+            print(self.Image.voi_counter, self.parameters._nbSeg)
+        try: pass
         except:
             self._createErrorMessage("Unable to run the segmentation")
     def run_errors(self):
