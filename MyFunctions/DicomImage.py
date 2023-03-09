@@ -1288,11 +1288,12 @@ class DicomImage(object):
                 if counter_save == 0 and max_number_save > 0:
                     self.update_log(f"Saving a backup segmentation, for nothing was satisfactory")
                     if numba:
-                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),
+                                        max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
                             do_moments=do_moments,do_stats=do_stats,loop=loop)
                     else:
-                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
                             do_moments=do_moments,do_stats=do_stats)
                 break
@@ -1301,11 +1302,11 @@ class DicomImage(object):
                     self.update_log(f"Saving the previous segmentation, for the growth factor is {(voxels[f]/voxels[f-1]):.2f}, which is over the allowed {growth}.\
                             \nThe index was {f-1}, which is >= to {min_f_growth}")
                     if numba:
-                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} growth {(voxels[f]/voxels[f-1]):.2f}>{growth}",
                             do_moments=do_moments,do_stats=do_stats,loop=loop)   
                     else: 
-                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} growth {(voxels[f]/voxels[f-1]):.2f}>{growth}",
                             do_moments=do_moments,do_stats=do_stats)   
                     break               
@@ -1314,24 +1315,24 @@ class DicomImage(object):
                 if counter_save == 0 and max_number_save > 0:
                     self.update_log(f"Saving a backup image, for nothing was satisfactory.")
                     if numba:
-                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                        self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
                             do_moments=do_moments,do_stats=do_stats,loop=loop)
                     else:
-                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
                             do_moments=do_moments,do_stats=do_stats)
                 break
             if f == (steps - 1):
-                self.update_log(f"Stopping because max factor f = {f_range[-1]} was reached")
+                self.update_log(f"Stopping because max factor f = {f_range[-1]:.2f} was reached")
                 if counter_save == 0 and max_number_save > 0:
                     self.update_log(f"Saving a backup image, for nothing was satisfactory.")
                     if numba:
-                        self.VOI_filled(seed=seed,factor=f_range[-1],acq=acq,max_iter=max_iter,save=True,
+                        self.VOI_filled(seed=seed,factor=f_range[-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[-1]:.3f} backup",
                             do_moments=do_moments,do_stats=do_stats,loop=loop)
                     else:
-                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,max_iter=max_iter,save=True,
+                        self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[-1]:.3f} backup",
                             do_moments=do_moments,do_stats=do_stats)
                 break
