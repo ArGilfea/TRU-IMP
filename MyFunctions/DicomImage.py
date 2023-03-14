@@ -1806,8 +1806,8 @@ class DicomImage(object):
         '''
         e_data[0:2] += max(e_data) #Used to avoid problems with the very low error on low-time values 
         param_init = np.ones((ndim,2))
-        param_init[:,0] *= 1e-5
-        param_init[:,1] *= 1e4
+        param_init[:,0] *= 1e-10
+        param_init[:,1] *= 1e8
         def loglike(param,data_t,data_f,data_e):
             prob = 0
             m = model(data_t,param)
