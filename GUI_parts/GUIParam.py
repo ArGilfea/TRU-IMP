@@ -42,9 +42,9 @@ class GUIParameters(object):
         self.sigmaThreshLowCanny = 0.1
         self.sigmaThreshHighCanny = 0.2
 
-        self.steps_filling = 1000
+        self.steps_filling = 200
         self.max_iter_fill = 300
-        self.factor_Fill_range = [0.1,2.8]
+        self.factor_Fill_range = [0.1,5.0]
         self.factor_fill_f = 1.0
         self.growth = -1.0
         self.min_f_growth = 0.0

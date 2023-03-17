@@ -321,6 +321,7 @@ class Window(QMainWindow):
         self.ResultViewCombo.addItem("Bayesian")
         self.ResultViewCombo.addItem("Center of Mass")
         self.ResultViewCombo.addItem("Moments")
+        self.ResultViewCombo.addItem("Ratio TAC/Error")
         self.ResultViewCombo.activated[str].connect(self.combo_box_result_changed)
 
         layout.addWidget(self.ImageViewCombo)
@@ -622,6 +623,7 @@ class Window(QMainWindow):
                 k = np.array([self.parameters.SegmAcq])
             else:
                 k=-1
+            print("Thresh", self.parameters.threshold_fill)
             MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
                                                             seed = self.parameters.seed,k=k,
                                                             subimage=self.parameters.subImage[1:,:],
@@ -653,7 +655,6 @@ class Window(QMainWindow):
             self.displayStatus(f"{self.parameters.SegmType} segmentation",initial)
             self.update_segm()
             self.parameters.ErrorType = "None" #Avoid running twice
-            print(self.Image.voi_counter, self.parameters._nbSeg)
         except:
             self._createErrorMessage("Unable to run the segmentation")
     def run_errors(self):
@@ -817,6 +818,8 @@ class Window(QMainWindow):
             self.update_centerMass()
         elif self.resultView == "Moments":
             self.update_MomentSeg()
+        elif self.resultView == "Ratio TAC/Error":
+            self.update_RatioTACError()
     def update_Dice(self):
         """Shows the Dice coefficients in the middle image"""
         try:
@@ -877,6 +880,45 @@ class Window(QMainWindow):
             self.axTAC.scatter(voi_moment_of_inertia[:,0],
                                         voi_moment_of_inertia[:,1],
                                         voi_moment_of_inertia[:,2])
+            self.TACImage.draw()
+            self.switch_bottom_view()
+        except:
+            pass
+    def update_RatioTACError(self):
+        """Shows the Moments of the segmentations in the middle image"""
+        try:
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
+            self.TACImage.axes.cla()
+            values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
+            subI = self.parameters.subImage[0,:]
+
+            if self.view_range == "All":
+                x_axis = self.Image.time
+                if self.sliderSegm.value() >= 0 or self.sliderSegmStats.value() >= 0 or self.sliderFitted.value() >= 0:
+                    if self.sliderSegmStats.value() >= 0:
+                        y_axis = self.Image.voi_statistics_avg[self.sliderSegmStats.value()]
+                        error = self.Image.voi_statistics_std[self.sliderSegmStats.value()]
+            else:
+                x_axis = self.Image.time[subI[0]:subI[1]]
+                if self.sliderSegm.value() >= 0 or self.sliderSegmStats.value() >= 0:
+                    if self.sliderSegmStats.value() >= 0:
+                        y_axis = self.Image.voi_statistics_avg[self.sliderSegmStats.value()][subI[0]:subI[1]]
+                        error = self.Image.voi_statistics_std[self.sliderSegmStats.value()][subI[0]:subI[1]]
+            if self.showFocus:
+                self.TACImage.axes.axvline(self.Image.time[values[0]],color='r')
+            if self.showSubImage:
+                self.TACImage.axes.axvline(x_axis[self.parameters.subImage[0,0]],color='y')
+                try:
+                    self.TACImage.axes.axvline(self.Image.time[self.parameters.subImage[0,1]],color='y')
+                except:
+                    self.TACImage.axes.axvline(self.Image.time[-1],color='y')
+            try:
+                self.TACImage.axes.plot(x_axis,error/y_axis*100,color='b',label="Ratio")
+            except: pass
+            self.base_Ratio_axes()
             self.TACImage.draw()
             self.switch_bottom_view()
         except:
@@ -1184,6 +1226,18 @@ class Window(QMainWindow):
             if self.sliderSegm.value() >= 0 and self.sliderSegmStats.value() >= 0:
                 self.TACImage.axes.legend()
         except: pass
+    def base_Ratio_axes(self):
+        """Gives the basic axes details for the result image (center) when they are updated when it is a ratio for the error"""
+        try:
+            self.cb.remove()
+        except: pass
+        self.TACImage.axes.set_title("Ratio of Error/TAC");self.TACImage.axes.grid()
+        self.TACImage.axes.set_xlabel("Time");self.TACImage.axes.set_ylabel("Ratio")
+        try:
+            if self.sliderSegm.value() >= 0 and self.sliderSegmStats.value() >= 0:
+                self.TACImage.axes.legend()
+        except: pass
+
     def base_coeff_axes(self,mappable):
         """Gives the basic axes details for the result image (center) when they are updated when it is Dice or Jaccard"""
         try:

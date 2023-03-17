@@ -978,6 +978,19 @@ class ParamWindow(QMainWindow):
         self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.factor_Fill_range}"),self.current_line_Segm,1)
         self.generalLayoutSegm.addWidget(RangeWidget,self.current_line_Segm,2)
         self.current_line_Segm +=1
+    def _createThresholdLimitFilling(self):
+        """Creates a line edit for the max factor of filling"""
+        sizeText = 30
+        self.ThresholdFillingLimit = QLineEdit()
+        self.ThresholdFillingLimit.setFixedWidth(sizeText)
+        self.ThresholdFillingLimit.setText(f"{self.parameters.threshold_fill}")
+        self.ThresholdFillingLimit.editingFinished.connect(self.update_int)
+
+
+        self.generalLayoutSegm.addWidget(QLabel("Threshold Limit"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.threshold_fill}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(self.ThresholdFillingLimit,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createIntInput(self,initvalue:float):
         """Creates a subwidet with a QLineEdit and a QSlider linked in their value.\n
         Returns the subWidget and the slider"""
@@ -1384,6 +1397,7 @@ class ParamWindow(QMainWindow):
             self._createStepsFilling()
             self._createMaxIterFilling()
             self._createFactorFillingRange()
+            self._createThresholdLimitFilling()
             if self.parameters.SegmType == "Filling (very slow)":
                 self._createFactorFFilling()
         elif self.parameters.SegmType == "Ellipsoid":
@@ -1652,6 +1666,9 @@ class ParamWindow(QMainWindow):
         except: pass
         try:
             self.parameters.factor_Fill_range[1] = float(self.FactorFRangeValueMax.text())
+        except: pass
+        try:
+            self.parameters.threshold_fill = float(self.ThresholdFillingLimit.text())
         except: pass
         try:
             self.parameters.deformationSegm = self.sliderDeforSeg.value()
