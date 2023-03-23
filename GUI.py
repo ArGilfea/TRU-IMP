@@ -673,10 +673,10 @@ class Window(QMainWindow):
                                                     angle = self.parameters.angleError*2*np.pi/360,
                                                     factor= self.parameters.factorError,
                                                     verbose=self.parameters.verbose)
-            self.displayStatus(f"{self.parameters.ErrorType} errors",initial)
             self.update_segm()
             if self.parameters.ErrorType != "None":
                 self.parameters._nbError = self.Image.voi_statistics_counter
+                self.displayStatus(f"{self.parameters.ErrorType} Errors",initial)
                 self.parameters.ErrorType = "None" #Avoid running twice
         except:
             self._createErrorMessage("Unable to run the error bars production")
@@ -701,6 +701,7 @@ class Window(QMainWindow):
             self.update_segm()
             if self.parameters.BayesianType != "None":
                 self.parameters._nbBayesian = self.Image.bayesian_dynesty_counter
+                self.displayStatus(f"{self.parameters.BayesianType} Bayesian",initial)
                 self.parameters.BayesianType = "None" #Avoid running twice
         except:
             self._createErrorMessage("Unable to run the Bayesian analyses")
