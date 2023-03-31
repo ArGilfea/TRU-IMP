@@ -623,7 +623,6 @@ class Window(QMainWindow):
                 k = np.array([self.parameters.SegmAcq])
             else:
                 k=-1
-            print("Thresh", self.parameters.threshold_fill)
             MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
                                                             seed = self.parameters.seed,k=k,
                                                             subimage=self.parameters.subImage[1:,:],
