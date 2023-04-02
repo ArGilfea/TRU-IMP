@@ -8,6 +8,7 @@ import time
 from numba import jit
 from dynesty import NestedSampler
 from dynesty import plotting as dyplot
+import pickle
 import MyFunctions.Statistic_Functions as SF
 
 class DicomImage(object):
@@ -2428,3 +2429,77 @@ class DicomImage(object):
                 else:
                     axes = np.concatenate((axes,d[i]*all_orders[order[i]]))
             return axes
+        
+
+class CombinedResults(object):
+    """Combines the Results from Different DicomImage Files"""
+    def __init__(self):
+        """Initialisation"""
+        self.TotalAcqNbr = 0
+        self.SegmSchemeNbr = 0
+        self.SegmSchemeNbrInconstant = False
+
+        self.VoiStatisticsTotal = {}
+
+        self.Dice = {}
+        self.Jaccard = {}
+
+        self.VoiStatisticsAvgTotal = {}
+        self.VoiStatisticsStdTotal = {}
+
+        self.BayesianStdTotal = {}
+        self.BayesianEUpTotal = {}
+        self.BayesianEDownTotal = {}
+
+    def addResult(self,path : str, name: str = "", scheme: str = "", newAcq : bool = False, dim : int = 1):
+        """Opens a DicomImage class and adds the Result to this class"""
+
+        if scheme == "":
+            raise Exception("For a new entry, 'scheme' must not be empty.")
+        if newAcq:
+            if name == "":
+                raise Exception("For a new entry, 'name' must not be empty.")
+
+        with open(path, 'rb') as input:
+            DI = pickle.load(input)
+
+        if newAcq:
+            self.TotalAcqNbr += 1
+            if dim != self.SegmSchemeNbr:
+                self.SegmSchemeNbrInconstant = True
+                if dim > self.SegmSchemeNbr:
+                    self.SegmSchemeNbr = dim
+
+            self.VoiStatisticsTotal[f"{name}"] = {}
+
+            self.Dice[f"{name}"] = {}
+            self.Jaccard[f"{name}"] = {}
+
+            self.VoiStatisticsAvgTotal[f"{name}"] = {}
+            self.VoiStatisticsStdTotal[f"{name}"] = {}
+            
+            self.BayesianStdTotal[f"{name}"] = {}
+            self.BayesianEUpTotal[f"{name}"] = {}
+            self.BayesianEDownTotal[f"{name}"] = {}
+
+        self.VoiStatisticsTotal[f"{name}"][f"{scheme}"] = DI.voi_statistics
+
+        self.Dice[f"{name}"][f"{scheme}"] = DI.dice_all
+        self.Jaccard[f"{name}"][f"{scheme}"] = DI.jaccard_all
+
+        self.VoiStatisticsAvgTotal[f"{name}"][f"{scheme}"] = DI.voi_statistics_avg
+        self.VoiStatisticsStdTotal[f"{name}"][f"{scheme}"] = DI.voi_statistics_std
+        try:
+            if len(DI.bayesian_results_avg) != 0:
+                self.BayesianStdTotal[f"{name}"][f"{scheme}"] = DI.bayesian_results_avg
+                self.BayesianEUpTotal[f"{name}"][f"{scheme}"] = DI.bayesian_results_e_up
+                self.BayesianEDownTotal[f"{name}"][f"{scheme}"] = DI.bayesian_results_e_down
+            else:
+                #DI.Bayesian_analyses(key = -1, curves = 'Errors', verbose = True)
+
+                self.BayesianStdTotal[f"{name}"][f"{scheme}"] = DI.bayesian_results_avg
+                self.BayesianEUpTotal[f"{name}"][f"{scheme}"] = DI.bayesian_results_e_up
+                self.BayesianEDownTotal[f"{name}"][f"{scheme}"] = DI.bayesian_results_e_down                
+        except: pass
+
+        
