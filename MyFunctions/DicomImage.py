@@ -48,6 +48,9 @@ class DicomImage(object):
         self.units = units
         self.voi_counter = 0
         self.voi = {}
+        self.voi_fuzzy = {}
+        self.energies = {}
+        self.mus = {}
         self.voi_voxels = []
         self.voi_name = []
         self.voi_center_of_mass = []
@@ -704,16 +707,24 @@ class DicomImage(object):
 # This section deals with the adding and removal of VOIs   #
 #                                                          #
 ############################################################
-    def save_VOI(self,VOI:np.ndarray,name:str='',do_stats:bool=True,do_moments:bool=True): #Added in 1.3.1
+    def save_VOI(self,VOI:np.ndarray,Fuzzy_VOI: np.ndarray = np.array([]),
+                 energies: np.ndarray = np.array([]), mus: np.ndarray = np.array([]),
+                 name:str='',do_stats:bool=True,do_moments:bool=True): #Added in 1.3.1
         """
         Save the VOI being worked with in the dictionary
         Keyword arguments:\n
         VOI -- VOI to be saved\n
+        Fuzzy_VOI -- (default [])\n
+        energies -- (default [])\n
+        mus -- (default [])\n
         name -- name of the VOI to be saved (default '')\n
         do_stats -- compute the statistics for the VOI of interest (default True)\n
         do_moments -- compute the moments for the VOI of interest (default True)\n
         """        
         self.voi[f"{self.voi_counter}"] = VOI
+        self.voi_fuzzy[f"{self.voi_counter}"] = Fuzzy_VOI
+        self.energies[f"{self.voi_counter}"] = energies
+        self.mus[f"{self.voi_counter}"] = mus
         self.voi_voxels.append(self.count_voxels(self.voi_counter))
         self.voi_name.append(name)
         self.voi_counter += 1
@@ -1484,12 +1495,110 @@ class DicomImage(object):
         if not save:
             return VOI, E_tot
         return E_tot
-    def VOI_FCM(self):
+    def VOI_FCM(self,acq:int=0, subinfo:list = [[-1,0],[0,0],[0,0]],
+                classNumber: int = 2, alpha: float = 2, m: float = 2,
+                maxIter:int = 20, maxIterConvergence:int = 20, 
+                convergenceDelta: float = 1e-2, convergenceStep: float = 1e-10,
+                verbose = True, verboseIter = 10,
+                save:bool=True,do_moments:bool= False,
+                do_stats:bool=False,name:str=''):
         """
         Fuzzy C-Mean Segmentation technique
+        Keyword arguments:\n
+        verbose -- print the statistics along the computations (default False)\n
+        verboseIter -- steps after which to print the progress
+        save -- add the VOI to the dictionary of VOIs, with relevant infos (default True); if False, return instead the VOI alone\n
+        do_moments -- compute the moments of the VOI and store them (default False)\n
+        do_stats -- compute the TACs relative to the VOI (default False)\n
+        name -- name to give to the VOI in the dictionary of VOIs (default '')\n
         """
+        if np.sum(subinfo) < -0.5:
+            subImage = self.Image[acq,:,:,:]
+        else:
+            subImage = self.Image[acq,subinfo[0][0]:subinfo[0][1],subinfo[1][0]:subinfo[1][1],subinfo[2][0]:subinfo[2][1]]
+        NewProbVectors = np.ones((classNumber,subImage.shape[0],subImage.shape[1],subImage.shape[2]))
+        mus = np.ones(classNumber)
+        for i in range(classNumber):
+            NewProbVectors [i,:,:,:] = (2 * (i + 1)) /(classNumber * (classNumber + 1) ) * NewProbVectors [i,:,:,:] + (-1)**i * 0.1
+            NewProbVectors [i,:,:,:] = np.random.rand()
+            mus[i] = (np.max(subImage) - np.min(subImage)) * (2 * (i + 1)) /(classNumber * (classNumber + 1) )
+        NewProbVectors = NewProbVectors/np.sum(NewProbVectors,axis = 0)
+        NewSegm = np.zeros((subImage.shape[0],subImage.shape[1],subImage.shape[2]))
+        OldProbVectors = np.copy(NewProbVectors) + 1
+        currentIter = 0
+        Energies = np.zeros(maxIter+1)
+        mus_all = np.zeros((classNumber,maxIter+1,maxIterConvergence+1))
+        mus_all[:,0,0] = mus
+        Energies[0] = self.LossFunction(subImage,NewProbVectors,mus = mus,m=m,alpha=alpha)
+        while(currentIter < maxIter and ((not (np.abs(NewProbVectors -OldProbVectors) < 1e-4).all()) or currentIter < maxIter * 0.1)):
+            OldProbVectors = np.copy(NewProbVectors)
+            if alpha == 2:
+                for i in range(classNumber):
+                    mus[i] = np.sum(NewProbVectors[i,:,:,:]**m * subImage)
+                    mus[i] /= np.sum(NewProbVectors[i,:,:,:]**m)
+                    mus[i] = mus[i] + np.random.rand()*(-1)**(i+1)/mus[i]
+            elif alpha < 2 and alpha > 1:
+                if classNumber == 2 and mus[0] > mus[1]:
+                    tmp = mus[0]
+                    mus[0] = mus[1]
+                    mus[1] = tmp
+                for i in range(classNumber):
+                    old_mus = mus[i] + 10
+                    currentIterConvergence = 0
+                    while(currentIterConvergence < maxIterConvergence and (not (np.abs(mus[i] - old_mus) < convergenceDelta))):
+                        old_mus = mus[i]
+                        mus[i] += convergenceStep * np.sum(NewProbVectors[i,:,:,:]**m * np.sign(subImage - mus[i]) * np.abs(subImage - mus[i])**(alpha-1))
+                        currentIterConvergence += 1
+                        if verbose and currentIterConvergence != 1 and (currentIterConvergence - 1)%10 == 0 :
+                            pass#self.update_log(f"Sub Iter = {currentIterConvergence - 1}, means {i} = {mus[i]}")
+                        mus_all[i,currentIter+1,currentIterConvergence-1:] = mus[i]
+                if classNumber == 2 and mus[0] > mus[1]:
+                    tmp = mus[0]
+                    mus[0] = mus[1]
+                    mus[1] = tmp                
+            elif alpha > 2:
+                for i in range(classNumber):
+                    old_mus = mus[i] + 10
+                    currentIterConvergence = 0
+                    while(currentIterConvergence < maxIterConvergence and (not (np.abs(mus[i] - old_mus) < convergenceDelta))):
+                        old_mus = mus[i]
 
-        pass
+                        above = np.sum(NewProbVectors[i,:,:,:]**m * np.sign(subImage - mus[i]) * np.abs(subImage - mus[i])**(alpha-1))
+                        below = (alpha - 1) * np.sum(NewProbVectors[i,:,:,:]**m * np.abs(subImage - mus[i])**(alpha-2))
+                        mus[i] += above/below
+
+                        currentIterConvergence += 1
+                        mus_all[i,currentIter+1,currentIterConvergence-1:] = mus[i]
+                    mus[i] += np.random.rand()*(-1)**(i+1)/mus[i]
+            else:
+                raise Exception(f"Invalid value for alpha. It must be greater than 1 and it was {alpha}")
+            for i in range(subImage.shape[0]):
+                for j in range(subImage.shape[1]):
+                    for k in range(subImage.shape[2]):
+                        for l in range(classNumber):
+                            value = np.sum((np.abs(subImage[i,j,k]-mus[l])/np.abs(subImage[i,j,k] * np.ones(classNumber) - mus))**(alpha/(m-1)))
+                            NewProbVectors[l,i,j,k] = 1/value
+            currentIter += 1
+            if verbose and currentIter != 1 and (currentIter - 1)%verboseIter == 0 :
+                with np.printoptions(precision=2, suppress=True):
+                    self.update_log(f"Main Iter = {currentIter - 1}, means = {mus}")
+            Energies[currentIter] = self.LossFunction(subImage,NewProbVectors,mus = mus,m=m,alpha=alpha)
+            mus_all[:,currentIter,-1] = mus
+
+        VOI = np.zeros_like(self.Image[acq,:,:,:])
+        for i in range(subImage.shape[0]):
+            for j in range(subImage.shape[1]):
+                for k in range(subImage.shape[2]):
+                    NewSegm[i,j,k] = np.argmax(NewProbVectors[:,i,j,k])
+                    VOI[i+subinfo[0][0],j+subinfo[1][0],k+subinfo[2][0]] = NewSegm[i,j,k]
+        
+        if save:
+            self.save_VOI(VOI,Fuzzy_VOI=NewProbVectors,
+                          energies = Energies[:currentIter],mus = mus_all[:,:currentIter],
+                          name=f"FCM, m = {m}, alpha = {alpha}"+name,
+                          do_stats=do_stats,do_moments=do_moments)
+        else:
+            return Energies[:currentIter], mus_all[:,:currentIter], NewProbVectors
 ############################################################
 #                                                          #
 # This section deals with the statistics of VOIs           #
@@ -2203,6 +2312,27 @@ class DicomImage(object):
                 step[1] = dist[1]/np.abs(dist[1])
             neighbour = point + step
         return neighbour
+############################################################
+#                                                          #
+# This section deals with Loss Functions                   #
+#                                                          #
+############################################################
+    def LossFunction(self, subImage: np.ndarray, Segm: np.ndarray, mus: np.ndarray,
+                     m:float = 2,alpha:float = 2):
+        """
+        Computes the Loss Function of a given segmentation.
+        Keyword arguments:\n
+        subImage -- Image used for the segmentation\n
+        Segm -- current segmentation. Contains the information for all classes\n
+        mus -- mean of the distribution for each class\n
+        m -- fuzzy parameter (default 2)\n
+        alpha -- norm parameter (default 2)\n
+        """
+        totalEnergy = 0
+        Seg_Tmp = np.copy(Segm)
+        for i in range(Segm.shape[0]):
+            totalEnergy += np.sum((Seg_Tmp[i,:,:,:]**m)*(np.abs(subImage - mus[i])**alpha))
+        return totalEnergy
 ############################################################
 #                                                          #
 # This section deals with interpolations                   #

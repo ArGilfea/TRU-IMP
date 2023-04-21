@@ -87,6 +87,15 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
         print('Running the statistics segmentations...')
         ICM_Batch(Image,k,subimage=subimage,alpha=alpha,max_iter_ICM=max_iter_ICM,max_iter_kmean_ICM=max_iter_kmean_ICM,
                     name_segmentation = name_segmentation,save=SaveSegm,do_moments=do_moments,do_stats=do_stats,verbose=verbose)
+    if segmentation_type == 'FCM' or segmentation_type == 'all':
+        print('Running the Fuzzy C-Mean segmentations...')
+        FCM_Batch(Image,k,subimage = subimage, classNumber= 2,
+                  alpha = 2, m = 2, 
+                  maxIter = 20, maxIterConvergence = 20,
+                  convergenceDelta = 0.01, convergenceStep = 1e-10,
+                  name_segmentation = name_segmentation,save=SaveSegm,
+                  do_moments=do_moments,do_stats=do_stats,verbose=verbose)
+
     if segmentation_type in ['Filling','Filling f (very slow)','all']:
         print('Running the filling segmentations...')
         Filling_Batch_f(Image,k,seed=seed,subimage=subimage,max_iter_Fill=max_iter_Fill,
@@ -198,7 +207,7 @@ def Canny_Fill_Batch(Image:DicomImage,k,subimage:list=[-1],sigma_Canny:float=5,c
                                 do_moments=do_moments,do_stats=do_Stats)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
-def ICM_Batch(Image,k,subimage:list=[-1],alpha:float=1e1,max_iter_ICM:int=100,max_iter_kmean_ICM:int=100,name_segmentation:str = '',save:bool=True,do_moments:bool=True,
+def ICM_Batch(Image:DicomImage,k,subimage:list=[-1],alpha:float=1e1,max_iter_ICM:int=100,max_iter_kmean_ICM:int=100,name_segmentation:str = '',save:bool=True,do_moments:bool=True,
                     do_stats:bool=True,verbose:bool=False):
     '''
     Runs ICM Segmentation on many timeframes. Useful to run everything in a single command.\n
@@ -223,6 +232,44 @@ def ICM_Batch(Image,k,subimage:list=[-1],alpha:float=1e1,max_iter_ICM:int=100,ma
                             acq=k[i],name=f"{name_segmentation} ICM acq {k[i]}",
                             do_moments=do_moments,do_stats=do_stats,verbose = verbose,save=save)
         print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
+
+def FCM_Batch(Image:DicomImage,k,subimage:list=[-1],classNumber: int = 2, alpha: float = 2,
+                    m: float = 2, maxIter:int = 20, maxIterConvergence:int = 20,
+                    convergenceDelta: float = 1e-2, convergenceStep: float = 1e-10,
+                    name_segmentation:str = '',save:bool=True,do_moments:bool=True,
+                    do_stats:bool=True,verbose:bool=False):
+    '''
+    Runs ICM Segmentation on many timeframes. Useful to run everything in a single command.\n
+    The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
+    array k.
+    Keyword arguments:\n
+    Image -- DicomImage class to run the segmentations\n
+    k -- timeframes on which to base the static segmentations (must be an array or -1 for all timeframes)\n
+    subimage -- smaller region upon which to do the segmentations (default [-1], i.e. the whole image will be considered)\n
+    classNumber -- used for the number of class to segment (default 2)\n
+    alpha -- distance metric (default 2)\n
+    m -- fuzziness parameter (default 2)\n
+    maxIter -- maximum number of iteration to converge generally (default 20)\n
+    maxIterConvergence -- maximum number of iteration to converge for the means (default 20)\n
+    convergenceDelta -- interval to stop the iterations (default 1e-2)\n
+    convergenceStep -- time step for the gradient descent (default 1e-10)\n
+    name_segmentation -- used to name all the segmentations saved (default '')\n
+    do_moments -- compute the moments of the resulting segmentations (default True)\n
+    do_stats -- compute the mean and std of the segmentations (default True)\n
+    verbose -- gives the progress of the process (default False)\n
+    SaveSegm -- save the segmentations in the DicomImage class (default True)\n
+    '''
+    initial = time.time()
+    for i in range(k.shape[0]):
+        Image.VOI_FCM(subinfo = subimage, acq = k[i], classNumber = classNumber,
+                        alpha = alpha, m = m,
+                        maxIter = maxIter, maxIterConvergence = maxIterConvergence,
+                        convergenceDelta = convergenceDelta, convergenceStep = convergenceStep,
+                        name=f"{name_segmentation} FCM acq {k[i]}",
+                        do_moments=do_moments,do_stats=do_stats,verbose = verbose,save=save)
+        print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")    
+
+
 
 def kMean_Batch(Image:DicomImage,k:np.ndarray,subimage:np.ndarray=[-1],max_iter_kmean:int=100,saveSegm:bool = True, name_segmentation:str = '', do_moments:bool=True,
                     do_stats:bool=True, verbose:bool=False):
