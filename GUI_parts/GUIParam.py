@@ -35,6 +35,14 @@ class GUIParameters(object):
         self.max_iter_ICM = 100
         self.max_iter_kmean_ICM = 100
 
+        self.classNumberFCM = 2
+        self.alphaFCM = 2
+        self.mFCM = 2
+        self.maxIterFCM = 100
+        self.maxIterConvergenceFCM = 100
+        self.convergenceDeltaFCM = 1e-2
+        self.convergenceStepFCM = 1e-10
+
         self.sigmaCanny = 1.0
         self.combinationCanny = 2
         self.combinationCannyPost = 3

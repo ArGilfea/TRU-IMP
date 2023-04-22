@@ -334,6 +334,7 @@ class ParamWindow(QMainWindow):
         self.SegmCombo = QComboBox()
         self.SegmCombo.addItem("None")
         self.SegmCombo.addItem("ICM")
+        self.SegmCombo.addItem("FCM")
         self.SegmCombo.addItem("Canny Filled")
         self.SegmCombo.addItem("Canny Contour")
         self.SegmCombo.addItem("Ellipsoid")
@@ -1389,6 +1390,8 @@ class ParamWindow(QMainWindow):
             self._createAlphaICM()
             self._createMaxiIterICM()
             self._createMaxiIterKMeanICM()
+        elif self.parameters.SegmType == "FCM":
+            pass
         elif self.parameters.SegmType == "k Mean":
             self._createMaxiIterKMeanICM
         elif self.parameters.SegmType in ["Filling (very slow)","Filling f (very slow)"]:

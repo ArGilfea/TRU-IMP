@@ -1505,6 +1505,15 @@ class DicomImage(object):
         """
         Fuzzy C-Mean Segmentation technique
         Keyword arguments:\n
+        acq -- time acquisition on which to base the static segmentation (default 0)\n
+        subinfo -- fraction (i.e. section) of the image to consider for the segmentation (default [[-1,0],[0,0],[0,0]])\n
+        classNumber -- used for the number of class to segment (default 2)\n
+        alpha -- distance metric (default 2)\n
+        m -- fuzziness parameter (default 2)\n
+        maxIter -- maximum number of iteration to converge generally (default 20)\n
+        maxIterConvergence -- maximum number of iteration to converge for the means (default 20)\n
+        convergenceDelta -- interval to stop the iterations (default 1e-2)\n
+        convergenceStep -- time step for the gradient descent (default 1e-10)\n
         verbose -- print the statistics along the computations (default False)\n
         verboseIter -- steps after which to print the progress
         save -- add the VOI to the dictionary of VOIs, with relevant infos (default True); if False, return instead the VOI alone\n

@@ -11,6 +11,8 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
                             centerEllipsoid = np.array([2,2,2]),axesEllipsoid = np.array([1,1,1]),
                             alpha=1e1,max_iter_ICM=100,max_iter_kmean_ICM=100,max_iter_Fill=300,factor_fill = 1,
                             factor_Fill_range=[0.1,2.8],steps_Fill = 1000,growth=-1,min_f_growth=0,
+                            classNumberFCM:int = 2, alphaFCM:int = 2, mFCM:int = 2, 
+                            maxIterFCM: int = 20, maxIterConvergenceFCM:int = 20, convergenceDeltaFCM: float = 1e-2, convergenceStepFCM: float = 1e-10,
                             name_segmentation = '',path_in='',name_in='',path_out = '',name_out='',show_pre=False,save=True,do_coefficients=True,
                             SaveSegm = True,do_moments=True,do_stats=True,do_Thresh = False,verbose=False,verbose_graph_fill = False):
     '''
@@ -35,12 +37,18 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
     steps_Fill -- steps for the filling algorithm (default 1000)\n
     growth -- growth factor for the filling algorithm(default -1)\n
     min_f_growth -- minimal index of f for the growth factor in the filling algorithm(default 0)\n
+    classNumberFCM -- used for the number of class to segment for FCM (default 2)\n
+    alphaFCM -- distance metric for FCM (default 2)\n
+    mFCM -- fuzziness parameter for FCM (default 2)\n
+    maxIterFCM -- maximum number of iteration to converge generally for FCM (default 20)\n
+    maxIterConvergenceFCM -- maximum number of iteration to converge for the means for FCM (default 20)\n
+    convergenceDeltaFCM -- interval to stop the iterations for FCM (default 1e-2)\n
+    convergenceStepFCM -- time step for the gradient descent for FCM (default 1e-10)\n
     name_segmentation -- used to name all the segmentations saved (default '')\n
     path_in -- path from where to get the image, as a DicomImage class (default '')\n    
     name_in -- name of the DicomImage opened (default '')\n
     path_out -- path to save the result, as long as save is True (default '')\n    
-    name_out -- name of the new DicomImage saved (if save is set to True).
-            That name will be appended to name_in (default '')\n
+    name_out -- name of the new DicomImage saved (if save is set to True). That name will be appended to name_in (default '')\n
     show_pre -- show the subimage and the seed if set to True, before the long computations (default False)\n
     do_coefficients -- compute all Jaccard and Dice coefficients (default True)\n
     save -- save the final result as a new instance of a DicomImage class (default True)\n
@@ -89,10 +97,10 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
                     name_segmentation = name_segmentation,save=SaveSegm,do_moments=do_moments,do_stats=do_stats,verbose=verbose)
     if segmentation_type == 'FCM' or segmentation_type == 'all':
         print('Running the Fuzzy C-Mean segmentations...')
-        FCM_Batch(Image,k,subimage = subimage, classNumber= 2,
-                  alpha = 2, m = 2, 
-                  maxIter = 20, maxIterConvergence = 20,
-                  convergenceDelta = 0.01, convergenceStep = 1e-10,
+        FCM_Batch(Image,k,subimage = subimage, classNumber= classNumberFCM,
+                  alpha = alphaFCM, m = mFCM, 
+                  maxIter = maxIterFCM, maxIterConvergence = maxIterConvergenceFCM,
+                  convergenceDelta = convergenceDeltaFCM, convergenceStep = convergenceStepFCM,
                   name_segmentation = name_segmentation,save=SaveSegm,
                   do_moments=do_moments,do_stats=do_stats,verbose=verbose)
 
@@ -212,7 +220,7 @@ def ICM_Batch(Image:DicomImage,k,subimage:list=[-1],alpha:float=1e1,max_iter_ICM
     '''
     Runs ICM Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
-    array k.
+    array k.\n
     Keyword arguments:\n
     Image -- DicomImage class to run the segmentations\n
     k -- timeframes on which to base the static segmentations (must be an array or -1 for all timeframes)\n
@@ -239,9 +247,9 @@ def FCM_Batch(Image:DicomImage,k,subimage:list=[-1],classNumber: int = 2, alpha:
                     name_segmentation:str = '',save:bool=True,do_moments:bool=True,
                     do_stats:bool=True,verbose:bool=False):
     '''
-    Runs ICM Segmentation on many timeframes. Useful to run everything in a single command.\n
+    Runs FCM Segmentation on many timeframes. Useful to run everything in a single command.\n
     The parameters passed for each Canny segmentation will be the same, only the timeframe of interest will vary, according to the
-    array k.
+    array k.\n
     Keyword arguments:\n
     Image -- DicomImage class to run the segmentations\n
     k -- timeframes on which to base the static segmentations (must be an array or -1 for all timeframes)\n
