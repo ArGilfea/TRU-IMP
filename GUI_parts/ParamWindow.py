@@ -1218,6 +1218,95 @@ class ParamWindow(QMainWindow):
         self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.max_iter_kmean_ICM}"),self.current_line_Segm,1)
         self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
         self.current_line_Segm +=1
+    def _createAlphaFCM(self):
+        """Creates the slider and the line edit for the alpha (FCM)."""
+        btnNew,slider = self._createIntInput(self.parameters.alphaFCM)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderAlphaFCM = slider   
+        slider.setRange(1,1000)
+        try:
+            slider.setValue(int(100*(self.parameters.alphaFCM - 1)))
+        except:
+            slider.setValue(1)
+        slider.setTickInterval(1000)
+        self.generalLayoutSegm.addWidget(QLabel("Alpha FCM"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.alphaFCM:.2f}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+    def _createmFCM(self):
+        """Creates the slider and the line edit for the m (FCM)."""
+        btnNew,slider = self._createIntInput(self.parameters.mFCM)
+        slider.valueChanged.connect(self.update_int)
+        self.slidermFCM = slider   
+        slider.setRange(1,1000)
+        try:
+            slider.setValue(int(100*(self.parameters.mFCM - 1)))
+        except:
+            slider.setValue(1)
+        slider.setTickInterval(1000)
+        self.generalLayoutSegm.addWidget(QLabel("Fuzziness Parameter"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.mFCM:.2f}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+    def _createClassNumberFCM(self):
+        """Creates the slider and the line edit for the Class Number (FCM)."""
+        btnNew,slider = self._createIntInput(self.parameters.classNumberFCM)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderClassNumberFCM = slider   
+        slider.setRange(2,10)
+        try:
+            slider.setValue(int(self.parameters.classNumberFCM ))
+        except:
+            slider.setValue(2)
+        slider.setTickInterval(1)
+        self.generalLayoutSegm.addWidget(QLabel("Class Number"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.classNumberFCM}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+    def _createMaxiIterFCM(self):
+        """Creates the slider and the line edit for the max iteration of the FCM (FCM)."""
+        btnNew,slider = self._createIntInput(self.parameters.maxIterFCM)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderMaxIterFCM = slider   
+        slider.setRange(1,1000)
+        slider.setTickInterval(100)
+        slider.setValue(self.parameters.maxIterFCM)
+        self.generalLayoutSegm.addWidget(QLabel("Max. Iter."),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.maxIterFCM}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+    def _createMaxiIterConvergenceFCM(self):
+        """Creates the slider and the line edit for the max iteration convergences of mus of the FCM (FCM)."""
+        btnNew,slider = self._createIntInput(self.parameters.maxIterConvergenceFCM)
+        slider.valueChanged.connect(self.update_int)
+        self.sliderMaxIterConvFCM = slider   
+        slider.setRange(1,1000)
+        slider.setTickInterval(100)
+        slider.setValue(self.parameters.maxIterConvergenceFCM)
+        self.generalLayoutSegm.addWidget(QLabel("Max. Iter. Conv."),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.maxIterConvergenceFCM}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(btnNew,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+    def _createConvergenceDeltaFCM(self):
+        """Create the threshold parameter for the mu optimization in FCM"""
+        self.ConvergenceDeltaFCMLine = QLineEdit()
+        self.ConvergenceDeltaFCMLine.setText(str(self.parameters.convergenceDeltaFCM))
+        self.ConvergenceDeltaFCMLine.editingFinished.connect(self.update_int)
+
+        self.generalLayoutSegm.addWidget(QLabel("Mu Thresh"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.convergenceDeltaFCM}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(self.ConvergenceDeltaFCMLine,self.current_line_Segm,2)
+        self.current_line_Segm +=1
+    def _createConvergenceStepFCM(self):
+        """Create the step parameter for the gradient descent in FCM"""
+        self.ConvergenceStepFCMLine = QLineEdit()
+        self.ConvergenceStepFCMLine.setText(str(self.parameters.convergenceStepFCM))
+        self.ConvergenceStepFCMLine.editingFinished.connect(self.update_int)
+
+        self.generalLayoutSegm.addWidget(QLabel("Grad. Step"),self.current_line_Segm,0)
+        self.generalLayoutSegm.addWidget(QLabel(f"{self.parameters.convergenceStepFCM}"),self.current_line_Segm,1)
+        self.generalLayoutSegm.addWidget(self.ConvergenceStepFCMLine,self.current_line_Segm,2)
+        self.current_line_Segm +=1
     def _createStepsFilling(self):
         """Creates the slider and the line edit for the number of steps (filling)."""
         btnNew,slider = self._createIntInput(self.parameters.steps_filling)
@@ -1391,7 +1480,13 @@ class ParamWindow(QMainWindow):
             self._createMaxiIterICM()
             self._createMaxiIterKMeanICM()
         elif self.parameters.SegmType == "FCM":
-            pass
+            self._createAlphaFCM()
+            self._createmFCM()
+            self._createClassNumberFCM()
+            self._createMaxiIterFCM()
+            self._createMaxiIterConvergenceFCM()
+            self._createConvergenceDeltaFCM()
+            self._createConvergenceStepFCM()
         elif self.parameters.SegmType == "k Mean":
             self._createMaxiIterKMeanICM
         elif self.parameters.SegmType in ["Filling (very slow)","Filling f (very slow)"]:
@@ -1607,6 +1702,21 @@ class ParamWindow(QMainWindow):
             self.parameters.alphaICM = self.sliderAlpha.value()/1000
         except: pass
         try:
+            self.parameters.alphaFCM = self.sliderAlphaFCM.value()/100 + 1
+        except: pass
+        try:
+            self.parameters.mFCM = self.slidermFCM.value()/100 + 1
+        except: pass
+        try:
+            self.parameters.classNumberFCM = self.sliderClassNumberFCM.value()
+        except: pass
+        try:
+            self.parameters.convergenceDeltaFCM = float(self.ConvergenceDeltaFCMLine.text())
+        except: pass
+        try:
+            self.parameters.convergenceStepFCM = float(self.ConvergenceStepFCMLine.text())
+        except: pass
+        try:
             self.parameters.sigmaCanny = self.sliderSigma.value()/1000
         except: pass
         try:
@@ -1626,6 +1736,12 @@ class ParamWindow(QMainWindow):
         except: pass
         try:
             self.parameters.max_iter_kmean_ICM = self.sliderMaxIterKmean.value()
+        except: pass
+        try:
+            self.parameters.maxIterFCM = self.sliderMaxIterFCM.value()
+        except: pass
+        try:
+            self.parameters.maxIterConvergenceFCM = self.sliderMaxIterConvFCM.value()
         except: pass
         try:
             self.parameters.max_iter_fill = self.sliderMaxIterFilling.value()
