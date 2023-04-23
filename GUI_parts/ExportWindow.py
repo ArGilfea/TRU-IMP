@@ -58,7 +58,11 @@ class ExportWindow(QMainWindow):
         self.ExportSegFlat = False
         self.ExportDice = False
         self.ExportJaccard = False
+        self.ExportEnergies = False
+        self.ExportMus = False
         self.TACTypeSave = "TAC Images"
+        self.EnergyTypeSave = "Graph"
+        self.MusTypeSave = "Graph"
         self.SegFlatTypeSave = "All"
         self.ExportErrorTAC = False
         self.ErrorTACTypeSave = "Error TAC Images"
@@ -251,6 +255,82 @@ Useful for the reproducibility of analyses.""")
         self.generalLayout.addWidget(self.JaccardCoeffButton,self.current_line,1)
         self.current_line +=1
 
+    def _createEnergysSave(self):
+        """
+        Creates the dock to save the Energies computed using the segmentations
+        """
+        self.EnergyButton = QCheckBox()
+        self.EnergyButton.stateChanged.connect(self.setValueEnergy)
+        self.EnergyType = QComboBox()
+        self.EnergyType.addItem("Graph")
+        self.EnergyType.addItem("Raw Values")
+        self.EnergyType.addItem("All")
+        self.EnergyButton.setToolTip("Export the specific Energy curve, either via a txt file, the image itself (.png), or both.\n-1 for all of them.")
+
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+        slider = QSlider(Qt.Horizontal)
+        number = QLineEdit()
+        number.setText(str(-1))
+        slider.setRange(-1,self.Image.voi_counter-1)
+        slider.setTickPosition(QSlider.TicksBothSides)
+        slider.setSingleStep(1)
+        slider.setValue(-1)
+        slider.setToolTip("If -1, all Energies will be saved")
+        number.setToolTip("If -1, all Energies will be saved")
+        number.setFixedWidth(30)
+        slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
+        number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
+        layout.addWidget(slider)
+        layout.addWidget(number)
+        self.EnergiesSaveValues = slider
+        self.EnergyType.activated[str].connect(self.EnergyComboChanged)
+
+        self.generalLayout.addWidget(QLabel("Energies"),self.current_line,0)
+        self.generalLayout.addWidget(self.EnergyButton,self.current_line,1)
+        self.generalLayout.addWidget(subWidget,self.current_line,2)
+        self.generalLayout.addWidget(self.EnergyType,self.current_line,3)
+        self.current_line +=1
+
+    def _createMusSave(self):
+        """
+        Creates the dock to save the Mus computed using the segmentations
+        """
+        self.MusButton = QCheckBox()
+        self.MusButton.stateChanged.connect(self.setValueMus)
+        self.MusType = QComboBox()
+        self.MusType.addItem("Graph")
+        self.MusType.addItem("Raw Values")
+        self.MusType.addItem("All")
+        self.MusButton.setToolTip("Export the specific Mus curve, either via a txt file, the image itself (.png), or both.\n-1 for all of them.")
+
+        subWidget = QWidget()
+        layout = QHBoxLayout()
+        subWidget.setLayout(layout)
+        slider = QSlider(Qt.Horizontal)
+        number = QLineEdit()
+        number.setText(str(-1))
+        slider.setRange(-1,self.Image.voi_counter-1)
+        slider.setTickPosition(QSlider.TicksBothSides)
+        slider.setSingleStep(1)
+        slider.setValue(-1)
+        slider.setToolTip("If -1, all Mus will be saved")
+        number.setToolTip("If -1, all Mus will be saved")
+        number.setFixedWidth(30)
+        slider.valueChanged.connect(partial(self.set_value_slider,slider,number))
+        number.editingFinished.connect(partial(self.set_value_line_edit,slider,number))
+        layout.addWidget(slider)
+        layout.addWidget(number)
+        self.MusSaveValues = slider
+        self.MusType.activated[str].connect(self.MusComboChanged)
+
+        self.generalLayout.addWidget(QLabel("Mus"),self.current_line,0)
+        self.generalLayout.addWidget(self.MusButton,self.current_line,1)
+        self.generalLayout.addWidget(subWidget,self.current_line,2)
+        self.generalLayout.addWidget(self.MusType,self.current_line,3)
+        self.current_line +=1
+
     def _createErrorTACsSave(self):
         """
         Create the dock to save the TACs with errors
@@ -373,6 +453,13 @@ Useful for the reproducibility of analyses.""")
 
         self.generalLayout.addWidget(self.saveButton,self.current_line,2)
         self.current_line +=1
+    def _createExitButton(self):
+        """Creates the exit button for the window"""
+        self.exit = QPushButton("Close")
+        self.exit.clicked.connect(self.close)
+        self.generalLayout.addWidget(self.exit,self.current_line,4)  
+        self.current_line += 1
+    
     def _createExportList(self):
         """
         Create the docks for the Export Window
@@ -387,11 +474,14 @@ Useful for the reproducibility of analyses.""")
         self._createSegmFlatSave()
         self._createDiceSave()
         self._createJaccardSave()
+        self._createEnergysSave()
+        self._createMusSave()
         self._createErrorTACsSave()
         self._createDynestyResultSave()
         self._createDynestyGraphsSave()
 
         self._createExportAll()
+        self._createExitButton()
 
     def setValueExportDicom(self):
         """Set the export DicomImage with the checkbox"""
@@ -414,6 +504,12 @@ Useful for the reproducibility of analyses.""")
     def setValueExportJaccard(self):
         """Set the export Jaccard Coefficients with the checkbox"""
         self.ExportJaccard = self.JaccardCoeffButton.isChecked()
+    def setValueEnergy(self):
+        """Set the export Energies with the checkbox"""
+        self.ExportEnergies = self.EnergyButton.isChecked()
+    def setValueMus(self):
+        """Set the export Energies with the checkbox"""
+        self.ExportMus = self.MusButton.isChecked()
     def setValueErrorTAC(self):
         """Set the export Error TACs with the checkbox"""
         self.ExportErrorTAC = self.ErrorTACButton.isChecked()
@@ -426,6 +522,12 @@ Useful for the reproducibility of analyses.""")
     def TACComboChanged(self):
         """Set the type of TACs with the checkbox"""
         self.TACTypeSave = self.TACType.currentText()
+    def EnergyComboChanged(self):
+        """Set the type of Energy with the checkbox"""
+        self.EnergyTypeSave = self.EnergyType.currentText()
+    def MusComboChanged(self):
+        """Set the type of Mus with the checkbox"""
+        self.MusTypeSave = self.MusType.currentText()
     def ErrorTACComboChanged(self):
         """Set the type of Errors with the checkbox"""
         self.ErrorTACTypeSave = self.ErrorTACType.currentText()
@@ -505,6 +607,87 @@ Useful for the reproducibility of analyses.""")
             del fig
         else:
             self._createErrorMessage("Unable to Save")
+    def exportEnergiesProcess(self):
+        """Saving of the Energy graphs"""
+        if self.pathName.text() != "" and self.headerName.text() != "":
+            k = self.EnergiesSaveValues.value()
+            if k == -1:
+                z = np.arange(self.Image.voi_counter)
+            else:
+                z = np.array([k])
+            if self.EnergyTypeSave in ["All","Graph"]:
+                for i in range(z.shape[0]):
+                    fig = plt.figure()
+                    plt.xlabel("Iteration"); plt.ylabel("Energy");plt.title("Energy");plt.grid()
+                    plt.yscale("log")
+                    plt.plot(self.Image.energies[f"{z[i]}"])
+                    fig.savefig(self.pathName.text()+self.headerName.text()+f"_Acq_{z[i]}_Energy.png")
+                    del fig
+                if k == -1:
+                    fig = plt.figure()
+                    for i in range(z.shape[0]):
+                        plt.xlabel("Iteration"); plt.ylabel("Energy");plt.title("Energy");plt.grid()
+                        plt.yscale("log")
+                        plt.plot(self.Image.energies[f"{z[i]}"],label = str(z[i]))
+                        plt.legend()
+                    fig.savefig(self.pathName.text()+self.headerName.text()+f"_Acq_-1_Energy.png")
+                    del fig
+            if self.EnergyTypeSave in ["All","Raw Values"]:
+                maxValue = 0
+                for i in range(z.shape[0]):
+                    if self.Image.energies[f"{z[i]}"].shape[0] > maxValue:
+                        maxValue = self.Image.energies[f"{z[i]}"].shape[0]
+                arrayEnergy = np.zeros((maxValue,z.shape[0]+1))
+                arrayEnergy[:,0] = np.arange(arrayEnergy.shape[0])
+                for i in range(z.shape[0]):
+                    arrayEnergy[:self.Image.energies[f"{z[i]}"].shape[0],i+1] = self.Image.energies[f"{z[i]}"]
+                    arrayEnergy[self.Image.energies[f"{z[i]}"].shape[0]:,i+1] = self.Image.energies[f"{z[i]}"][-1]
+                np.savetxt(self.pathName.text()+self.headerName.text()+f"_Acq_{k}_Energies.csv",arrayEnergy,delimiter=';')
+        else:
+            self._createErrorMessage("Unable to Save")
+    def exportMusProcess(self):
+        """Saving of the Mus graphs"""
+        if self.pathName.text() != "" and self.headerName.text() != "":
+            k = self.MusSaveValues.value()
+            if k == -1:
+                z = np.arange(self.Image.voi_counter)
+            else:
+                z = np.array([k])
+            if self.MusTypeSave in ["All","Graph"]:
+                for i in range(z.shape[0]):
+                    fig = plt.figure()
+                    plt.xlabel("Iteration"); plt.ylabel("Centers");plt.title("Centers of Mass");plt.grid()
+                    for j in range(self.Image.mus[f"{z[i]}"].shape[0]):
+                        plt.plot(self.Image.mus[f"{z[i]}"][j,:,-1])
+                    fig.savefig(self.pathName.text()+self.headerName.text()+f"_Acq_{z[i]}_Mus.png")
+                    del fig
+                if k == -1:
+                    fig = plt.figure()
+                    for i in range(z.shape[0]):
+                        plt.xlabel("Iteration"); plt.ylabel("Centers");plt.title("Centers of Mass");plt.grid()
+                        for j in range(self.Image.mus[f"{z[i]}"].shape[0]):
+                            plt.plot(self.Image.mus[f"{z[i]}"][j,:,-1],label = str(z[i]))
+                        plt.legend()
+                    fig.savefig(self.pathName.text()+self.headerName.text()+f"_Acq_-1_Mus.png")
+                    del fig                    
+            if self.MusTypeSave in ["All","Raw Values"]:
+                maxValueX = 0
+                maxValueY = 0
+                for i in range(z.shape[0]):
+                    if self.Image.mus[f"{z[i]}"].shape[1] > maxValueX:
+                        maxValueX = self.Image.mus[f"{z[i]}"].shape[1]
+                    if self.Image.mus[f"{z[i]}"].shape[0] > maxValueY:
+                        maxValueY = self.Image.mus[f"{z[i]}"].shape[0]
+                arrayMus = np.zeros((maxValueX,maxValueY*z.shape[0]+1))
+                arrayMus[:,0] = np.arange(arrayMus.shape[0])
+                for i in range(z.shape[0]):
+                    for j in range(self.Image.mus[f"{z[i]}"].shape[0]):
+                        arrayMus[:self.Image.mus[f"{z[i]}"].shape[1],maxValueY*i + j +1] = self.Image.mus[f"{z[i]}"][j,:,-1]
+                        arrayMus[self.Image.mus[f"{z[i]}"].shape[1]:,maxValueY*i + j +1] = self.Image.mus[f"{z[i]}"][j,-1,-1]
+                np.savetxt(self.pathName.text()+self.headerName.text()+f"_Acq_{k}_Mus.csv",arrayMus,delimiter=';')
+        else:
+            self._createErrorMessage("Unable to Save")
+
     def exportTACProcess(self):
         """Saving of the TACs graphs"""
         if self.pathName.text() != "" and self.headerName.text() != "":
@@ -659,12 +842,16 @@ Useful for the reproducibility of analyses.""")
                 self.exportDiceProcess()
             if self.ExportJaccard:
                 self.exportJaccardProcess()
+            if self.ExportEnergies:
+                self.exportEnergiesProcess()
+            if self.ExportMus:
+                self.exportMusProcess()
             if self.ExportErrorTAC:
                 self.exportErrorTACProcess()
             if self.ExportDynestyParam:
                 self.exportDynestyParamProcess()
             if self.ExportDynestyGraphs:
                 self.exportDynestyGraphsProcess()
-            self._createErrorMessage("Export Successful")
+            self._createErrorMessage("Export Process Completed")
         except:
             self._createErrorMessage("Unable to Export")

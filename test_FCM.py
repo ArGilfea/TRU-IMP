@@ -25,8 +25,10 @@ Fan.mus = {}
 classNumber = 2
 
 alphas = np.array([1.5,2,3])
-m = np.array([2,3,4])
+m = np.array([2])
  
+Fan.VOI_ICM(acq = 20, subinfo = np.array([[10,70],[88,100],[90,112]]))
+
 for i in range(alphas.shape[0]):
     for j in range(m.shape[0]):
         Fan.VOI_FCM(acq=20, subinfo = np.array([[10,70],[88,100],[90,112]]), 
@@ -47,6 +49,14 @@ plt.figure()
 for i in range(Fan.voi_counter):
     for j in range(classNumber):
         plt.plot(Fan.mus[f"{i}"][j,:,0],label = Fan.voi_name[i])
+plt.grid()
+plt.legend()
+plt.title("Mus")
+
+plt.figure()
+for i in range(Fan.voi_counter):
+    for j in range(classNumber):
+        plt.plot(Fan.mus[f"{i}"][j,:,-1],label = Fan.voi_name[i])
 plt.grid()
 plt.legend()
 plt.title("Mus")

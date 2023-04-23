@@ -106,6 +106,10 @@ class Window(QMainWindow):
         except:
             self.logText.setText("Nothing started")
         self.generalLayoutLog.addWidget(self.logText)
+        self.exit3 = QPushButton("Exit")
+        self.exit3.setToolTip("Closes the GUI and its dependencies")
+        self.exit3.clicked.connect(self.closing_button)
+        self.generalLayoutLog.addWidget(self.exit3)  
     def _createReadMe(self):
         """Creates a ReadMe tab with the ReadMe file infos"""
         self.ReadMeText = QTextEdit()
@@ -116,6 +120,10 @@ class Window(QMainWindow):
             self.ReadMeText.setText(htmlmarkdown)
         except: pass
         self.generalLayoutReadMe.addWidget(self.ReadMeText)
+        self.exit2 = QPushButton("Exit")
+        self.exit2.setToolTip("Closes the GUI and its dependencies")
+        self.exit2.clicked.connect(self.closing_button)
+        self.generalLayoutReadMe.addWidget(self.exit2)  
     def _createStatusBar(self):
         """Create a status bar at the bottom of the GUI"""
         self.statusBar = QStatusBar()
@@ -318,6 +326,8 @@ class Window(QMainWindow):
         self.ResultViewCombo.addItem("TAC Slice")
         self.ResultViewCombo.addItem("Dice")
         self.ResultViewCombo.addItem("Jaccard")
+        self.ResultViewCombo.addItem("Energy")
+        self.ResultViewCombo.addItem("Mus")
         self.ResultViewCombo.addItem("Bayesian")
         self.ResultViewCombo.addItem("Center of Mass")
         self.ResultViewCombo.addItem("Moments")
@@ -600,6 +610,7 @@ class Window(QMainWindow):
         "Open a window to show the basic informations of the acquisition"
         try:
             window = ParamWindow(self.parameters,self)
+            window.setWindowModality(Qt.ApplicationModal)
             window.show()
         except:
             self._createErrorMessage()
@@ -609,6 +620,7 @@ class Window(QMainWindow):
         """
         try:
             window = ExportWindow(self.parameters,self.Image,self)
+            window.setWindowModality(Qt.ApplicationModal)
             window.show()
         except:
             self._createErrorMessage()
@@ -807,12 +819,18 @@ class Window(QMainWindow):
         self.sliderBayesian.setMaximum(self.Image.bayesian_counter-1)
     def update_Result(self):
         """Update the middle image according to the type of result to be displayed"""
+        try: self.cb.remove()
+        except: pass
         if self.resultView == "TAC" or self.resultView == "TAC Slice":
             self.update_TAC()
         elif self.resultView == "Dice":
             self.update_Dice()
         elif self.resultView == "Jaccard":
             self.update_Jaccard()
+        elif self.resultView == "Energy":
+            self.update_Energy_View()
+        elif self.resultView == "Mus":
+            self.update_Mus_View()
         elif self.resultView == "Bayesian":
             try:
                 self.update_Bayesian(self.sliderBayesian.value())
@@ -848,6 +866,47 @@ class Window(QMainWindow):
             self.TACImage.axes.cla()
             im = self.TACImage.axes.pcolormesh(self.Image.jaccard_all)
             self.base_coeff_axes(im)
+            self.TACImage.draw() 
+            self.switch_bottom_view()
+        except:
+            pass
+    def update_Energy_View(self):
+        """Shows the Energy of the segmentations in the middle image"""
+        try:
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
+            self.TACImage.axes.cla()
+            if self.sliderSegm.value() >= 0:
+                self.TACImage.axes.plot(self.Image.energies[f"{self.sliderSegm.value()}"])
+            else:
+                for i in range(self.Image.voi_counter):
+                    self.TACImage.axes.plot(self.Image.energies[f"{i}"])
+            self.TACImage.axes.set_title("Energy of the Segmentation");self.TACImage.axes.grid()
+            self.TACImage.axes.set_xlabel("Iteration");self.TACImage.axes.set_ylabel("Energy")
+            self.TACImage.axes.set_yscale("log")
+            self.TACImage.draw() 
+            self.switch_bottom_view()
+        except:
+            pass
+    def update_Mus_View(self):
+        """Shows the Convergence of the Average of the segmentations in the middle image"""
+        try:
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
+            self.TACImage.axes.cla()
+            if self.sliderSegm.value() >= 0:
+                for j in range(self.Image.mus[f"{self.sliderSegm.value()}"].shape[0]):
+                    self.TACImage.axes.plot(self.Image.mus[f"{self.sliderSegm.value()}"][j,:,-1])
+            else:
+                for i in range(self.Image.voi_counter):
+                    for j in range(self.Image.mus[f"{i}"].shape[0]):
+                        self.TACImage.axes.plot(self.Image.mus[f"{i}"][j,:,-1])
+            self.TACImage.axes.set_title("Centers of Mass of the Segmentation");self.TACImage.axes.grid()
+            self.TACImage.axes.set_xlabel("Iteration");self.TACImage.axes.set_ylabel("Centers of Mass")
             self.TACImage.draw() 
             self.switch_bottom_view()
         except:

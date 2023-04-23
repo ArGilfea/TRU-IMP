@@ -117,6 +117,14 @@ if they have been computed.
 * Jaccard:
 This will show the Jaccard coefficients for all segmentations,
 if they have been computed.
+* Energy:
+This will show the energy of the system for all iterations. 
+If segmentation slider is -1, will show all segmentations, otherwise will show a specific one.
+The energies are for the ICM and FCM segmentations.
+* Mus:
+This will show the centers of mass of the statistical distributions for all iterations. 
+If segmentation slider is -1, will show all segmentations, otherwise will show a specific one.
+The centers are for the ICM and FCM segmentations.
 * Bayesian:
 This will show the parameters extracted with Bayesian analyses.
 The parameter shown will be the one given by the "Bay. Values" slider.
@@ -188,6 +196,14 @@ segmentation by taking into account the current neighbours of
 a voxel; in other words, a voxel will more probably belong to 
 a class if its neighbours belong to the same class.
 Reference: Besag, J. On the Statistical Analysis of Dirty Pictures. 1986 48(3):259-79
+### FCM (Fuzzy C-means):
+This method is similar to the ICM and K-mean, but supposes that a voxel
+can belong to more than one class at the same time. Each voxel will thus
+belong to different classes at the same time.
+This presupposes a Gaussian distribution underlying the distribution of intensity.
+The m parameters determines the fuzziness of the segmentation and the alpha is used for
+the Lp-norm. 
+Reference: Lapuyade-Lahorgue et al. SPEQTACLE: An automated generalized fuzzy C-means algorithm for tumor delineation in PET. Medical Physics. 42(10).
 ### Filling and Filling f: 
 This method takes a seed as a starting point.
 For each iteration, until convergence, any voxel 
@@ -350,6 +366,7 @@ The currently available types of noise are:
 ## References:
 * Canny: Canny, J. A Computational Approach to Edge Detection. IEEE Transactions on Pattern Analysis and Machine Intelligence 8(6). 1986.
 * Dynesty: https://dynesty.readthedocs.io/en/latest/
+* FCM: Lapuyade-Lahorgue et al. SPEQTACLE: An automated generalized fuzzy C-means algorithm for tumor delineation in PET. Medical Physics. 42(10).
 * Filling: Adams, R., Bischof, L. 1994. Seeded Region Growing. IEEE Transactions on Pattern Analysis and Machine Intelligence. 16(6): 641-7.
 * ICM: Besag, J. On the Statistical Analysis of Dirty Pictures. 1986 48(3):259-79
 * Pharmacokinetic modeling: Maguire, R.P. et al. PET Pharmacokinetic Course. 

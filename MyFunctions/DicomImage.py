@@ -749,15 +749,23 @@ class DicomImage(object):
         key -- entry of the dictionary of VOIs to be deleted (default -1)
         """
         if(key >= 0):
-            new_dict = {}
+            new_dict_VOI = {}
+            new_dict_Energies = {}
+            new_dict_mu = {}
             for i in range(self.voi_counter):
                 if i < key:
-                    new_dict[f"{i}"] = self.voi[f"{i}"]
+                    new_dict_VOI[f"{i}"] = self.voi[f"{i}"]
+                    new_dict_Energies[f"{i}"] = self.energies[f"{i}"]
+                    new_dict_mu[f"{i}"] = self.mus[f"{i}"]
                 elif i > key:
-                    new_dict[f"{i-1}"] = self.voi[f"{i}"]
+                    new_dict_VOI[f"{i-1}"] = self.voi[f"{i}"]
+                    new_dict_Energies[f"{i-1}"] = self.energies[f"{i}"]
+                    new_dict_mu[f"{i-1}"] = self.mus[f"{i}"]
 
             self.voi_counter -= 1
-            self.voi = new_dict
+            self.voi = new_dict_VOI
+            self.energies = new_dict_Energies
+            self.mus = new_dict_mu
             del self.voi_voxels[key]
             del self.voi_name[key]
             del self.voi_center_of_mass[key]
@@ -1375,7 +1383,7 @@ class DicomImage(object):
                 verbose:bool = False,save:bool=True,do_moments:bool= False,
                 do_stats:bool=False,name:str=''): #Added in 1.3.0
         """
-        This function segments an image using a k-mean algorithm.\n
+        This function segments an image using a k-mean algorithm. (2-Mean Only!)\n
         Keyword arguments:\n
         acq -- time acquisition on which to base the static segmentation (default 0)\n
         subinfo -- fraction (i.e. section) of the image to consider for the segmentation (default [[-1,0],[0,0],[0,0]])\n
@@ -1391,17 +1399,19 @@ class DicomImage(object):
         else:
             subimage = self.Image[acq,subinfo[0][0]:subinfo[0][1],subinfo[1][0]:subinfo[1][1],subinfo[2][0]:subinfo[2][1]]
         old_mean = np.zeros(2)
-        mean = np.zeros(2)
-        var = np.zeros(2)
+        mean = np.zeros((2,max_iter,1))
+        var = np.zeros((2,max_iter,1))
         old_mean[0] = np.min(subimage)
         old_mean[1] = np.max(subimage)
         iter_now = 0
         
-        while(iter_now < max_iter and (not (old_mean==mean).all())):
+        while(iter_now < max_iter and (not (old_mean[:]==mean[:,iter_now]).all())):
             VOI_0 = np.zeros_like(subimage)
             VOI_1 = np.zeros_like(subimage)
             if(iter_now != 0):
-                old_mean = np.copy(mean)
+                old_mean = np.copy(mean[:,iter_now])
+            else:
+                mean[:,0,0] = np.copy(old_mean)
             mid_value = (old_mean[0]+old_mean[1])/2
             iter_now += 1
             for i in range(subimage.shape[0]):
@@ -1411,26 +1421,26 @@ class DicomImage(object):
                             VOI_0[i,j,k] = 1
                         else:
                             VOI_1[i,j,k] = 1
-            mean[0] = np.sum(np.multiply(VOI_0,subimage))/np.sum(VOI_0)
-            mean[1] = np.sum(np.multiply(VOI_1,subimage))/np.sum(VOI_1)
-            var[0] = np.sum(np.multiply(VOI_0,(subimage-mean[0])**2))/np.sum(VOI_0)
-            var[1] = np.sum(np.multiply(VOI_1,(subimage-mean[1])**2))/np.sum(VOI_1)
+            mean[0,iter_now:,0] = np.sum(np.multiply(VOI_0,subimage))/np.sum(VOI_0)
+            mean[1,iter_now:,0] = np.sum(np.multiply(VOI_1,subimage))/np.sum(VOI_1)
+            var[0,iter_now:,0] = np.sum(np.multiply(VOI_0,(subimage-mean[0,iter_now])**2))/np.sum(VOI_0)
+            var[1,iter_now:,0] = np.sum(np.multiply(VOI_1,(subimage-mean[1,iter_now])**2))/np.sum(VOI_1)
             if verbose:
-                self.update_log(f"Average of the groups for iter {iter_now}: {mean[0]:.1f} and {mean[1]:.1f}")
-                self.update_log(f"Variance of the groups for iter {iter_now}: {var[0]:.1f} and {var[1]:.1f}")
+                self.update_log(f"Average of the groups for iter {iter_now}: {mean[0,iter_now,0]:.1f} and {mean[1,iter_now,0]:.1f}")
+                self.update_log(f"Variance of the groups for iter {iter_now}: {var[0,iter_now,0]:.1f} and {var[1,iter_now,0]:.1f}")
 
         VOI = np.zeros_like(self.Image[int(acq),:,:,:])
         for i in range(subimage.shape[0]):
             for j in range(subimage.shape[1]):
                 for k in range(subimage.shape[2]):
-                    prob0 = np.exp(-(subimage[i,j,k]-mean[0])**2/(2*var[0]))/(2*3.141592*var[0])**(1/2)
-                    prob1 = np.exp(-(subimage[i,j,k]-mean[1])**2/(2*var[1]))/(2*3.141592*var[1])**(1/2)
+                    prob0 = np.exp(-(subimage[i,j,k]-mean[0,-1,0])**2/(2*var[0,-1,0]))/(2*3.141592*var[0,-1,0])**(1/2)
+                    prob1 = np.exp(-(subimage[i,j,k]-mean[1,-1,0])**2/(2*var[1,-1,0]))/(2*3.141592*var[1,-1,0])**(1/2)
                     if(prob1>prob0):
                         VOI[i+subinfo[0][0],j+subinfo[1][0],k+subinfo[2][0]] = 1
         if save:
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
         if not save:
-            return VOI, mean, var
+            return VOI, mean[:,:iter_now,:], var[:,:iter_now,:]
     def VOI_ICM(self,acq:int=0,alpha:float = 1,subinfo:list = [[-1,0],[0,0],[0,0]],
                 max_iter:int=100,max_iter_kmean:int=100,
                 verbose:bool = False,save:bool=True,do_moments:bool= False,
@@ -1457,6 +1467,7 @@ class DicomImage(object):
         new_VOI = np.copy(VOI[subinfo[0][0]:subinfo[0][1],subinfo[1][0]:subinfo[1][1],subinfo[2][0]:subinfo[2][1]])
         old_VOI = np.copy(new_VOI+0.5)
         iter_now = 0
+        E_tot_all = np.zeros(max_iter)
         E_old = 1e100
         E_tot = -1
         while(iter_now < max_iter and (not (new_VOI==old_VOI).all()) and E_tot < E_old):
@@ -1471,8 +1482,8 @@ class DicomImage(object):
                     for k in range(old_VOI.shape[2]):
                         neighbour0 = self.count_neighbours_other_class(old_VOI,[i,j,k],0)
                         neighbour1 = self.count_neighbours_other_class(old_VOI,[i,j,k],1)
-                        E_0 = -np.log(np.exp(-(subimage[i,j,k]-mean[0])**2/(2*var[0]))/(2*3.141592*var[0])**(1/2)) + alpha* neighbour0
-                        E_1 = -np.log(np.exp(-(subimage[i,j,k]-mean[1])**2/(2*var[1]))/(2*3.141592*var[1])**(1/2)) + alpha* neighbour1
+                        E_0 = -np.log(np.exp(-(subimage[i,j,k]-mean[0,-1,0])**2/(2*var[0,-1,0]))/(2*3.141592*var[0,-1,0])**(1/2)) + alpha* neighbour0
+                        E_1 = -np.log(np.exp(-(subimage[i,j,k]-mean[1,-1,0])**2/(2*var[1,-1,0]))/(2*3.141592*var[1,-1,0])**(1/2)) + alpha* neighbour1
                         if E_0 > E_1:
                             if new_VOI[i,j,k]==0:
                                 counter += 1
@@ -1486,12 +1497,13 @@ class DicomImage(object):
             if (verbose and iter_now%5==0) or (verbose and iter_now==1):
                 self.update_log(f"Iter {iter_now}, size of classes: {np.sum(new_VOI):.0f} and {(subinfo[0][1]-subinfo[0][0])*(subinfo[1][1]-subinfo[1][0])*(subinfo[2][1]-subinfo[2][0])-np.sum(new_VOI):.0f}, with total energy {E_tot:.3f}")
                 self.update_log(f"Number of voxels changed: {counter}")
+            E_tot_all[iter_now - 1] = E_tot
         for i in range(old_VOI.shape[0]):
             for j in range(old_VOI.shape[1]):
                 for k in range(old_VOI.shape[2]):
                     VOI[i+subinfo[0][0],j+subinfo[1][0],k+subinfo[2][0]] = new_VOI[i,j,k]
         if save:
-            self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
+            self.save_VOI(VOI,energies= E_tot_all[:iter_now-1],mus = mean,name=name,do_stats=do_stats,do_moments=do_moments)
         if not save:
             return VOI, E_tot
         return E_tot
@@ -1537,7 +1549,8 @@ class DicomImage(object):
         currentIter = 0
         Energies = np.zeros(maxIter+1)
         mus_all = np.zeros((classNumber,maxIter+1,maxIterConvergence+1))
-        mus_all[:,0,0] = mus
+        for i in range(classNumber):
+            mus_all[i,0,:] = mus[i]
         Energies[0] = self.LossFunction(subImage,NewProbVectors,mus = mus,m=m,alpha=alpha)
         while(currentIter < maxIter and ((not (np.abs(NewProbVectors -OldProbVectors) < 1e-4).all()) or currentIter < maxIter * 0.1)):
             OldProbVectors = np.copy(NewProbVectors)
