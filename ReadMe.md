@@ -1,6 +1,6 @@
 # README File
-# TRU-M.P.I.
-# Techniques for Reliable Use of Medical Physics Images
+# TRU-IMP
+# Techniques for Reliable Use of Images in Medical Physics
 
 ## Use:
 This package and the GUI are used to visualize dynamic images, segment them and extract parameters. 
