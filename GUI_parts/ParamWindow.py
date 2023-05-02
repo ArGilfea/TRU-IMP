@@ -658,41 +658,41 @@ class ParamWindow(QMainWindow):
         """Shows the formula of the pdf, the mean (and its value) and the std (and its value)"""
         basedir = os.path.dirname(__file__)
         if self.parameters.NoiseType == "Gaussian":
-            pdf = f"{basedir}/../Images/Gaussian_pdf.png"
+            pdf = f"{basedir}/Images/Gaussian_pdf.png"
             mu = self.parameters.NoiseMu
-            mu_f = f"{basedir}/../Images/Gaussian_mu.png"
+            mu_f = f"{basedir}/Images/Gaussian_mu.png"
             sigma = self.parameters.NoiseSigma
-            sigma_f = f"{basedir}/../Images/Gaussian_sigma.png"
+            sigma_f = f"{basedir}/Images/Gaussian_sigma.png"
         elif self.parameters.NoiseType == "Uniform":
-            pdf = f"{basedir}/../Images/Uniform_pdf.png"
+            pdf = f"{basedir}/Images/Uniform_pdf.png"
             mu = SF.uniform_noise_pdf(a=self.parameters.NoiseAUniform,b = self.parameters.NoiseBUniform,type="mu")
-            mu_f = f"{basedir}/../Images/Uniform_mu.png"
+            mu_f = f"{basedir}/Images/Uniform_mu.png"
             sigma = SF.uniform_noise_pdf(a=self.parameters.NoiseAUniform,b = self.parameters.NoiseBUniform,type="sigma")
-            sigma_f = f"{basedir}/../Images/Uniform_sigma.png"
+            sigma_f = f"{basedir}/Images/Uniform_sigma.png"
         elif self.parameters.NoiseType == "Erlang (Gamma)":
-            pdf = f"{basedir}/../Images/Erlang_pdf.png"
+            pdf = f"{basedir}/Images/Erlang_pdf.png"
             mu = SF.Erlang_noise_pdf(a=self.parameters.NoiseAErlang,b = self.parameters.NoiseBErlang,type="mu")
-            mu_f = f"{basedir}/../Images/Erlang_mu.png"
+            mu_f = f"{basedir}/Images/Erlang_mu.png"
             sigma = SF.Erlang_noise_pdf(a=self.parameters.NoiseAErlang,b = self.parameters.NoiseBErlang,type="sigma")
-            sigma_f = f"{basedir}/../Images/Erlang_sigma.png"
+            sigma_f = f"{basedir}/Images/Erlang_sigma.png"
         elif self.parameters.NoiseType == "Exponential":
-            pdf = f"{basedir}/../Images/Exponential_pdf.png"
+            pdf = f"{basedir}/Images/Exponential_pdf.png"
             mu = SF.exponential_noise_pdf(a=self.parameters.NoiseExponential,type="mu")
-            mu_f = f"{basedir}/../Images/Exponential_mu.png"
+            mu_f = f"{basedir}/Images/Exponential_mu.png"
             sigma = SF.exponential_noise_pdf(a=self.parameters.NoiseExponential,type="sigma")
-            sigma_f = f"{basedir}/../Images/Exponential_sigma.png"
+            sigma_f = f"{basedir}/Images/Exponential_sigma.png"
         elif self.parameters.NoiseType == "Rayleigh":
-            pdf = f"{basedir}/../Images/Rayleigh_pdf.png"
+            pdf = f"{basedir}/Images/Rayleigh_pdf.png"
             mu = SF.rayleigh_noise_pdf(a=self.parameters.NoiseARayleigh,b = self.parameters.NoiseBRayleigh,type="mu")
-            mu_f = f"{basedir}/../Images/Rayleigh_mu.png"
+            mu_f = f"{basedir}/Images/Rayleigh_mu.png"
             sigma = SF.rayleigh_noise_pdf(a=self.parameters.NoiseARayleigh,b = self.parameters.NoiseBRayleigh,type="sigma")
-            sigma_f = f"{basedir}/../Images/Rayleigh_sigma.png"
+            sigma_f = f"{basedir}/Images/Rayleigh_sigma.png"
         else:
-            pdf = f"{basedir}/../Images/None.png"
+            pdf = f"{basedir}/Images/None.png"
             mu = 0
-            mu_f = f"{basedir}/../Images/None.png"
+            mu_f = f"{basedir}/Images/None.png"
             sigma = 0
-            sigma_f = f"{basedir}/../Images/None.png"
+            sigma_f = f"{basedir}/Images/None.png"
         im_pdf = QLabel()
         im_mu = QLabel()
         im_sigma = QLabel()

@@ -1608,14 +1608,18 @@ class DicomImage(object):
             mus_all[:,currentIter,-1] = mus
 
         VOI = np.zeros_like(self.Image[acq,:,:,:])
+        VOI_FCM = np.zeros((classNumber,self.nb_slice,self.width,self.length))
+        VOI_FCM[-1,:,:,:] = -1
         for i in range(subImage.shape[0]):
             for j in range(subImage.shape[1]):
                 for k in range(subImage.shape[2]):
                     NewSegm[i,j,k] = np.argmax(NewProbVectors[:,i,j,k])
                     VOI[i+subinfo[0][0],j+subinfo[1][0],k+subinfo[2][0]] = NewSegm[i,j,k]
+                    for l in range(classNumber):
+                        VOI_FCM[l,i+subinfo[0][0],j+subinfo[1][0],k+subinfo[2][0]] = NewProbVectors[l,i,j,k]
         
         if save:
-            self.save_VOI(VOI,Fuzzy_VOI=NewProbVectors,
+            self.save_VOI(VOI,Fuzzy_VOI=VOI_FCM,
                           energies = Energies[:currentIter],mus = mus_all[:,:currentIter],
                           name=f"FCM, m = {m}, alpha = {alpha}"+name,
                           do_stats=do_stats,do_moments=do_moments)
