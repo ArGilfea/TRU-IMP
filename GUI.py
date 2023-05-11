@@ -209,13 +209,6 @@ class Window(QMainWindow):
         btn_extr.setToolTip("Extracts the relevant information from a folder containing .dcm files")
         btn_load.setToolTip("Loads the selected .pkl file")
         btn_browse.setToolTip("Opens a local browser to select a file")
-
-        source.setText("/Users/philippelaporte/Desktop/Programmation/Python/Data/Fantome_6_1min_comp_2_I_k_all.pkl")
-        source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
-        source.setText("/Users/philippelaporte/Desktop/Fantome_9_1min.pkl")
-        source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_DicomImage.pkl")
-        #source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_Errors_DicomImage.pkl")
-        #source.setText("/Users/philippelaporte/Desktop/Test/FanDyn9_Bayesian_DicomImage.pkl")
         
         btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
