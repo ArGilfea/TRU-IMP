@@ -702,13 +702,39 @@ class DicomImage(object):
             self.reflection_error(keys[i],verbose=verbose_precise)
             if verbose: 
                 self.update_log(f"Errors done: {(i+1)/keys.shape[0]*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")    
+    def FCM_errors(self, key:int, iterations:int = 30, verbose: bool = False) -> None:
+        """
+        This function takes a specific FCM segmentation computes errors for it.
+        Only valid for 2 classes for now.
+        Only the resulting TAC is saved, in order to save memory space.
+        Keyword arguments:\n
+        key -- segmentation key to use\n
+        iterations -- number of analyses to run (default 30)\n
+        verbose -- outputs the progress (default False)\n
+        """
+        initial = time.time()
+        if key < 0 or key >= self.voi_counter:
+            raise Exception(f"Counter must be between 0 and {self.voi_counter}, whereas here it was {key}.")
+        if self.voi_fuzzy[f"{key}"].shape[0] != 2:
+            raise Exception(f"Can't run FCM error. This only work if there were 2 classes and here there were {self.voi_fuzzy[f'{key}'].shape[0]}")
+        current_FCM = self.voi_fuzzy[f"{key}"][1,:,:,:]
+        stats_curves = np.zeros((iterations,self.nb_acq))
+        for i in range(iterations):
+            random_sample = np.random.rand(current_FCM.shape[0],current_FCM.shape[1],current_FCM.shape[2])
+            VOI_rdm = np.where(random_sample >= current_FCM, 0, 1)
+            stats_curves[i,:] = self.VOI_statistics(VOI = VOI_rdm)
+            if verbose:
+                self.update_log(f"% done for key {key}: {(i+1)/iterations*100:.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+        self.voi_statistics_counter += 1
+        self.voi_statistics_avg.append(np.mean(stats_curves,0))
+        self.voi_statistics_std.append(np.std(stats_curves,0))
 ############################################################
 #                                                          #
 # This section deals with the adding and removal of VOIs   #
 #                                                          #
 ############################################################
-    def save_VOI(self,VOI:np.ndarray,Fuzzy_VOI: np.ndarray = np.array([]),
-                 energies: np.ndarray = np.array([]), mus: np.ndarray = np.array([]),
+    def save_VOI(self,VOI:np.ndarray,Fuzzy_VOI: np.ndarray = np.zeros((1,1,1,1)),
+                 energies: np.ndarray = np.zeros(10), mus: np.ndarray = np.zeros((1,10)),
                  name:str='',do_stats:bool=True,do_moments:bool=True): #Added in 1.3.1
         """
         Save the VOI being worked with in the dictionary
@@ -1512,8 +1538,8 @@ class DicomImage(object):
                 maxIter:int = 20, maxIterConvergence:int = 20, 
                 convergenceDelta: float = 1e-2, convergenceStep: float = 1e-10,
                 verbose = True, verboseIter = 10,
-                save:bool=True,do_moments:bool= False,
-                do_stats:bool=False,name:str=''):
+                save:bool=True,do_moments:bool= True,
+                do_stats:bool=True,name:str=''):
         """
         Fuzzy C-Mean Segmentation technique
         Keyword arguments:\n
@@ -1609,17 +1635,15 @@ class DicomImage(object):
 
         VOI = np.zeros_like(self.Image[acq,:,:,:])
         VOI_FCM = np.zeros((classNumber,self.nb_slice,self.width,self.length))
-        VOI_FCM[-1,:,:,:] = -1
+        VOI_FCM[0,:,:,:] = 1
         for i in range(subImage.shape[0]):
             for j in range(subImage.shape[1]):
                 for k in range(subImage.shape[2]):
-                    NewSegm[i,j,k] = np.argmax(NewProbVectors[:,i,j,k])
-                    VOI[i+subinfo[0][0],j+subinfo[1][0],k+subinfo[2][0]] = NewSegm[i,j,k]
+                    VOI[i+subinfo[0][0],j+subinfo[1][0],k+subinfo[2][0]] = np.argmax(NewProbVectors[:,i,j,k])
                     for l in range(classNumber):
                         VOI_FCM[l,i+subinfo[0][0],j+subinfo[1][0],k+subinfo[2][0]] = NewProbVectors[l,i,j,k]
-        
         if save:
-            self.save_VOI(VOI,Fuzzy_VOI=VOI_FCM,
+            self.save_VOI(VOI = VOI,Fuzzy_VOI=VOI_FCM,
                           energies = Energies[:currentIter],mus = mus_all[:,:currentIter],
                           name=f"FCM, m = {m}, alpha = {alpha}"+name,
                           do_stats=do_stats,do_moments=do_moments)
