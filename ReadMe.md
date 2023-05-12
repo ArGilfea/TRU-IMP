@@ -9,8 +9,10 @@ It was created for the sake of working with Dynamic Nuclear Medicine images.
 It might thus work with other types of images, but will probably not be optimized.
 
 ## Note:
-The GUI and the code are functional on a MacBookPro computer. 
+The GUI and the code are functional on a MacBookPro computer with iOS 13.2.1 Ventura. 
 It has not yet been tested with another OS.
+
+For any question, please contact philippe.laporte.3@umontreal.ca
 
 ## Packages Required:
 * Numpy          --For all computations
