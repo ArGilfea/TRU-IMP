@@ -1,4 +1,7 @@
-import os
+try:
+    import os
+except: 
+    pass
 import numpy as np
 import pydicom #To read Dicom Files
 import time #To monitor time to run program

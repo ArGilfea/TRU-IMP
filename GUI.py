@@ -1,6 +1,9 @@
 from re import sub
 import numpy as np
-import os
+try:
+    import os
+except:
+    pass
 #os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import matplotlib.pyplot as plt
 from MyFunctions.DicomImage import DicomImage #Custom Class
@@ -1639,7 +1642,8 @@ class MplCanvas(FigureCanvasQTAgg):
 
 ###
 if __name__ == "__main__":
-    os.system('clear')
+    cls = lambda: os.system('cls' if os.name=='nt' else 'clear')
+    cls()
     print(f"Starting program at {time.strftime('%H:%M:%S')}")
     initial = time.time()
     app = QApplication([])

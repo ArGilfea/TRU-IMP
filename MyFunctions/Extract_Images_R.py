@@ -1,4 +1,7 @@
-import os
+try:
+    import os
+except: 
+    pass
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.core.defchararray import count
