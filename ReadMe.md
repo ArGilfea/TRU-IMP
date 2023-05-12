@@ -1,7 +1,8 @@
 # README File
 # TRU-IMP
 # Techniques for Reliable Use of Images in Medical Physics
-
+# v.1.0.0
+# 'The Imp is in the Details'
 ## Use:
 This package and the GUI are used to visualize dynamic images, segment them and extract parameters. 
 It was created for the sake of working with Dynamic Nuclear Medicine images.
