@@ -14,6 +14,12 @@ It has not yet been tested with another OS.
 
 For any question, please contact philippe.laporte.3@umontreal.ca
 
+## Location:
+
+The source code is available at: https://github.com/ArGilfea/TRU-IMP
+
+A .dmg file for use without installation is available at:
+
 ## Packages Required:
 * Numpy          --For all computations
 * Scipy          --To compute the parameters
