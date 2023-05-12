@@ -52,15 +52,27 @@ class Window(QMainWindow):
         self.generalLayout = QGridLayout()
         self.generalLayoutLog = QGridLayout()
         self.generalLayoutReadMe = QGridLayout()
+        self.generalLayoutContributing = QGridLayout()
+        self.generalLayoutLicense = QGridLayout()
+        self.generalLayoutCodeOfConduct = QGridLayout()
         centralWidget = QWidget(self)
         centralWidgetLog = QWidget(self)
         centralWidgetReadMe = QWidget(self)
+        centralWidgetContributing = QWidget(self)
+        centralWidgetLicense = QWidget(self)
+        centralWidgetCodeOfConduct = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
         centralWidgetLog.setLayout(self.generalLayoutLog)
         centralWidgetReadMe.setLayout(self.generalLayoutReadMe)
+        centralWidgetContributing.setLayout(self.generalLayoutContributing)
+        centralWidgetLicense.setLayout(self.generalLayoutLicense)
+        centralWidgetCodeOfConduct.setLayout(self.generalLayoutCodeOfConduct)
         self.tabs.addTab(centralWidget,"Main")
         self.tabs.addTab(centralWidgetLog,"Log")
         self.tabs.addTab(centralWidgetReadMe,"Read Me")
+        self.tabs.addTab(centralWidgetContributing,"Contributing")
+        self.tabs.addTab(centralWidgetLicense,"License")
+        self.tabs.addTab(centralWidgetCodeOfConduct,"Code of Conduct")
 
         self.setCentralWidget(self.tabs)
         #First Line
@@ -84,6 +96,9 @@ class Window(QMainWindow):
         self._createLog()
         ##Creates the ReadMe Tab
         self._createReadMe()
+        self._createContributing()
+        self._createLicense()
+        self._createCodeOfConduct()
         #Status Bar
         self._createStatusBar()
 
@@ -124,6 +139,48 @@ class Window(QMainWindow):
         self.exit2.setToolTip("Closes the GUI and its dependencies")
         self.exit2.clicked.connect(self.closing_button)
         self.generalLayoutReadMe.addWidget(self.exit2)  
+    def _createContributing(self):
+        """Creates a Contributing tab with the Contributing file infos"""
+        self.ContributingText = QTextEdit()
+        self.ContributingText.setReadOnly(True)
+        try:
+            f = open('Contributing.md', 'r')
+            htmlmarkdown = markdown.markdown( f.read() )
+            self.ContributingText.setText(htmlmarkdown)
+        except: pass
+        self.generalLayoutContributing.addWidget(self.ContributingText)
+        self.exit4 = QPushButton("Exit")
+        self.exit4.setToolTip("Closes the GUI and its dependencies")
+        self.exit4.clicked.connect(self.closing_button)
+        self.generalLayoutContributing.addWidget(self.exit4)
+    def _createLicense(self):
+        """Creates a License tab with the License file infos"""
+        self.LicenseText = QTextEdit()
+        self.LicenseText.setReadOnly(True)
+        try:
+            f = open('License', 'r')
+            htmlmarkdown = markdown.markdown( f.read() )
+            self.LicenseText.setText(htmlmarkdown)
+        except: pass
+        self.generalLayoutLicense.addWidget(self.LicenseText)
+        self.exit5 = QPushButton("Exit")
+        self.exit5.setToolTip("Closes the GUI and its dependencies")
+        self.exit5.clicked.connect(self.closing_button)
+        self.generalLayoutLicense.addWidget(self.exit5)
+    def _createCodeOfConduct(self):
+        """Creates a Code of Conduct tab with the Code of Conduct file infos"""
+        self.CodeOfConductText = QTextEdit()
+        self.CodeOfConductText.setReadOnly(True)
+        try:
+            f = open('CODE_OF_CONDUCT.md', 'r')
+            htmlmarkdown = markdown.markdown( f.read() )
+            self.CodeOfConductText.setText(htmlmarkdown)
+        except: pass
+        self.generalLayoutCodeOfConduct.addWidget(self.CodeOfConductText)
+        self.exit6 = QPushButton("Exit")
+        self.exit6.setToolTip("Closes the GUI and its dependencies")
+        self.exit6.clicked.connect(self.closing_button)
+        self.generalLayoutCodeOfConduct.addWidget(self.exit6)
     def _createStatusBar(self):
         """Create a status bar at the bottom of the GUI"""
         self.statusBar = QStatusBar()
