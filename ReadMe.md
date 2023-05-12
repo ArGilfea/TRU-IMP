@@ -18,7 +18,9 @@ For any question, please contact philippe.laporte.3@umontreal.ca
 
 The source code is available at: https://github.com/ArGilfea/TRU-IMP
 
-A .dmg file for use without installation is available at:
+A .dmg file for use without installation is available at: [Google Drive](https://drive.google.com/drive/folders/1JcUJs54d8RtoR1eFdFIFpP1lycYELKjY)
+
+Temporary host website with infos and links: 
 
 ## Packages Required:
 * Numpy          --For all computations
