@@ -130,10 +130,11 @@ class Window(QMainWindow):
         self.generalLayoutLog.addWidget(self.exit3)  
     def _createReadMe(self):
         """Creates a ReadMe tab with the ReadMe file infos"""
+        basedir = os.path.dirname(__file__)
         self.ReadMeText = QTextEdit()
         self.ReadMeText.setReadOnly(True)
         try:
-            f = open('ReadMe.md', 'r')
+            f = open(f'{basedir}/ReadMe.md', 'r')
             htmlmarkdown = markdown.markdown( f.read() )
             self.ReadMeText.setText(htmlmarkdown)
         except: pass
@@ -144,10 +145,11 @@ class Window(QMainWindow):
         self.generalLayoutReadMe.addWidget(self.exit2)  
     def _createContributing(self):
         """Creates a Contributing tab with the Contributing file infos"""
+        basedir = os.path.dirname(__file__)
         self.ContributingText = QTextEdit()
         self.ContributingText.setReadOnly(True)
         try:
-            f = open('Contributing.md', 'r')
+            f = open(f'{basedir}/Contributing.md', 'r')
             htmlmarkdown = markdown.markdown( f.read() )
             self.ContributingText.setText(htmlmarkdown)
         except: pass
@@ -158,10 +160,11 @@ class Window(QMainWindow):
         self.generalLayoutContributing.addWidget(self.exit4)
     def _createLicense(self):
         """Creates a License tab with the License file infos"""
+        basedir = os.path.dirname(__file__)
         self.LicenseText = QTextEdit()
         self.LicenseText.setReadOnly(True)
         try:
-            f = open('License', 'r')
+            f = open(f'{basedir}/License', 'r')
             htmlmarkdown = markdown.markdown( f.read() )
             self.LicenseText.setText(htmlmarkdown)
         except: pass
@@ -172,10 +175,11 @@ class Window(QMainWindow):
         self.generalLayoutLicense.addWidget(self.exit5)
     def _createCodeOfConduct(self):
         """Creates a Code of Conduct tab with the Code of Conduct file infos"""
+        basedir = os.path.dirname(__file__)
         self.CodeOfConductText = QTextEdit()
         self.CodeOfConductText.setReadOnly(True)
         try:
-            f = open('CODE_OF_CONDUCT.md', 'r')
+            f = open(f'{basedir}/CODE_OF_CONDUCT.md', 'r')
             htmlmarkdown = markdown.markdown( f.read() )
             self.CodeOfConductText.setText(htmlmarkdown)
         except: pass
