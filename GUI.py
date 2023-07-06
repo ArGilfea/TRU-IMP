@@ -692,6 +692,8 @@ class Window(QMainWindow):
                 k = np.array([self.parameters.SegmAcq])
             else:
                 k=-1
+            if self.parameters.subImage[0,0] != 0:
+                k = np.arange(self.parameters.subImage[0,0], self.parameters.subImage[0,1])
             MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
                                                             seed = self.parameters.seed,k=k,
                                                             subimage=self.parameters.subImage[1:,:],
@@ -720,10 +722,11 @@ class Window(QMainWindow):
                                                             SaveSegm=self.parameters.SaveSegm,do_moments=self.parameters.doMoments,
                                                             do_stats=self.parameters.doStats,verbose=self.parameters.verbose)
             if self.parameters.SegmType != "None":
-                if k == -1 and self.parameters.SegmType != "Ellipsoid":
-                    self.parameters._nbSeg += self.parameters._size[0]
+                if isinstance(k,int):
+                    if k == -1 and self.parameters.SegmType != "Ellipsoid":
+                        self.parameters._nbSeg += self.parameters._size[0]
                 else:
-                    self.parameters._nbSeg += 1
+                    self.parameters._nbSeg += k.shape[0]
             self.displayStatus(f"{self.parameters.SegmType} segmentation",initial)
             self.update_segm()
             self.parameters.ErrorType = "None" #Avoid running twice
@@ -744,6 +747,7 @@ class Window(QMainWindow):
                                                     order=self.parameters.orderShift,d=self.parameters.distanceShift,
                                                     angle = self.parameters.angleError*2*np.pi/360,
                                                     factor= self.parameters.factorError,
+                                                    iterations = self.parameters.iterationError,
                                                     verbose=self.parameters.verbose)
             self.update_segm()
             if self.parameters.ErrorType != "None":
@@ -822,6 +826,10 @@ class Window(QMainWindow):
             if self.parameters.deformationType != "None":
                 self.displayStatus(f"{self.parameters.deformationType} deformations done",initial)
                 self.parameters.deformationType = "None" #Avoid running twice
+                if self.parameters.deformationSegm == -1:
+                    self.parameters._nbSeg += self.parameters._size[0]
+                else:
+                    self.parameters._nbSeg += 1
             else:
                 self.displayStatus("",initial)
             self.update_all()
@@ -1617,7 +1625,19 @@ class Window(QMainWindow):
     def browse_button_file(self,source:QLineEdit):
         """Opens a browsing system and keeps the selected file (cannot select a folder)"""
         text = QFileDialog.getOpenFileName(self)
-        source.setText(text[0])
+        try:
+            if text[0][-4:] not in [".pkl",".nii"] and text[0][-7:] not in [".nii.gz"]:
+                for i in range(len(text[0])-1,0,-1):
+                    if text[0][i] == "/":
+                        path = text[0][:i+1]
+                        break
+            else:
+                path = text[0]
+            print(path)
+            print(repr(path))
+            source.setText(path)
+        except: 
+            pass
     def save_button(self,path:QLineEdit,path_name:QLineEdit):
         """Depleted"""
         initial = time.time()

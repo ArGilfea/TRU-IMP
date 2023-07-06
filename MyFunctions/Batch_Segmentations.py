@@ -71,9 +71,10 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
         if path_out == '':
             path_out = path_in
         Image = PF.pickle_open(path_in+name_in+'.pkl')
-    if k == -1:
-        k = np.arange(Image.nb_acq)
-    else:
+    if isinstance(k,int):
+        if k == -1:
+            k = np.arange(Image.nb_acq)
+    elif not isinstance(k,np.ndarray):
         k = np.array(k)
     if show_pre:
         print("Showing seed positionning")
@@ -124,6 +125,9 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
     if segmentation_type == "Ellipsoid":
         print('Running the ellipsoid segmentation...')
         Image.add_VOI_ellipsoid(center=centerEllipsoid,axes=axesEllipsoid,name=name_segmentation,do_moments=do_moments,do_stats=do_stats,save=SaveSegm)
+    if segmentation_type == "Prism":
+        print('Running the prism segmentation...')
+        Image.add_VOI_prism(position=subimage,name=name_segmentation,do_moments=do_moments,do_stats=do_stats,save=SaveSegm)
     if segmentation_type == "k Mean":
         print('Running the k Mean segmentations...')
         kMean_Batch(Image,k,subimage=subimage,max_iter_kmean=max_iter_kmean_ICM,saveSegm=SaveSegm,name_segmentation=name_segmentation,
@@ -142,6 +146,7 @@ def Batch_Segmentations(segmentation_type:str='None',Image: DicomImage = None,se
             print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - inter):.1f} s, for a total of {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
 
     if do_coefficients:
+        print(f"Doing the Dice and Jaccard coefficients at {time.strftime('%H:%M:%S')}")
         Image.Dice_all()
         Image.Jaccard_all()
 

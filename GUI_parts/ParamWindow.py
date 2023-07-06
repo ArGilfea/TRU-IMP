@@ -2,6 +2,7 @@ import numpy as np
 import MyFunctions.Statistic_Functions as SF
 from GUI_parts.GUIParam import GUIParameters
 import os
+from sys import platform
 ###
 import numpy as np
 ###
@@ -26,7 +27,7 @@ class ParamWindow(QMainWindow):
     def __init__(self,parameters:GUIParameters,parent=None):
         """Initializes the ParamWindow with the GUI Parameters"""
         super().__init__(parent)
-        self.setMinimumSize(300, 650)
+        self.setMinimumSize(300, 850)
         self.tabs = QTabWidget()
         self.parameters = parameters
         self.setWindowTitle("Parameters")
@@ -338,6 +339,7 @@ class ParamWindow(QMainWindow):
         self.SegmCombo.addItem("Canny Filled")
         self.SegmCombo.addItem("Canny Contour")
         self.SegmCombo.addItem("Ellipsoid")
+        self.SegmCombo.addItem("Prism")
         self.SegmCombo.addItem("k Mean")
         self.SegmCombo.addItem("Threshold")
         self.SegmCombo.addItem("Filling (very slow)")
@@ -466,9 +468,9 @@ class ParamWindow(QMainWindow):
         slider1.setRange(0,1000)
         slider2.setRange(0,1000)
         slider3.setRange(0,1000)
-        slider1.setValue(self.parameters.deformationExpansion[0]*100)
-        slider2.setValue(self.parameters.deformationExpansion[1]*100)
-        slider3.setValue(self.parameters.deformationExpansion[2]*100)
+        slider1.setValue(int(self.parameters.deformationExpansion[0]*100))
+        slider2.setValue(int(self.parameters.deformationExpansion[1]*100))
+        slider3.setValue(int(self.parameters.deformationExpansion[2]*100))
         self.sliderDeformationExpansion1 = slider1   
         self.sliderDeformationExpansion2 = slider2   
         self.sliderDeformationExpansion3 = slider3   
@@ -509,6 +511,7 @@ class ParamWindow(QMainWindow):
         self.ErrorCombo.addItem("Rotation")
         self.ErrorCombo.addItem("Expansion")
         self.ErrorCombo.addItem("Reflection")
+        self.ErrorCombo.addItem("FCM")
 
         self.ErrorCombo.setCurrentText(self.parameters.ErrorType)
         self.ErrorCombo.activated[str].connect(self.ErrorMethodCombo_Changed)
@@ -658,53 +661,57 @@ class ParamWindow(QMainWindow):
         """Shows the formula of the pdf, the mean (and its value) and the std (and its value)"""
         basedir = os.path.dirname(__file__)
         if self.parameters.NoiseType == "Gaussian":
-            pdf = f"{basedir}/Images/Gaussian_pdf.png"
+            pdf = os.path.join(basedir,"Images", "Gaussian_pdf.png")
+            mu_f = os.path.join(basedir,"Images", "Gaussian_mu.png")
+            sigma_f = os.path.join(basedir,"Images", "Gaussian_sigma.png")   
             mu = self.parameters.NoiseMu
-            mu_f = f"{basedir}/Images/Gaussian_mu.png"
             sigma = self.parameters.NoiseSigma
-            sigma_f = f"{basedir}/Images/Gaussian_sigma.png"
         elif self.parameters.NoiseType == "Uniform":
-            pdf = f"{basedir}/Images/Uniform_pdf.png"
+            pdf = os.path.join(basedir,"Images", "Uniform_pdf.png")
+            mu_f = os.path.join(basedir,"Images", "Uniform_mu.png")
+            sigma_f = os.path.join(basedir,"Images", "Uniform_sigma.png")   
             mu = SF.uniform_noise_pdf(a=self.parameters.NoiseAUniform,b = self.parameters.NoiseBUniform,type="mu")
-            mu_f = f"{basedir}/Images/Uniform_mu.png"
             sigma = SF.uniform_noise_pdf(a=self.parameters.NoiseAUniform,b = self.parameters.NoiseBUniform,type="sigma")
-            sigma_f = f"{basedir}/Images/Uniform_sigma.png"
         elif self.parameters.NoiseType == "Erlang (Gamma)":
-            pdf = f"{basedir}/Images/Erlang_pdf.png"
+            pdf = os.path.join(basedir,"Images", "Erlang_pdf.png")
+            mu_f = os.path.join(basedir,"Images", "Erlang_mu.png")
+            sigma_f = os.path.join(basedir,"Images", "Erlang_sigma.png")   
             mu = SF.Erlang_noise_pdf(a=self.parameters.NoiseAErlang,b = self.parameters.NoiseBErlang,type="mu")
-            mu_f = f"{basedir}/Images/Erlang_mu.png"
             sigma = SF.Erlang_noise_pdf(a=self.parameters.NoiseAErlang,b = self.parameters.NoiseBErlang,type="sigma")
-            sigma_f = f"{basedir}/Images/Erlang_sigma.png"
         elif self.parameters.NoiseType == "Exponential":
-            pdf = f"{basedir}/Images/Exponential_pdf.png"
+            pdf = os.path.join(basedir,"Images", "Exponential_pdf.png")
+            mu_f = os.path.join(basedir,"Images", "Exponential_mu.png")
+            sigma_f = os.path.join(basedir,"Images", "Exponential_sigma.png")   
             mu = SF.exponential_noise_pdf(a=self.parameters.NoiseExponential,type="mu")
-            mu_f = f"{basedir}/Images/Exponential_mu.png"
             sigma = SF.exponential_noise_pdf(a=self.parameters.NoiseExponential,type="sigma")
-            sigma_f = f"{basedir}/Images/Exponential_sigma.png"
         elif self.parameters.NoiseType == "Rayleigh":
-            pdf = f"{basedir}/Images/Rayleigh_pdf.png"
+            pdf = os.path.join(basedir,"Images", "Rayleigh_pdf.png")
+            mu_f = os.path.join(basedir,"Images", "Rayleigh_mu.png")
+            sigma_f = os.path.join(basedir,"Images", "Rayleigh_sigma.png")        
             mu = SF.rayleigh_noise_pdf(a=self.parameters.NoiseARayleigh,b = self.parameters.NoiseBRayleigh,type="mu")
-            mu_f = f"{basedir}/Images/Rayleigh_mu.png"
             sigma = SF.rayleigh_noise_pdf(a=self.parameters.NoiseARayleigh,b = self.parameters.NoiseBRayleigh,type="sigma")
-            sigma_f = f"{basedir}/Images/Rayleigh_sigma.png"
         else:
-            pdf = f"{basedir}/Images/None.png"
+            pdf = os.path.join(basedir,"Images", "None.png")
+            mu_f = os.path.join(basedir,"Images", "None.png")
+            sigma_f = os.path.join(basedir,"Images", "None.png")  
             mu = 0
-            mu_f = f"{basedir}/Images/None.png"
             sigma = 0
-            sigma_f = f"{basedir}/Images/None.png"
         im_pdf = QLabel()
         im_mu = QLabel()
         im_sigma = QLabel()
         try:
             pixmap_pdf = QPixmap(pdf)
-            im_pdf.resize(self.width()/3, self.width()/12)
+            im_pdf.resize(int(self.width()/3), int(self.width()/12))
             im_pdf.setPixmap(pixmap_pdf.scaled(im_pdf.size(), Qt.IgnoreAspectRatio))
+        except: pass
+        try:
             pixmap_mu = QPixmap(mu_f)
-            im_mu.resize(self.width()/3, self.width()/12)
+            im_mu.resize(int(self.width()/3), int(self.width()/12))
             im_mu.setPixmap(pixmap_mu.scaled(im_mu.size(), Qt.IgnoreAspectRatio))
+        except: pass
+        try:
             pixmap_sigma = QPixmap(sigma_f)
-            im_sigma.resize(self.width()/3, self.width()/12)
+            im_sigma.resize(int(self.width()/3), int(self.width()/12))
             im_sigma.setPixmap(pixmap_sigma.scaled(im_sigma.size(), Qt.IgnoreAspectRatio))
         except: pass
 
@@ -926,12 +933,12 @@ class ParamWindow(QMainWindow):
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(10)
         slider.setRange(0,100)
-        slider.setValue(100*self.parameters.Bayesian_thresh_perc)
+        slider.setValue(int(100*self.parameters.Bayesian_thresh_perc))
 
         slider2.valueChanged.connect(self.update_int)
         slider2.setTickInterval(10)
         slider2.setRange(0,100)
-        slider2.setValue(100*self.parameters.Bayesian_thresh_value)
+        slider2.setValue(int(100*self.parameters.Bayesian_thresh_value))
 
         self.sliderBayesianThreshPerc = slider
         self.sliderBayesianThreshValue = slider2
@@ -950,7 +957,7 @@ class ParamWindow(QMainWindow):
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(100)
         slider.setRange(0,1000)
-        slider.setValue(100*self.parameters.factor_fill_f)
+        slider.setValue(int(100*self.parameters.factor_fill_f))
 
         self.sliderFactorF = slider   
         self.generalLayoutSegm.addWidget(QLabel("Factor Filling"),self.current_line_Segm,0)
@@ -995,6 +1002,7 @@ class ParamWindow(QMainWindow):
     def _createIntInput(self,initvalue:float):
         """Creates a subwidet with a QLineEdit and a QSlider linked in their value.\n
         Returns the subWidget and the slider"""
+        initvalue = int(initvalue)
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
@@ -1107,11 +1115,24 @@ class ParamWindow(QMainWindow):
         slider.valueChanged.connect(self.update_int)
         slider.setTickInterval(100)
         slider.setRange(0,1000)
-        slider.setValue(self.parameters.factorError*100)
+        slider.setValue(int(self.parameters.factorError*100))
         self.sliderErrorFactor = slider   
 
         self.generalLayoutError.addWidget(QLabel("Factor"),self.current_line_Error,0)
         self.generalLayoutError.addWidget(QLabel(f"{self.parameters.factorError}"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
+        self.current_line_Error +=1
+    def _createIterationsFCMError(self):
+        """Creates the slider and the line edit for the number of iteration for the FCM error."""
+        btnNew,slider = self._createIntInput(self.parameters.iterationError)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(10)
+        slider.setRange(1,10)
+        slider.setValue(int(self.parameters.iterationError/10))
+        self.sliderErrorIteration = slider   
+
+        self.generalLayoutError.addWidget(QLabel("Iterations"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel(f"{self.parameters.iterationError}"),self.current_line_Error,1)
         self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
         self.current_line_Error +=1
     def _createSigmaCanny(self):
@@ -1180,8 +1201,8 @@ class ParamWindow(QMainWindow):
         slider2.setRange(0,100)
         slider.setTickInterval(10)
         slider2.setTickInterval(10)
-        slider.setValue(self.parameters.sigmaThreshLowCanny*100)
-        slider2.setValue(self.parameters.sigmaThreshHighCanny*100)
+        slider.setValue(int(self.parameters.sigmaThreshLowCanny*100))
+        slider2.setValue(int(self.parameters.sigmaThreshHighCanny*100))
         self.sliderThreshLow = slider   
         self.sliderThreshHigh = slider2 
 
@@ -1521,6 +1542,8 @@ class ParamWindow(QMainWindow):
         if self.parameters.ErrorType == "Expansion":
             self._createOrderShiftError()
             self._createExpansionError()
+        if self.parameters.ErrorType == "FCM":
+            self._createIterationsFCMError()
         #Bayesian Specific
         self._createBayesianType()
         if self.parameters.CurveTypeBayesian == "Errors":
@@ -1766,6 +1789,10 @@ class ParamWindow(QMainWindow):
         except: pass
         try:
             self.parameters.factorError = self.sliderErrorFactor.value()/100
+        except:
+            pass
+        try:
+            self.parameters.iterationError = self.sliderErrorIteration.value()*10
         except:
             pass
         try:

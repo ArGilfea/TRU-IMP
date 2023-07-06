@@ -799,8 +799,10 @@ class DicomImage(object):
             del self.voi_statistics[key]
             self.dice_all = np.delete(self.dice_all, key, 0)
             self.jaccard_all = np.delete(self.dice_all, key, 0)
-            self.dice_all = np.delete(self.dice_all, key, 1)
-            self.jaccard_all = np.delete(self.dice_all, key, 1)
+            try: #In case it is the last segmentation
+                self.dice_all = np.delete(self.dice_all, key, 1)
+                self.jaccard_all = np.delete(self.dice_all, key, 1)
+            except: pass
             self.update_log(f"Segmentation {key} removed")
 
     def remove_Error(self,key: int = -1):
@@ -886,6 +888,27 @@ class DicomImage(object):
                     if( (i-center[0])**2/axes[0]**2 + (j-center[1])**2/axes[1]**2 + (k-center[2])**2/axes[2]**2 <= 1):
                         VOI[i,j,k] = 1
                         voxels += 1
+        if save:
+            self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
+        else:
+            return VOI
+
+    def add_VOI_prism(self,position:np.ndarray,name:str='',do_moments:bool=False,do_stats:bool=False,save:bool=True): #Done in 1.0
+        """Creates a physical prism volume of interest (VOI)
+        whose two opposite corners are given by each column
+        of the position parameter (should be a 2-3 array).\n        
+        Keyword arguments:\n
+        position -- region for the prism. Each colum represents opposite vertices(default [[]]\n
+        name -- name of the VOI (default '')\n
+        do_moments -- compute the moments of the VOI and store them (default False)\n
+        do_stats -- compute the TACs relative to the VOI (default False)\n
+        save -- Save the VOI if true; otherwise, returns it as an argument (default True)\n
+        """
+        VOI = np.zeros((self.nb_slice,self.width,self.length))
+        for i in range(position[0,0],position[0,1]+1):
+            for j in range(position[1,0],position[1,1]+1):
+                for k in range(position[2,0],position[2,1]+1):
+                    VOI[i,j,k] = 1
         if save:
             self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
         else:

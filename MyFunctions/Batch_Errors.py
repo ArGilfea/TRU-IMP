@@ -6,7 +6,8 @@ import MyFunctions.Pickle_Functions as PF
 
 def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
                 path_in:str='',name_in:str='',path_out:str = '',name_out:str='',saveResult:bool = False,
-                verbose:bool=False,order:int=1,d:float=1,weight=1, angle:float = 0,factor:float = 1):
+                verbose:bool=False,order:int=1,d:float=1,weight=1, angle:float = 0,factor:float = 1,
+                iterations: int = 50):
     """
     Computes errors on segmentations of a DicomImage class, which is either given directly as a parameter or whose path is given.
     This will compute the errors on TACs from segmentations. 
@@ -26,6 +27,7 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
     weight -- weight for each axis, if compounded [TBA] (default 1)\n
     angle -- angle of rotation for the rotation error in radians (default 0)\n
     factor -- factor of expansion for the expansion error (default 1)\n
+    iterations -- number of iterations for the FCM error (default 50)\n
     verbose -- outputs the progress (default False)\n
     """
     initial = time.time()
@@ -54,6 +56,8 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
         Expansion_Error_Batch(Image,k=k,order=order,factor = factor, verbose = verbose)
     if error_type == "Reflection":
         Reflection_Error_Batch(Image,k=k, verbose = verbose)
+    if error_type == "FCM":
+        FCM_Error_Batch(Image,k=k,iteration = iterations,verbose = verbose)
 
     if saveResult:
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
@@ -107,3 +111,17 @@ def Reflection_Error_Batch(Image:DicomImage,k:np.ndarray,verbose:bool=True):
     verbose -- outputs the progress (default False)\n
     """
     Image.reflection_errors(keys = k, verbose = verbose)
+
+def FCM_Error_Batch(Image:DicomImage,k:np.ndarray,iteration:int = 50, verbose:bool = True):
+    """
+    Compute the FCM errors of the curves by sampling the FCM distributions.\n
+    Keyword arguments:\n
+    Image -- DicomImage class used\n
+    k -- segmentation for which to compute the errors. -1 for all (default -1)\n
+    iteration -- number of iteration for the sampling (default 50)\n
+    verbose -- outputs the progress (default False)\n
+    """
+    initial = time.time()
+    for i in range(k.shape[0]):
+        Image.FCM_errors(key = k[i], iterations = iteration, verbose = verbose)
+        print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")

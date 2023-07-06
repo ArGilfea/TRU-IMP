@@ -22,11 +22,15 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
     initial1 = time.time()
     counter = 0
     for i,dicom_file in enumerate(os.listdir(path_in),start=0):
-        if(dicom_file[0:4]=='PET_' or dicom_file.endswith('.dcm')):
-            ds = pydicom.dcmread(path_in+dicom_file)
-            all_files_Im[i-counter] = ds.pixel_array
-            all_files_Header.append(ds)
-            IntNum[i-counter] = all_files_Header[i-counter].InstanceNumber
+        if((dicom_file[0:4]=='PET_' or dicom_file.endswith('.dcm')) and dicom_file[0] != "."):
+            try:
+                ds = pydicom.dcmread(path_in+dicom_file)
+                all_files_Im[i-counter] = ds.pixel_array
+                all_files_Header.append(ds)
+                IntNum[i-counter] = all_files_Header[i-counter].InstanceNumber
+            except:
+                print(f"Invalid Dicom File, no pixel array present in {dicom_file}")
+                counter += 1
         else: #Decreases for each non-dicom file in the folder
             counter += 1
         if((i%1000 == 0 or i == number_of_files)and verbose):
@@ -63,7 +67,10 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
     voxel_length = np.zeros((number_of_files))
     initial3 = time.time()
     for i in range(number_of_files):
-        temps[i] = all_files_Header_ordered[i].FrameReferenceTime
+        try:
+            temps[i] = all_files_Header_ordered[i].FrameReferenceTime
+        except:
+            temps[i] = 1
         Instance[i] = all_files_Header_ordered[i].InstanceNumber
         position[i] = all_files_Header_ordered[i].ImagePositionPatient[2]
         width[i] = all_files_Header_ordered[i].Rows
@@ -129,10 +136,21 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
     ###
     if np.max(voxel_thickness) == np.min(voxel_thickness):
         vt = voxel_thickness[0]
+    else:
+        vt = 0
     if np.max(voxel_width) == np.min(voxel_width):
         vw = voxel_width[0]
+    else:
+        vw = 0
     if np.max(voxel_length) == np.min(voxel_length):
         vl = voxel_length[0]
+    else:
+        vl = 0
+
+    try:
+        unit = all_files_Header_ordered[0].Units
+    except:
+        unit = "None"
 
     ###
     if verbose:
@@ -140,7 +158,7 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
     dicom = DicomImage(Im,time=times,name=name,rescaleSlope=RescaleSlope,
                         rescaleIntercept = RescaleIntercept,time_scale=time_scale,
                         voxel_thickness=vt,voxel_width=vw,voxel_length=vl,
-                        units=all_files_Header_ordered[0].Units,
+                        units=unit,
                         mass=mass,Dose_inj=Dose_inj,flat_images = True,Description=Description)
     ###
 

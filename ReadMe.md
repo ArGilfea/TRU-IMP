@@ -177,6 +177,12 @@ The goal is to make the process easier to understand.
 Where relevant, references will be given.
 These will also be present at the end in the reference sections.
 
+For a segmentation, the Acq. Segm. slider allows to select which timeframe to segment.
+If the slider is set to -1, this will segment all timeframes individually.
+
+Otherwise, if the Acq. part of the Subimage is not for all the timeframes, the segmentation will be done on that specific range of timeframes.
+For example, if the acquisition has 40 timeframes and the SubImage acq part is 10 - 35, 
+this will do segmentations on the timeframes 10 to 35 exclusively, notwithstanding the value of the Acq. Segm. slider. 
 ## Segmentation Schemes:
 ### Canny and Canny Filled: 
 The Canny part will use the Canny
@@ -214,7 +220,7 @@ belong to different classes at the same time.
 This presupposes a Gaussian distribution underlying the distribution of intensity.
 The m parameters determines the fuzziness of the segmentation and the alpha is used for
 the Lp-norm. 
-Reference: Lapuyade-Lahorgue et al. SPEQTACLE: An automated generalized fuzzy C-means algorithm for tumor delineation in PET. Medical Physics. 42(10).
+Reference: Lapuyade-Lahorgue et al. SPEQTACLE: An automated generalized fuzzy C-means algorithm for tumor delineation in PET. Medical Physics. 42(10). 2015.
 ### Filling and Filling f: 
 This method takes a seed as a starting point.
 For each iteration, until convergence, any voxel 
@@ -231,6 +237,8 @@ Reference: Adams, R., Bischof, L. 1994. Seeded Region Growing.
 IEEE Transactions on Pattern Analysis and Machine Intelligence. 16(6): 641-7.
 ### Ellipsoid: 
 This creates an ellipsoid with a given center with the specified lengths for each axis.
+### Prism: 
+This creates a prism with dimensions given by the subimage parameters.
 ### Threshold: 
 This takes an already determined segmentation and will only keep all the voxels that
 are above a certain percentage of the maximal value. 
@@ -295,7 +303,14 @@ The result will be a new TAC with an error bar,
 corresponding to the average of the new segmentations 
 and its standard deviation.
 Only the resulting curve will be saved.
-
+### FCM
+For a segmentation that was produced through the Fuzzy C-Mean algorithm, a fuzzy map is saved,
+i.e. the probability of each voxel to belong to each class, normalized.
+This error method will sample a normal distribution for each voxel and determine whether a voxel belongs to the segmentation or not.
+This will be done for a number of iteration as specified by the relevant parameter.
+From this new segmentation, a TAC will be computed, for each iteration.
+After all the iterations, an average TAC with the relevant standard deviation will be produced, leading to a new TAC with error.
+Only the resulting curve will be saved.
 ## Bayesian Analysis Schemes:
 ### Dynesty: 
 This will use Dynesty to fit a "Bayesian Curves Used" to the "Bayesian Analysis Model".
@@ -377,7 +392,7 @@ The currently available types of noise are:
 ## References:
 * Canny: Canny, J. A Computational Approach to Edge Detection. IEEE Transactions on Pattern Analysis and Machine Intelligence 8(6). 1986.
 * Dynesty: https://dynesty.readthedocs.io/en/latest/
-* FCM: Lapuyade-Lahorgue et al. SPEQTACLE: An automated generalized fuzzy C-means algorithm for tumor delineation in PET. Medical Physics. 42(10).
+* FCM: Lapuyade-Lahorgue et al. SPEQTACLE: An automated generalized fuzzy C-means algorithm for tumor delineation in PET. Medical Physics. 42(10). 2015.
 * Filling: Adams, R., Bischof, L. 1994. Seeded Region Growing. IEEE Transactions on Pattern Analysis and Machine Intelligence. 16(6): 641-7.
 * ICM: Besag, J. On the Statistical Analysis of Dirty Pictures. 1986 48(3):259-79
 * Pharmacokinetic modeling: Maguire, R.P. et al. PET Pharmacokinetic Course. 
