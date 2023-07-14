@@ -255,6 +255,7 @@ is |x1-x0| + |y1-y0| + |z1-z0|
 ## Deformation Schemes:
 
 This allows the modification of a segmentation by specific spatial transformations (all segmentations if set to -1). In each cases, it takes a segmentation, modifies it, saves the new result, along with the new TAC.
+If the erase_after option is selected, the original segmentations used for the deformation are erased.
 
 ### Linear Shift:
 This will shift the whole segmentation by a number of voxel in each spatial dimension, as specified. 
@@ -272,6 +273,9 @@ The units are proportions (unitless), with 1 being an identity expansion.
 ### Reflection
 This will reflect the whole segmentation along an axis centered on the center of mass.
 The choice of axis will determine along which axis the segmentation is reflected, 0 being axis, 1 being coronal, and 2 being sagittal. 
+### Flip All
+This will flip the image and all the segmentations along a specific spatial axis.
+This is useful when the loading doesn't bring the image in the good direction.
 ## Error Bar Schemes:
 ### Linear Shift: 
 This will take a given segmentation and shift it by

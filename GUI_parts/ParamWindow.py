@@ -359,6 +359,11 @@ class ParamWindow(QMainWindow):
         self.DeformationCombo.addItem("Rotation")
         self.DeformationCombo.addItem("Expansion")
         self.DeformationCombo.addItem("Reflection")
+        self.DeformationCombo.addItem("Flip All")
+        self.DeformationCombo.addItem("Switch Two")
+        self.DeformationCombo.addItem("Complement")
+        self.DeformationCombo.addItem("Union")
+        self.DeformationCombo.addItem("Intersection")
 
         self.DeformationCombo.setCurrentText(self.parameters.deformationType)
         self.DeformationCombo.activated[str].connect(self.DeformationMethodCombo_Changed)
@@ -503,6 +508,52 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.addWidget(btnNew,self.current_line_Defor,2)
         self.generalLayoutDefor.setRowStretch(self.current_line_Defor,1)
         self.current_line_Defor +=1   
+    def _createAxesSwitchDeformation(self):
+        """Create the slider for the axes to switch"""
+        btnNew,slider = self._createIntInput(self.parameters.switchAxes[0])
+        self.sliderDeformationAxesSwitch1 = slider
+        slider.valueChanged.connect(self.update_int)
+        slider.setRange(1,3)
+        slider.setValue(self.parameters.switchAxes[0])
+        self.generalLayoutDefor.addWidget(QLabel("Switch Axis 1"),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.switchAxes[0]}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(btnNew,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,1)
+        self.current_line_Defor +=1  
+        btnNew,slider = self._createIntInput(self.parameters.switchAxes[1])
+        self.sliderDeformationAxesSwitch2 = slider
+        slider.valueChanged.connect(self.update_int)
+        slider.setRange(1,3)
+        slider.setValue(self.parameters.switchAxes[1])
+        self.generalLayoutDefor.addWidget(QLabel("Switch Axis 2"),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.switchAxes[1]}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(btnNew,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,1)
+        self.current_line_Defor +=1  
+        
+    def _createAxisFlipDeformation(self):
+        """Create the slider for the axis to flip"""
+        btnNew,slider = self._createIntInput(self.parameters.flipAxis)
+        self.sliderDeformationAxisFlip = slider
+        slider.valueChanged.connect(self.update_int)
+        slider.setRange(1,3)
+        slider.setValue(self.parameters.flipAxis)
+        self.generalLayoutDefor.addWidget(QLabel("Flip Axis"),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.flipAxis}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(btnNew,self.current_line_Defor,2)
+        self.generalLayoutDefor.setRowStretch(self.current_line_Defor,1)
+        self.current_line_Defor +=1  
+    def _createDeleteAfterDeformation(self):
+        """Creates the CheckBox to Delete the original segmentations after having done a deformation"""
+        btnNew = self._createBoolBox()
+        btnNew.setChecked(self.parameters.deleteAfterDeformation)
+        btnNew.stateChanged.connect(partial(self.set_value_checked_DeleteAfterDeformation,btnNew))
+        btnNew.setToolTip("Deletes the original segmentations after the deformations are computed")
+        self.generalLayoutDefor.addWidget(QLabel("Delete After"),self.current_line_Defor,0)
+        self.generalLayoutDefor.addWidget(QLabel(f"{self.parameters.deleteAfterDeformation}"),self.current_line_Defor,1)
+        self.generalLayoutDefor.addWidget(btnNew,self.current_line_Defor,2)
+        self.current_line_Defor +=1
+     
     def _createErrorType(self):
         """Creates the Combo Box for the error type method"""
         self.ErrorCombo = QComboBox()
@@ -1525,10 +1576,21 @@ class ParamWindow(QMainWindow):
         #Deformation Specific
         self._createDeformationType()
         self._createDeformationSeg()
-        self._createDShiftDeformation()
-        self._createAngleDeformation()
-        self._createFactorDeformation()
-        self._createAxisReflectionDeformation()
+        if self.parameters.deformationType == "Linear Shift":
+            self._createDShiftDeformation()
+        if self.parameters.deformationType == "Rotation":
+            self._createAngleDeformation()
+        if self.parameters.deformationType == "Expansion":
+            self._createFactorDeformation()
+        if self.parameters.deformationType == "Reflection":
+            self._createAxisReflectionDeformation()
+        if self.parameters.deformationType == "Flip All":
+            self._createAxisFlipDeformation()
+        if self.parameters.deformationType == "Switch Two":
+            self._createAxesSwitchDeformation()
+        if self.parameters.deformationType in ["Union", "Intersection"]:
+            pass
+        self._createDeleteAfterDeformation()
         #Error Specific
         self._createErrorType()
         if self.parameters.ErrorType != "None":
@@ -1642,6 +1704,10 @@ class ParamWindow(QMainWindow):
     def set_value_checked_doCurves(self,box:QCheckBox):
         """Links the compute curves (TACs) bool and the combo box in the parameters"""
         self.parameters.doCurves = box.isChecked()
+        self.refresh_app()
+    def set_value_checked_DeleteAfterDeformation(self,box:QCheckBox):
+        """Links the verbose graph bool and the combo box in the parameters (filling)"""
+        self.parameters.deleteAfterDeformation = box.isChecked()
         self.refresh_app()
     def set_value_slider(self,slider:QSlider,lineedit:QLineEdit):
         """Links the slider and the line edit together"""
@@ -1841,6 +1907,22 @@ class ParamWindow(QMainWindow):
 
         try:
             self.parameters.deformationReflectionAxis = self.sliderDeformationAxisReflection.value()
+        except:
+            pass
+        try:
+            self.parameters.switchAxes[0] = self.sliderDeformationAxesSwitch1.value()
+        except:
+            pass
+        try:
+            self.parameters.switchAxes[1] = self.sliderDeformationAxesSwitch2.value()
+        except:
+            pass
+        if self.parameters.switchAxes[1] < self.parameters.switchAxes[0]:
+            tmp = self.parameters.switchAxes[1]
+            self.parameters.switchAxes[0] = self.parameters.switchAxes[1]
+            self.parameters.switchAxes[1] = tmp
+        try:
+            self.parameters.flipAxis = self.sliderDeformationAxisFlip.value()
         except:
             pass
 

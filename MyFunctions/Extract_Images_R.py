@@ -146,14 +146,19 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
     times=np.array(times)
     RescaleSlope=np.array(RescaleSlope)
     RescaleIntercept=np.array(RescaleIntercept)
+    """ 
     times = (times - times[0])/(times[1]-times[0]) #In min.
     if time_scale == 'sec':
         times = times*60
     elif time_scale == 'hr':
         times = times/60
     elif time_scale == 'ms':
-        times = times * 60000
-
+        times = times * 60000"""
+    try:
+        times = (times - times[0])/60000
+        times += times[1]/2
+        print(times)
+    except: pass
     nb_slice = 1
     #print(len(times))
     #print(sorted(times))
@@ -199,15 +204,30 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
         unit = all_files_Header_ordered[0].Units
     except:
         unit = "None"
-
+    try:
+        radiopharmaceutical = all_files_Header_ordered[0].RadiopharmaceuticalInformationSequence[0].Radiopharmaceutical
+    except:
+        radiopharmaceutical = ""
+    try:
+        radionuclide = all_files_Header_ordered[0].RadiopharmaceuticalInformationSequence[0].RadionuclideCodeSequence[0].CodeMeaning
+    except:
+        radionuclide = ""
+    try:
+        dose = all_files_Header_ordered[0].RadiopharmaceuticalInformationSequence[0].RadionuclideTotalDose
+    except:
+        dose = 0
+    try:
+        weight = all_files_Header_ordered[0].PatientsWeight
+    except:
+        weight = 0
     ###
     if verbose:
         print('Creating the class instance')
     dicom = DicomImage(Im,time=times,name=name,rescaleSlope=RescaleSlope,
                         rescaleIntercept = RescaleIntercept,time_scale=time_scale,
                         voxel_thickness=vt,voxel_width=vw,voxel_length=vl,
-                        units=unit,
-                        mass=mass,Dose_inj=Dose_inj,flat_images=True,Description=Description)
+                        units=unit, radionuclide= radionuclide, radiopharmaceutical= radiopharmaceutical,
+                        mass=weight,dose=dose,flat_images=True,Description=Description)
     ###
 
     ###

@@ -16,10 +16,11 @@ class DicomImage(object):
     Contains an image from Nuclear Medicine with many functions to compute segmentations, statistics, parameters and outputs images.
     """
     def __init__(self,Image:np.ndarray,time:list = [0],name:str='',rescaleSlope:list = [1],rescaleIntercept:list = [0],
-                voxel_thickness:int=1,voxel_width:int=1,voxel_length:int=1,time_scale:str='min',
-                flat_images:bool=False,units:str='',mass:int = 1,Dose_inj:int = 0,Description:str=''):
+                voxel_thickness:float=1,voxel_width:float=1,voxel_length:float=1,time_scale:str='min',
+                flat_images:bool=False,units:str='', radionuclide = "", radiopharmaceutical: str = "",
+                mass:int = 1,dose:float = 0,Description:str=''):
         #General Info
-        self.version = '4.0.0'
+        self.version = '1.1.0'
         self.voi_methods = ["Ellipsoid","Threshold","Canny Contour","Canny Filled",
                             "Filled","k Means (2)","ICM (2)"]
         self.pharmaco_models = ["2-compartment"]
@@ -39,13 +40,15 @@ class DicomImage(object):
         self.voxel_volume = voxel_thickness*voxel_width*voxel_length
         self.Instances = self.nb_acq*self.nb_slice*self.width*self.length
         self.mass = mass
-        self.Dose_inj = Dose_inj
+        self.dose = dose
         if np.array(time).size != Image.shape[0]:
             self.time = np.zeros((self.nb_acq))
         else:
             self.time = time
         self.time_scale = time_scale
         self.units = units
+        self.radionuclide = radionuclide
+        self.radiopharmaceutical = radiopharmaceutical
         self.voi_counter = 0
         self.voi = {}
         self.voi_fuzzy = {}
@@ -303,6 +306,89 @@ class DicomImage(object):
                     for k in range(int(dim_sub[2][0]),int(dim_sub[2][1])):
                         new_image[t,i,j,k] = self.Image[t,i,j,k]
         return new_image
+    
+    def flip_Image(self, axis:int):
+        """
+        Flips the whole image and segmentations according to one
+        of the three spatial dimensions.\n
+        Keyword arguments:\n
+        axis -- axis along which to flip. This will correspond to one of the 3 spatial axes\n
+        """
+        newImage = np.zeros_like(self.Image)
+        if axis == 1:
+            for i in range(self.nb_slice):
+                newImage[:,i,:,:] = self.Image[:,self.nb_slice-i-1,:,:]
+            self.Image = np.copy(newImage)
+            for i in range(self.voi_counter):
+                newSegm = np.zeros_like(self.voi[f"{i}"])
+                for j in range(self.nb_slice):
+                    newSegm[j,:,:] = self.voi[f"{i}"][self.nb_slice-j-1,:,:]
+                self.voi[f"{i}"] = np.copy(newSegm)
+        elif axis == 2:
+            for i in range(self.width):
+                newImage[:,:,i,:] = self.Image[:,:,self.width-i-1,:]
+            self.Image = np.copy(newImage)
+            for i in range(self.voi_counter):
+                newSegm = np.zeros_like(self.voi[f"{i}"])
+                for j in range(self.width):
+                    newSegm[:,j,:] = self.voi[f"{i}"][:,self.width-j-1,:]
+                self.voi[f"{i}"] = np.copy(newSegm)
+        elif axis == 3:
+            for i in range(self.length):
+                newImage[:,:,:,i] = self.Image[:,:,:,self.length-i-1]
+            self.Image = np.copy(newImage)
+            for i in range(self.voi_counter):
+                newSegm = np.zeros_like(self.voi[f"{i}"])
+                for j in range(self.length):
+                    newSegm[:,:,j] = self.voi[f"{i}"][:,:,self.length-j-1]
+                self.voi[f"{i}"] = np.copy(newSegm)
+        else:
+            raise Exception(f"Invalid choice of axis. Must be 1, 2, or 3 and {axis} was given")
+
+    def switchAxes_Image(self, axes:list):
+        """
+        Flips the whole image and segmentations according to one
+        of the three spatial dimensions.\n
+        Keyword arguments:\n
+        axes -- axes to switch. This will correspond to two of the 3 spatial axes\n
+        """
+        if axes == [1,2]:
+            newImage = np.zeros((self.Image.shape[0],self.Image.shape[2],self.Image.shape[1],self.Image.shape[3]))
+            for i in range(self.nb_slice):
+                newImage[:,:,i,:] = self.Image[:,i,:,:]
+            self.Image = np.copy(newImage)
+            for i in range(self.voi_counter):
+                newSegm = np.zeros_like(self.voi[f"{i}"])
+                for j in range(self.nb_slice):
+                    newSegm[:,j,:] = self.voi[f"{i}"][j,:,:]
+                self.voi[f"{i}"] = np.copy(newSegm)
+        elif axes == [1,3]:
+            newImage = np.zeros((self.Image.shape[0],self.Image.shape[3],self.Image.shape[2],self.Image.shape[1]))
+            for i in range(self.nb_slice):
+                newImage[:,:,:,i] = self.Image[:,i,:,:]
+            self.Image = np.copy(newImage)
+            for i in range(self.voi_counter):
+                newSegm = np.zeros_like(self.voi[f"{i}"])
+                for j in range(self.nb_slice):
+                    newSegm[:,:,j] = self.voi[f"{i}"][j,:,:]
+                self.voi[f"{i}"] = np.copy(newSegm)
+        elif axes == [2,3]:
+            newImage = np.zeros((self.Image.shape[0],self.Image.shape[1],self.Image.shape[3],self.Image.shape[2]))
+            for i in range(self.length):
+                newImage[:,:,i,:] = self.Image[:,:,:,i]
+            self.Image = np.copy(newImage)
+            for i in range(self.voi_counter):
+                newSegm = np.zeros_like(self.voi[f"{i}"])
+                for j in range(self.length):
+                    newSegm[:,j,:] = self.voi[f"{i}"][:,:,j]
+                self.voi[f"{i}"] = np.copy(newSegm)
+        else:
+            raise Exception(f"Invalid choice of axis. Must be 1, 2, or 3 and {axis} was given")
+        self.nb_slice = newImage.shape[1]
+        self.width = newImage.shape[2]
+        self.length = newImage.shape[3]
+
+
     def linear_shift(self,shifts:np.ndarray=np.array([0,0,0]),counter:int = -1,save:bool=True,name:str=''):
         """
         Shift a given VOI linearly according to the input shifts.\n
@@ -514,6 +600,32 @@ class DicomImage(object):
                 return new_VOI
         else:
             self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
+    def complement_ROI(self,counter:int = -1, save:bool = True, name:str = ''):
+        """
+        Takes a specific segmentation and keep only the complement, i.e. only what was not part of the initial segmentation.\n
+        Keyword arguments:\n
+        key -- segmentation key to use (default -1)\n
+        save -- save the VOI if True, else, return it as an output (default True)\n
+        name -- name of the new VOI (default '')\n
+        """
+        if (counter >= 0):
+            new_VOI = np.zeros_like(self.voi[f"{counter}"])
+            old_VOI = self.voi[f"{counter}"]
+            for i in range(new_VOI.shape[0]):
+                for j in range(new_VOI.shape[1]):
+                    for k in range(new_VOI.shape[2]):
+                        if old_VOI[i,j,k] == 0:
+                            new_VOI[i,j,k] = 1
+            if save:
+                if name == '':
+                    self.save_VOI(new_VOI,name=f"complement")
+                else:
+                    self.save_VOI(new_VOI,name=f"complement_{name}")
+            else:
+                return new_VOI        
+        else:
+            self.update_log(f"Nothing happened, for counter argument ({counter}) is not valid. It needed to be between 0 and {self.voi_counter}")
+        
     def linear_shifts_error(self,key:int=-1,order=1,d=1,weight=1,verbose:bool=False):#Done in 2.0.0
         """
         This function takes a specific segmentation and shifts it linearly, saving only the results,
@@ -797,8 +909,10 @@ class DicomImage(object):
             del self.voi_center_of_mass[key]
             del self.voi_moment_of_inertia[key]
             del self.voi_statistics[key]
-            self.dice_all = np.delete(self.dice_all, key, 0)
-            self.jaccard_all = np.delete(self.dice_all, key, 0)
+            try:
+                self.dice_all = np.delete(self.dice_all, key, 0)
+                self.jaccard_all = np.delete(self.dice_all, key, 0)
+            except: pass
             try: #In case it is the last segmentation
                 self.dice_all = np.delete(self.dice_all, key, 1)
                 self.jaccard_all = np.delete(self.dice_all, key, 1)

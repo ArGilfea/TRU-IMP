@@ -98,15 +98,21 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
     if verbose_precise:
         print('Number of Acquisitions: ',nb_acq)
     times=np.array(times)
+    print(times)
     RescaleSlope=np.array(RescaleSlope)
     RescaleIntercept=np.array(RescaleIntercept)
-    times = (times - times[0])/times[-1]*total_time #In min.
+    """times = (times - times[0])/times[-1]*total_time #In min.
     if time_scale == 'sec':
         times = times*60
     elif time_scale == 'hr':
         times = times/60
     elif time_scale == 'ms':
-        times = times * 60000
+        times = times * 60000"""
+    try:
+        times = (times - times[0])/60000
+        times += times[1]/2
+        print(times)
+    except: pass
 
     nb_slice = 1
     for i in range(1,number_of_files):
@@ -151,15 +157,30 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         unit = all_files_Header_ordered[0].Units
     except:
         unit = "None"
-
+    try:
+        radiopharmaceutical = all_files_Header_ordered[0].RadiopharmaceuticalInformationSequence[0].Radiopharmaceutical
+    except:
+        radiopharmaceutical = ""
+    try:
+        radionuclide = all_files_Header_ordered[0].RadiopharmaceuticalInformationSequence[0].RadionuclideCodeSequence[0].CodeMeaning
+    except:
+        radionuclide = ""
+    try:
+        dose = all_files_Header_ordered[0].RadiopharmaceuticalInformationSequence[0].RadionuclideTotalDose
+    except:
+        dose = 0
+    try:
+        weight = all_files_Header_ordered[0].PatientsWeight
+    except:
+        weight = 0
     ###
     if verbose:
         print('Creating the class instance')
     dicom = DicomImage(Im,time=times,name=name,rescaleSlope=RescaleSlope,
                         rescaleIntercept = RescaleIntercept,time_scale=time_scale,
                         voxel_thickness=vt,voxel_width=vw,voxel_length=vl,
-                        units=unit,
-                        mass=mass,Dose_inj=Dose_inj,flat_images = True,Description=Description)
+                        units=unit, radionuclide = radionuclide, radiopharmaceutical = radiopharmaceutical, 
+                        mass=weight,dose=dose,flat_images = True,Description=Description)
     ###
 
     ###

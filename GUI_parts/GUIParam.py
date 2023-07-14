@@ -71,6 +71,9 @@ class GUIParameters(object):
         self.deformationRotate = np.array([0,0,0])
         self.deformationExpansion = np.array([1,1,1])
         self.deformationReflectionAxis = 0
+        self.flipAxis = 1
+        self.switchAxes = [1,2]
+        self.deleteAfterDeformation = False
 
         self.orderShift = 1
         self.distanceShift = 1

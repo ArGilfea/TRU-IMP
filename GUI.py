@@ -115,6 +115,7 @@ class Window(QMainWindow):
         self.generalLayout.setRowStretch(2,3)
         self.generalLayout.setRowStretch(3,3)
         self.showMaximized()
+        
     def _createLog(self):
         """Create a Log tab to keep track of the processes"""
         self.logText = QTextEdit()
@@ -200,11 +201,13 @@ class Window(QMainWindow):
         subWidget.setLayout(layout)
 
         btn_noise = QPushButton("Noise")
-        btn_noise.setToolTip("Adds the noise to the images according to the selected parameters")
+        btn_noise.setShortcut("Ctrl+N")
+        btn_noise.setToolTip("Adds the noise to the images according to the selected parameters (Ctrl+N)")
         btn_noise.clicked.connect(self.run_noise)
 
         btn_deform = QPushButton("Deform.")
-        btn_deform.setToolTip("Makes a deformation on a segmentation according to the selected parameters")
+        btn_deform.setShortcut("Ctrl+D")
+        btn_deform.setToolTip("Makes a deformation on a segmentation according to the selected parameters (Ctrl+D)")
         btn_deform.clicked.connect(self.run_deform)
 
         btn_erase = QPushButton("Erase")
@@ -223,10 +226,11 @@ class Window(QMainWindow):
         subWidget.setLayout(layout)
         
         btn_segm = QPushButton("Segment")
+        btn_segm.setShortcut("Ctrl+S")
         buttonErrors = QPushButton("ErrorBars")
         buttonBayesian = QPushButton("Bayesian")
 
-        btn_segm.setToolTip("Runs the segmentations according to the selected parameters")
+        btn_segm.setToolTip("Runs the segmentations according to the selected parameters (Ctrl+S)")
         buttonErrors.setToolTip("Runs the error bars according to the selected parameters")
         buttonBayesian.setToolTip("Runs the Bayesian analyses according to the selected parameters")
 
@@ -241,7 +245,8 @@ class Window(QMainWindow):
     def _createExitButton(self):
         """Create an exit button"""
         self.exit = QPushButton("Exit")
-        self.exit.setToolTip("Closes the GUI and its dependencies")
+        self.exit.setToolTip("Closes the GUI and its dependencies ")
+        self.exit.setShortcut("Ctrl+Shift+E")
         self.exit.clicked.connect(self.closing_button)
         self.generalLayout.addWidget(self.exit,self.current_line,3)  
         self.current_line += 2
@@ -267,12 +272,15 @@ class Window(QMainWindow):
         msg_extract = QLabel("Path: ")
         source = QLineEdit()
         btn_extr = QPushButton("Extract")
+        btn_extr.setShortcut("Ctrl+E")
         btn_load = QPushButton("Load")
+        btn_load.setShortcut("Ctrl+L")
         btn_browse = QPushButton("Browse")
+        btn_browse.setShortcut("Ctrl+B")
 
-        btn_extr.setToolTip("Extracts the relevant information from a folder containing .dcm files")
-        btn_load.setToolTip("Loads the selected .pkl file")
-        btn_browse.setToolTip("Opens a local browser to select a file")
+        btn_extr.setToolTip("Extracts the relevant information from a folder containing .dcm files (Ctrl + E)")
+        btn_load.setToolTip("Loads the selected .pkl file (Ctrl + L)")
+        btn_browse.setToolTip("Opens a local browser to select a file (Ctrl + B)")
         
         btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
@@ -296,13 +304,14 @@ class Window(QMainWindow):
         subWidget1.setLayout(layout1)
         subWidget2.setLayout(layout2)
         btn_param = QPushButton("Parameters")
-        btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Bayesian analyses")
-        btn_param.setToolTip("Displays the parameters to resize the acquisition or to set up for the segmentations")
+        btn_param.setShortcut("Ctrl+P")
+        btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Bayesian analyses (Ctrl + P)")
         btn_param.clicked.connect(self.open_parameters)
           
         self.btn = QPushButton("Info")
+        self.btn.setShortcut("Ctrl+I")
         self.btn.clicked.connect(self.on_button_clicked_infos)
-        self.btn.setToolTip("Displays the infos of the current loaded acquisition")
+        self.btn.setToolTip("Displays the infos of the current loaded acquisition (Ctrl + I)")
         path = QLineEdit()
         path_name = QLineEdit()
         path.setText("")
@@ -332,6 +341,13 @@ class Window(QMainWindow):
         self.axial = MplCanvas(self)
         self.sagittal = MplCanvas(self)
         self.coronal = MplCanvas(self)
+        self.axial_cid = self.axial.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.axial))
+        self.sagittal_cid = self.sagittal.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.sagittal))
+        self.coronal_cid = self.coronal.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.coronal))
+        self.axial_cod = self.axial.fig.canvas.mpl_connect('scroll_event', partial(self.onRoll, which = self.axial))
+        self.sagittal_cod = self.sagittal.fig.canvas.mpl_connect('scroll_event', partial(self.onRoll, which = self.sagittal))
+        self.coronal_cod = self.coronal.fig.canvas.mpl_connect('scroll_event', partial(self.onRoll, which = self.coronal))
+
         try:
             self.axial.axes.pcolormesh(self.Image.Image[0,0,:,:])  
             self.sagittal.axes.pcolormesh(self.Image.Image[0,:,0,:])  
@@ -566,6 +582,7 @@ class Window(QMainWindow):
     def _createTACImage(self):
         """Create an empty image for where the TAC and the results will be"""
         self.TACImage = MplCanvas(self)
+        self.TAC_cid = self.TACImage.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.TACImage))
         self.TACImage.setMinimumSize(size_Image,size_Image)
         self.base_TAC_axes()
         self.generalLayout.addWidget(self.TACImage,self.current_line,2)
@@ -576,6 +593,9 @@ class Window(QMainWindow):
         self.AxialImage1D = MplCanvas(self)
         self.SagittalImage1D = MplCanvas(self)
         self.CoronalImage1D = MplCanvas(self)
+        self.axial1D_cid = self.AxialImage1D.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.AxialImage1D))
+        self.sagittal1D_cid = self.SagittalImage1D.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.SagittalImage1D))
+        self.coronal1D_cid = self.CoronalImage1D.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.CoronalImage1D))
         self.AxialImage1D.setMinimumSize(size_Image,size_Image)
         self.SagittalImage1D.setMinimumSize(size_Image,size_Image)
         self.CoronalImage1D.setMinimumSize(size_Image,size_Image)
@@ -814,18 +834,36 @@ class Window(QMainWindow):
         """
         initial = time.time()
         self.displayStatus(f"{self.parameters.deformationType} deformations",what = 'starting', time_i = initial)
-        try:
+        if True:
             MyFunctions.Batch_Deform.Batch_Deform(Image = self.Image, deform_type= self.parameters.deformationType,
                                                     k = self.parameters.deformationSegm,
                                                     linear_d= self.parameters.deformationDistanceShift,
                                                     rotate_angle= self.parameters.deformationRotate*2*np.pi/360,
                                                     factors_exp= self.parameters.deformationExpansion,
                                                     reflection_axis = self.parameters.deformationReflectionAxis,
-                                                    verbose= self.parameters.verbose)
+                                                    flipAxis = self.parameters.flipAxis,
+                                                    switchAxes = self.parameters.switchAxes,
+                                                    verbose= self.parameters.verbose,
+                                                    do_coefficients = self.parameters.doCoefficients,
+                                                    delete_after = self.parameters.deleteAfterDeformation)
 
-            if self.parameters.deformationType != "None":
+            if self.parameters.deformationType == "Switch Two":
+                tmp = [self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
+                if self.parameters.switchAxes == [1,2]:
+                    self.sliderAxial.setValue(int(tmp[1]))
+                    self.sliderCoronal.setValue(int(tmp[0]))
+                elif self.parameters.switchAxes == [1,3]:
+                    self.sliderAxial.setValue(int(tmp[2]))
+                    self.sliderSagittal.setValue(int(tmp[0]))
+                elif self.parameters.switchAxes == [2,3]:
+                    self.sliderCoronal.setValue(int(tmp[2]))
+                    self.sliderSagittal.setValue(int(tmp[1]))
+                self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice-1)
+                self.sliderSagittal.setMinimum(0);self.sliderSagittal.setMaximum(self.Image.width-1)
+                self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length-1)
+            if self.parameters.deformationType != "None" and not self.parameters.deleteAfterDeformation:
                 self.displayStatus(f"{self.parameters.deformationType} deformations done",initial)
-                self.parameters.deformationType = "None" #Avoid running twice
+                #self.parameters.deformationType = "None" #Avoid running twice
                 if self.parameters.deformationSegm == -1:
                     self.parameters._nbSeg += self.parameters._size[0]
                 else:
@@ -833,7 +871,7 @@ class Window(QMainWindow):
             else:
                 self.displayStatus("",initial)
             self.update_all()
-        except:
+        else:
             self._createErrorMessage("Unable to deform the segmentations")
     def run_erase(self):
         """
@@ -1456,9 +1494,9 @@ class Window(QMainWindow):
                 pass
         elif self.view == "Flat":
             try:
-                self.axial.axes.pcolormesh(func(self.Image.axial_flat(acq=values[0])))
-                self.sagittal.axes.pcolormesh(func(self.Image.sagittal_flat(acq=values[0])))
-                self.coronal.axes.pcolormesh(func(self.Image.coronal_flat(acq=values[0])))
+                self.axial.axes.pcolormesh(func(self.Image.axial_flats[int(values[0]),:,:]))
+                self.sagittal.axes.pcolormesh(func(self.Image.sagittal_flats[int(values[0]),:,:]))
+                self.coronal.axes.pcolormesh(func(self.Image.coronal_flats[int(values[0]),:,:]))
             except:
                 self._createErrorMessage("Can't perform this. No image is loaded or the flats are not done")
         elif self.view == "Segm. Slice":
@@ -1556,9 +1594,14 @@ class Window(QMainWindow):
                 Number of slices: {self.Image.nb_slice}<br>
                 Width: {self.Image.width}<br>
                 Length: {self.Image.length}<br>
-                Dose Injected: {self.Image.Dose_inj}<br>
+                Slice Thickness: {self.Image.voxel_thickness}<br>
+                Pixel Width: {self.Image.voxel_width}<br>
+                Pixel Length: {self.Image.voxel_length}<br>
                 Mass: {self.Image.mass}<br>
                 Units: {self.Image.units}<br>
+                Radionucleide: {self.Image.radionuclide}<br>
+                Radiopharmaceutical: {self.Image.radiopharmaceutical}<br>
+                Dose: {self.Image.dose}<br>
                 Segm.: {self.Image.voi_counter}<br>
                 Segm. with Errors: {len(self.Image.voi_statistics_avg)}<br>
                 Bayesian analyses: {self.Image.bayesian_counter}<br>
@@ -1581,14 +1624,16 @@ class Window(QMainWindow):
             self._createErrorMessage("An image is already loaded")
         except:
             try:
-                self.Image = Extract_r.Extract_Images(source.text(),verbose=True,save=False)
+                self.Image = Extract.Extract_Images(source.text(),name = source.text(), verbose=True,save=False)
+                self.name = self.Image.version
                 self.displayStatus("File extracted", initial)
                 self._createImageDisplay()
                 self._createImageDisplayBars()
                 self.parameters = GUIParameters(self.Image)
             except:
+                self.displayStatus("Initial method not working, looking for adjacent folders", initial)
                 try:
-                    self.Image = Extract.Extract_Images(source.text(),verbose=True,save=False)
+                    self.Image = Extract_r.Extract_Images(source.text(),name = source.text(),verbose=True,save=False)
                     self.displayStatus("File extracted", initial)
                     self._createImageDisplay()
                     self._createImageDisplayBars()
@@ -1654,6 +1699,63 @@ class Window(QMainWindow):
             except:
                 self._createErrorMessage(f"Impossible to save to the desired folder")
         self.displayStatus("File saved", initial)  
+    def onClick(self,event,which):
+        ix, iy = event.xdata, event.ydata
+        #print (f'x = {ix}, y = {iy}')
+        which.coords = []
+        which.coords.append((ix, iy))
+        if len(which.coords) == 2:
+            which.fig.canvas.mpl_disconnect(self.cid)
+        if which == self.axial:
+            self.sliderCoronalValue.setText(f"{int(iy)}")
+            self.sliderSagittalValue.setText(f"{int(ix)}")
+            self.sliderCoronal.setValue(int(iy))
+            self.sliderSagittal.setValue(int(ix))
+        elif which == self.sagittal:
+            self.sliderAxialValue.setText(f"{int(iy)}")
+            self.sliderCoronalValue.setText(f"{int(ix)}")
+            self.sliderAxial.setValue(int(iy))
+            self.sliderCoronal.setValue(int(ix))
+        elif which == self.coronal:
+            self.sliderAxialValue.setText(f"{int(iy)}")
+            self.sliderSagittalValue.setText(f"{int(ix)}")
+            self.sliderAxial.setValue(int(iy))
+            self.sliderSagittal.setValue(int(ix))
+        elif which == self.TACImage:
+            idx = (np.abs(self.Image.time - ix)).argmin()
+            ix = self.Image.time[idx]
+            self.sliderAcq.setValue(int(idx))
+            self.sliderAcqValue.setText(f"{int(idx)}")
+        elif which == self.AxialImage1D:
+            self.sliderAxialValue.setText(f"{int(ix)}")
+            self.sliderAxial.setValue(int(ix))
+        elif which == self.SagittalImage1D:
+            self.sliderSagittalValue.setText(f"{int(ix)}")
+            self.sliderSagittal.setValue(int(ix))
+        elif which == self.CoronalImage1D:
+            self.sliderCoronalValue.setText(f"{int(ix)}")
+            self.sliderCoronal.setValue(int(ix))
+    def onRoll(self,event,which):
+        if event.button == 'up':
+            # deal with zoom in
+            scale_factor = 1
+            #print("+")
+        elif event.button == 'down':
+            # deal with zoom out
+            scale_factor = -1
+            #print("-")
+        if which == self.axial:
+            actual = int(self.sliderAxialValue.text())
+            self.sliderAxialValue.setText(f"{int(actual+scale_factor)}")
+            self.sliderAxial.setValue(int(actual)+scale_factor)
+        elif which == self.sagittal:
+            actual = int(self.sliderSagittalValue.text())
+            self.sliderSagittalValue.setText(f"{int(actual+scale_factor)}")
+            self.sliderSagittal.setValue(int(actual+scale_factor))
+        elif which == self.coronal:
+            actual = int(self.sliderCoronalValue.text())
+            self.sliderCoronalValue.setText(f"{int(actual+scale_factor)}")
+            self.sliderCoronal.setValue(int(actual+scale_factor))
 
 class MplCanvas(FigureCanvasQTAgg):
     """Class for the images and the graphs as a widget"""
@@ -1663,6 +1765,7 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes = fig.add_subplot(111)
         self.fig = fig
         super(MplCanvas, self).__init__(fig)
+
 
 ###
 if __name__ == "__main__":
