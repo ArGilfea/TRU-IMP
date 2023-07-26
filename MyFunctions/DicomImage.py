@@ -17,6 +17,7 @@ class DicomImage(object):
     """
     def __init__(self,Image:np.ndarray,time:list = [0],name:str='',rescaleSlope:list = [1],rescaleIntercept:list = [0],
                 voxel_thickness:float=1,voxel_width:float=1,voxel_length:float=1,time_scale:str='min',
+                sliceAxis: np.ndarray = np.array([0]), widthAxis: np.ndarray = np.array([0]), lengthAxis: np.ndarray = np.array([0]),
                 flat_images:bool=False,units:str='', radionuclide = "", radiopharmaceutical: str = "",
                 mass:int = 1,dose:float = 0,Description:str=''):
         #General Info
@@ -32,6 +33,9 @@ class DicomImage(object):
         self.nb_slice = Image.shape[1]
         self.width = Image.shape[2]
         self.length = Image.shape[3]
+        self.sliceAxis = sliceAxis
+        self.widthAxis = lengthAxis
+        self.lengthAxis = widthAxis
         self.rescaleSlope = rescaleSlope
         self.rescaleIntercept = rescaleIntercept
         self.voxel_thickness = voxel_thickness
@@ -324,6 +328,7 @@ class DicomImage(object):
                 for j in range(self.nb_slice):
                     newSegm[j,:,:] = self.voi[f"{i}"][self.nb_slice-j-1,:,:]
                 self.voi[f"{i}"] = np.copy(newSegm)
+            #self.sliceAxis = self.sliceAxis[::-1]
         elif axis == 2:
             for i in range(self.width):
                 newImage[:,:,i,:] = self.Image[:,:,self.width-i-1,:]
@@ -333,6 +338,7 @@ class DicomImage(object):
                 for j in range(self.width):
                     newSegm[:,j,:] = self.voi[f"{i}"][:,self.width-j-1,:]
                 self.voi[f"{i}"] = np.copy(newSegm)
+            #self.widthAxis = self.widthAxis[::-1]
         elif axis == 3:
             for i in range(self.length):
                 newImage[:,:,:,i] = self.Image[:,:,:,self.length-i-1]
@@ -342,6 +348,7 @@ class DicomImage(object):
                 for j in range(self.length):
                     newSegm[:,:,j] = self.voi[f"{i}"][:,:,self.length-j-1]
                 self.voi[f"{i}"] = np.copy(newSegm)
+            #self.lengthAxis = self.lengthAxis[::-1]
         else:
             raise Exception(f"Invalid choice of axis. Must be 1, 2, or 3 and {axis} was given")
 
@@ -353,40 +360,45 @@ class DicomImage(object):
         axes -- axes to switch. This will correspond to two of the 3 spatial axes\n
         """
         if axes == [1,2]:
-            newImage = np.zeros((self.Image.shape[0],self.Image.shape[2],self.Image.shape[1],self.Image.shape[3]))
-            for i in range(self.nb_slice):
-                newImage[:,:,i,:] = self.Image[:,i,:,:]
+            newImage = np.swapaxes(self.Image,1,2)
             self.Image = np.copy(newImage)
             for i in range(self.voi_counter):
-                newSegm = np.zeros_like(self.voi[f"{i}"])
-                for j in range(self.nb_slice):
-                    newSegm[:,j,:] = self.voi[f"{i}"][j,:,:]
+                newSegm = np.swapaxes(self.voi[f"{i}"],0,1)
                 self.voi[f"{i}"] = np.copy(newSegm)
+            tmp = np.copy(self.sliceAxis)
+            self.sliceAxis = np.copy(self.widthAxis)
+            self.widthAxis = np.copy(tmp)
         elif axes == [1,3]:
-            newImage = np.zeros((self.Image.shape[0],self.Image.shape[3],self.Image.shape[2],self.Image.shape[1]))
-            for i in range(self.nb_slice):
-                newImage[:,:,:,i] = self.Image[:,i,:,:]
+            newImage = np.swapaxes(self.Image,1,3)
             self.Image = np.copy(newImage)
             for i in range(self.voi_counter):
-                newSegm = np.zeros_like(self.voi[f"{i}"])
-                for j in range(self.nb_slice):
-                    newSegm[:,:,j] = self.voi[f"{i}"][j,:,:]
+                newSegm = np.swapaxes(self.voi[f"{i}"],0,2)
                 self.voi[f"{i}"] = np.copy(newSegm)
+            tmp = np.copy(self.sliceAxis)
+            self.sliceAxis = np.copy(self.lengthAxis)
+            self.lengthAxis = np.copy(tmp)
         elif axes == [2,3]:
-            newImage = np.zeros((self.Image.shape[0],self.Image.shape[1],self.Image.shape[3],self.Image.shape[2]))
-            for i in range(self.length):
-                newImage[:,:,i,:] = self.Image[:,:,:,i]
+            newImage = np.swapaxes(self.Image,2,3)
             self.Image = np.copy(newImage)
             for i in range(self.voi_counter):
-                newSegm = np.zeros_like(self.voi[f"{i}"])
-                for j in range(self.length):
-                    newSegm[:,j,:] = self.voi[f"{i}"][:,:,j]
+                newSegm = np.swapaxes(self.voi[f"{i}"],1,2)
                 self.voi[f"{i}"] = np.copy(newSegm)
+            tmp = np.copy(self.lengthAxis)
+            self.lengthAxis = np.copy(self.widthAxis)
+            self.widthAxis = np.copy(tmp)
         else:
-            raise Exception(f"Invalid choice of axis. Must be 1, 2, or 3 and {axis} was given")
+            raise Exception(f"Invalid choice of axis. Must be 1, 2, or 3 and {axes} was given")
         self.nb_slice = newImage.shape[1]
         self.width = newImage.shape[2]
         self.length = newImage.shape[3]
+        
+        self.axial_flats = np.zeros((self.nb_acq,self.width,self.length))
+        self.coronal_flats = np.zeros((self.nb_acq,self.nb_slice,self.length))
+        self.sagittal_flats = np.zeros((self.nb_acq,self.nb_slice,self.width))
+        for i in range(self.nb_acq):
+            self.axial_flats[i,:,:] = self.axial_flat(i)
+            self.sagittal_flats[i,:,:] = self.sagittal_flat(i)
+            self.coronal_flats[i,:,:] = self.coronal_flat(i)
 
 
     def linear_shift(self,shifts:np.ndarray=np.array([0,0,0]),counter:int = -1,save:bool=True,name:str=''):

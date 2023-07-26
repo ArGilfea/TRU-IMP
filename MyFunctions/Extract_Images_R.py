@@ -104,7 +104,7 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
         print("Extracting times and positions")
     temps = np.zeros((number_of_files))
     Instance = np.zeros((number_of_files))
-    position = np.zeros((number_of_files))
+    position = np.zeros((number_of_files,3))
     width = np.zeros((number_of_files))
     length = np.zeros((number_of_files))
     rescaleS = np.zeros((number_of_files))
@@ -120,7 +120,7 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
         except:
             temps[i] = 1
         Instance[i] = all_files_Header_ordered[i].InstanceNumber
-        position[i] = all_files_Header_ordered[i].ImagePositionPatient[2]
+        position[i,:] = all_files_Header_ordered[i].ImagePositionPatient
         width[i] = all_files_Header_ordered[i].Rows
         length[i] = all_files_Header_ordered[i].Columns
         rescaleS[i] = all_files_Header_ordered[i].RescaleSlope
@@ -177,6 +177,7 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
     else:
         Width = int(np.max(width))
         Length = int(np.max(length))
+
     ###
     if verbose:
         print('Creating the 4d array')
@@ -199,6 +200,9 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
         vl = voxel_length[0]
     else:
         vl = 0
+    sliceAxis = position[:nb_slice,2]
+    widthAxis = position[0,0] + vw * np.arange(Width)
+    lengthAxis = position[0,1] + vl * np.arange(Length)
 
     try:
         unit = all_files_Header_ordered[0].Units
@@ -227,6 +231,7 @@ def Extract_Images(path_in,name='',path_out='',verbose = False,
                         rescaleIntercept = RescaleIntercept,time_scale=time_scale,
                         voxel_thickness=vt,voxel_width=vw,voxel_length=vl,
                         units=unit, radionuclide= radionuclide, radiopharmaceutical= radiopharmaceutical,
+                        sliceAxis = sliceAxis, widthAxis=widthAxis, lengthAxis= lengthAxis,
                         mass=weight,dose=dose,flat_images=True,Description=Description)
     ###
 

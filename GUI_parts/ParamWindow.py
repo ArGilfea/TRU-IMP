@@ -953,11 +953,17 @@ class ParamWindow(QMainWindow):
     def _createExitButtons(self):
         """Creates exit buttons for the param window"""
         self.exitSegm = QPushButton("Close")
+        self.exitSegm.setShortcut("Ctrl+E")
         self.exitNoise = QPushButton("Close")
+        self.exitNoise.setShortcut("Ctrl+E")
         self.exitError = QPushButton("Close")
+        self.exitError.setShortcut("Ctrl+E")
         self.exitBayesian = QPushButton("Close")
+        self.exitBayesian.setShortcut("Ctrl+E")
         self.exitDeform = QPushButton("Close")
+        self.exitDeform.setShortcut("Ctrl+E")
         self.exitErase = QPushButton("Close")
+        self.exitErase.setShortcut("Ctrl+E")
 
         self.exitSegm.clicked.connect(self.close)
         self.exitNoise.clicked.connect(self.close)

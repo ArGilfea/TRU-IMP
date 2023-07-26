@@ -281,6 +281,7 @@ class Window(QMainWindow):
         btn_extr.setToolTip("Extracts the relevant information from a folder containing .dcm files (Ctrl + E)")
         btn_load.setToolTip("Loads the selected .pkl file (Ctrl + L)")
         btn_browse.setToolTip("Opens a local browser to select a file (Ctrl + B)")
+        source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
         
         btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
@@ -407,8 +408,18 @@ class Window(QMainWindow):
         self.ResultViewCombo.addItem("Ratio TAC/Error")
         self.ResultViewCombo.activated[str].connect(self.combo_box_result_changed)
 
+        self.ResultImageTypeCombo = QComboBox()
+        self.resultImageType = "Array: Base Image"
+        self.ResultImageTypeCombo.addItem("Array: Base Image")
+        self.ResultImageTypeCombo.addItem("Physical: Base Image")
+        self.ResultImageTypeCombo.addItem("Array: CT")
+        self.ResultImageTypeCombo.addItem("Physical: CT")
+        self.ResultImageTypeCombo.addItem("Physical: Combined")
+        self.ResultImageTypeCombo.activated[str].connect(self.combo_box_ImageType_changed)
+
         layout.addWidget(self.ImageViewCombo)
         layout.addWidget(self.ResultViewCombo)
+        layout.addWidget(self.ResultImageTypeCombo)
         self.generalLayout.addWidget(subWidget,self.current_line,1)
         self.current_line += 1
     def _createImageDisplayBars(self):
@@ -680,6 +691,12 @@ class Window(QMainWindow):
     def combo_box_result_changed(self):
         """Update the view between partial and full"""
         self.resultView = self.ResultViewCombo.currentText()
+        try:
+            self.update_all()
+        except: pass
+    def combo_box_ImageType_changed(self):
+        """Update the view between partial and full"""
+        self.resultImageType = self.ResultImageTypeCombo.currentText()
         try:
             self.update_all()
         except: pass
@@ -1201,7 +1218,7 @@ class Window(QMainWindow):
             self.CoronalImage1D.axes.cla()
             values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
             key = self.sliderSegm.value()
-            
+
             x_axis = self.Image.time
             self.AxialImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,:,values[2],values[3]]*self.Image.voi[f"{key}"][:,values[2],values[3]]/np.sum(self.Image.voi[f"{key}"][:,values[2],values[3]]),axis = 1))
             self.SagittalImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,values[1],values[2],:]*self.Image.voi[f"{key}"][values[1],values[2],:]/np.sum(self.Image.voi[f"{key}"][values[1],values[2],:]),axis=1))
@@ -1314,53 +1331,63 @@ class Window(QMainWindow):
         These views are 1D and go along 1 spatial axis.\n
         For the 1D temporal axis, see update_TAC function.
         """
+
         try:
             self.AxialImage1D.axes.cla()
             self.SagittalImage1D.axes.cla()
             self.CoronalImage1D.axes.cla()
 
+            if self.resultImageType in ["Physical: Base Image"]:
+                sliceAxis = self.Image.sliceAxis
+                widthAxis = self.Image.widthAxis
+                lengthAxis = self.Image.lengthAxis
+            else:
+                sliceAxis = np.arange(self.Image.nb_slice)
+                widthAxis = np.arange(self.Image.width)
+                lengthAxis = np.arange(self.Image.length)
+
             values = [self.sliderAcq.value(),self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
             if self.view_range == "All":
-                self.AxialImage1D.axes.plot(np.arange(self.Image.nb_slice),self.Image.Image[values[0],:,values[2],values[3]])
-                self.SagittalImage1D.axes.plot(np.arange(self.Image.length),self.Image.Image[values[0],values[1],values[2],:])
-                self.CoronalImage1D.axes.plot(np.arange(self.Image.width),self.Image.Image[values[0],values[1],:,values[3]])
+                self.AxialImage1D.axes.plot(sliceAxis,self.Image.Image[values[0],:,values[2],values[3]])
+                self.SagittalImage1D.axes.plot(lengthAxis,self.Image.Image[values[0],values[1],values[2],:])
+                self.CoronalImage1D.axes.plot(widthAxis,self.Image.Image[values[0],values[1],:,values[3]])
                 if self.showSuperpose:
                     S1 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][:,values[2],values[3]]>0.5,1,np.nan)
                     S2 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][values[1],values[2],:]>0.5,1,np.nan)
                     S3 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][values[1],:,values[3]]>0.5,1,np.nan)
-                    self.AxialImage1D.axes.fill_between(np.arange(self.Image.nb_slice),
+                    self.AxialImage1D.axes.fill_between(sliceAxis,
                                                         self.Image.Image[values[0],:,values[2],values[3]]*S1)
-                    self.SagittalImage1D.axes.fill_between(np.arange(self.Image.length),
+                    self.SagittalImage1D.axes.fill_between(lengthAxis,
                                                         self.Image.Image[values[0],values[1],values[2],:]*S2)
-                    self.CoronalImage1D.axes.fill_between(np.arange(self.Image.width),
+                    self.CoronalImage1D.axes.fill_between(widthAxis,
                                                         self.Image.Image[values[0],values[1],:,values[3]]*S3)
             else:
                 subI = self.parameters.subImage
-                self.AxialImage1D.axes.plot(np.arange(subI[1,0],subI[1,1]+1),self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]])
-                self.SagittalImage1D.axes.plot(np.arange(subI[3,0],subI[3,1]+1),self.Image.Image[values[0],values[1],values[2],subI[3,0]:subI[3,1]+1])
-                self.CoronalImage1D.axes.plot(np.arange(subI[2,0],subI[2,1]+1),self.Image.Image[values[0],values[1],subI[2,0]:subI[2,1]+1,values[3]])
+                self.AxialImage1D.axes.plot(sliceAxis[int(subI[1,0]):int(subI[1,1]+1)],self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]])
+                self.SagittalImage1D.axes.plot(lengthAxis[int(subI[3,0]):int(subI[3,1]+1)],self.Image.Image[values[0],values[1],values[2],subI[3,0]:subI[3,1]+1])
+                self.CoronalImage1D.axes.plot(widthAxis[int(subI[2,0]):int(subI[2,1]+1)],self.Image.Image[values[0],values[1],subI[2,0]:subI[2,1]+1,values[3]])
                 if self.showSuperpose:
                     S1 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][subI[1,0]:subI[1,1]+1,values[2],values[3]]>0.5,1,np.nan)
                     S2 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][values[1],values[2],subI[3,0]:subI[3,1]+1]>0.5,1,np.nan)
                     S3 = np.where(self.Image.voi[f"{self.sliderSegm.value()}"][values[1],subI[2,0]:subI[2,1]+1,values[3]]>0.5,1,np.nan)
                     #A1 = self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]]
-                    self.AxialImage1D.axes.fill_between(np.arange(subI[1,0],subI[1,1]+1),
+                    self.AxialImage1D.axes.fill_between(sliceAxis[int(subI[1,0]):int(subI[1,1]+1)],
                                                         self.Image.Image[values[0],subI[1,0]:subI[1,1]+1,values[2],values[3]]*S1)
-                    self.SagittalImage1D.axes.fill_between(np.arange(subI[3,0],subI[3,1]+1),
+                    self.SagittalImage1D.axes.fill_between(lengthAxis[int(subI[3,0]):int(subI[3,1]+1)],
                                                         self.Image.Image[values[0],values[1],values[2],subI[3,0]:subI[3,1]+1]*S2)
-                    self.CoronalImage1D.axes.fill_between(np.arange(subI[2,0],subI[2,1]+1),
+                    self.CoronalImage1D.axes.fill_between(widthAxis[int(subI[2,0]):int(subI[2,1]+1)],
                                                         self.Image.Image[values[0],values[1],subI[2,0]:subI[2,1]+1,values[3]]*S3) 
             if self.showFocus:
-                self.AxialImage1D.axes.axvline(values[1],color='r')
-                self.SagittalImage1D.axes.axvline(values[3],color='r')
-                self.CoronalImage1D.axes.axvline(values[2],color='r')
+                self.AxialImage1D.axes.axvline(sliceAxis[int(values[1])],color='r')
+                self.SagittalImage1D.axes.axvline(lengthAxis[int(values[3])],color='r')
+                self.CoronalImage1D.axes.axvline(widthAxis[int(values[2])],color='r')
             if self.showSubImage:
-                self.AxialImage1D.axes.axvline(self.parameters.subImage[1,0],color='y')
-                self.AxialImage1D.axes.axvline(self.parameters.subImage[1,1],color='y')
-                self.SagittalImage1D.axes.axvline(self.parameters.subImage[3,0],color='y')
-                self.SagittalImage1D.axes.axvline(self.parameters.subImage[3,1],color='y')
-                self.CoronalImage1D.axes.axvline(self.parameters.subImage[2,0],color='y')
-                self.CoronalImage1D.axes.axvline(self.parameters.subImage[2,1],color='y')
+                self.AxialImage1D.axes.axvline(sliceAxis[int(self.parameters.subImage[1,0])],color='y')
+                self.AxialImage1D.axes.axvline(sliceAxis[int(self.parameters.subImage[1,1])],color='y')
+                self.SagittalImage1D.axes.axvline(lengthAxis[int(self.parameters.subImage[3,0])],color='y')
+                self.SagittalImage1D.axes.axvline(lengthAxis[int(self.parameters.subImage[3,1])],color='y')
+                self.CoronalImage1D.axes.axvline(widthAxis[int(self.parameters.subImage[2,0])],color='y')
+                self.CoronalImage1D.axes.axvline(widthAxis[int(self.parameters.subImage[2,1])],color='y')
 
             self.base_1D_axes()
             self.AxialImage1D.draw()
@@ -1373,8 +1400,8 @@ class Window(QMainWindow):
         if self.view_range == "All":
             self.sliderAcq.setMinimum(0);self.sliderAcq.setMaximum(self.Image.nb_acq-1)
             self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice-1)
-            self.sliderSagittal.setMinimum(0);self.sliderSagittal.setMaximum(self.Image.width-1)
-            self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length-1)
+            self.sliderSagittal.setMinimum(0);self.sliderSagittal.setMaximum(self.Image.length-1)
+            self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.width-1)
         else:
             subI = self.parameters.subImage
             self.sliderAcq.setMinimum(subI[0,0]);self.sliderAcq.setMaximum(subI[0,1])
@@ -1441,6 +1468,28 @@ class Window(QMainWindow):
         except: pass
         try: SubI = self.parameters.subImage
         except: pass
+        if self.resultImageType in ["Physical: Base Image", "Physical: Combined"]:
+            sliceAxis = self.Image.sliceAxis
+            widthAxis = self.Image.widthAxis
+            lengthAxis = self.Image.lengthAxis
+        else:
+            sliceAxis = np.arange(self.Image.nb_slice)
+            widthAxis = np.arange(self.Image.width)
+            lengthAxis = np.arange(self.Image.length)
+
+        if self.resultImageType == "Physical: Combined":
+            alphaValueImage = 0.2
+        else:
+            alphaValueImage = 1
+
+        if self.showLog:
+            def a(x):
+                return np.log(x+1)
+        else:
+            def a(x):
+                return x
+        func = a
+
         #if SubI[0,0] >= SubI[0,1] or SubI[1,0] >= SubI[1,1] or SubI[2,0] >= SubI[2,1] or SubI[3,0] >= SubI[3,1]:
         #    self._createErrorMessage("Wrong subimage. Check to be sure that the values are in the good order")
         key = self.sliderSegm.value()
@@ -1449,107 +1498,187 @@ class Window(QMainWindow):
             self.sagittal.axes.cla()
             self.coronal.axes.cla()
         except: pass
+
         if self.showFocus:
-            self.axial.axes.plot(values[3],values[2],'*',markersize = 6,color='y')
-            self.sagittal.axes.plot(values[2],values[1],'*',markersize = 6,color='y')
-            self.coronal.axes.plot(values[3],values[1],'*',markersize = 6,color='y')
-            self.axial.axes.axhline(values[2],color='r')
-            self.axial.axes.axvline(values[3],color='r')
-            self.sagittal.axes.axhline(values[1],color='r')
-            self.sagittal.axes.axvline(values[2],color='r')
-            self.coronal.axes.axhline(values[1],color='r')
-            self.coronal.axes.axvline(values[3],color='r')
+            self.axial.axes.plot(lengthAxis[int(values[3])],widthAxis[values[2]],'*',markersize = 6,color='y')
+            self.sagittal.axes.plot(widthAxis[values[2]],sliceAxis[values[1]],'*',markersize = 6,color='y')
+            self.coronal.axes.plot(lengthAxis[int(values[3])],sliceAxis[values[1]],'*',markersize = 6,color='y')
+            self.axial.axes.axhline(widthAxis[values[2]],color='r')
+            self.axial.axes.axvline(lengthAxis[int(values[3])],color='r')
+            self.sagittal.axes.axhline(sliceAxis[values[1]],color='r')
+            self.sagittal.axes.axvline(widthAxis[values[2]],color='r')
+            self.coronal.axes.axhline(sliceAxis[values[1]],color='r')
+            self.coronal.axes.axvline(lengthAxis[int(values[3])],color='r')
         if self.showSubImage:
-            self.axial.axes.axhline(self.parameters.subImage[2,0],color='y')
-            self.axial.axes.axhline(self.parameters.subImage[2,1],color='y')
-            self.sagittal.axes.axhline(self.parameters.subImage[1,0],color='y')
-            self.sagittal.axes.axhline(self.parameters.subImage[1,1],color='y')
-            self.coronal.axes.axhline(self.parameters.subImage[1,0],color='y')
-            self.coronal.axes.axhline(self.parameters.subImage[1,1],color='y')
-            self.axial.axes.axvline(self.parameters.subImage[3,0],color='y')
-            self.axial.axes.axvline(self.parameters.subImage[3,1],color='y')
-            self.sagittal.axes.axvline(self.parameters.subImage[2,0],color='y')
-            self.sagittal.axes.axvline(self.parameters.subImage[2,1],color='y')
-            self.coronal.axes.axvline(self.parameters.subImage[3,0],color='y')
-            self.coronal.axes.axvline(self.parameters.subImage[3,1],color='y')
-        if self.showLog:
-            def a(x):
-                return np.log(x+1)
-        else:
-            def a(x):
-                return x
-        func = a
-        if self.view == "Slice":
-            try:
-                self.axial.axes.pcolormesh(func(self.Image.Image[values[0],values[1],:,:]))
-                self.sagittal.axes.pcolormesh(func(self.Image.Image[values[0],:,:,values[3]]))
-                self.coronal.axes.pcolormesh(func(self.Image.Image[values[0],:,values[2],:]))
-                if self.showSuperpose:
-                    top_value = np.max([np.max(self.Image.Image[values[0],:,:,:]*self.Image.voi[f"{key}"]),5])
-                    A = np.where(self.Image.voi[f"{key}"]>0.5,top_value,np.nan)
-                    self.axial.axes.pcolormesh(A[values[1],:,:],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
-                    self.sagittal.axes.pcolormesh(A[:,:,values[3]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
-                    self.coronal.axes.pcolormesh(A[:,values[2],:],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
-            except:
-                pass
-        elif self.view == "Flat":
-            try:
-                self.axial.axes.pcolormesh(func(self.Image.axial_flats[int(values[0]),:,:]))
-                self.sagittal.axes.pcolormesh(func(self.Image.sagittal_flats[int(values[0]),:,:]))
-                self.coronal.axes.pcolormesh(func(self.Image.coronal_flats[int(values[0]),:,:]))
-            except:
-                self._createErrorMessage("Can't perform this. No image is loaded or the flats are not done")
-        elif self.view == "Segm. Slice":
-            try:
-                self.axial.axes.pcolormesh(func(self.Image.voi[f"{key}"][values[1],:,:]))
-                self.sagittal.axes.pcolormesh(func(self.Image.voi[f"{key}"][:,:,values[3]]))
-                self.coronal.axes.pcolormesh(func(self.Image.voi[f"{key}"][:,values[2],:]))
-            except:
-                self._createErrorMessage("Can't perform this. No segmentations are present")
-        elif self.view == "Segm. Flat":
-            try:
-                self.axial.axes.pcolormesh(func(self.Image.axial_flat(counter=key)))
-                self.sagittal.axes.pcolormesh(func(self.Image.sagittal_flat(counter=key)))
-                self.coronal.axes.pcolormesh(func(self.Image.coronal_flat(counter=key)))
-            except:
-                self._createErrorMessage("Can't perform this. No segmentations are present")
-        elif self.view == "Sub. Slice":
-            try:
-                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.Image[values[0],values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
-                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]]))
-                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]]))
-                if self.showSuperpose: 
-                    top_value = np.max([np.max(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]*self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]),5])
-                    A = np.where(self.Image.voi[f"{key}"]>0.5,top_value,np.nan)
-                    self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),
-                                                    A[values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
-                    self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),
-                                                    A[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
-                    self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),
-                                                    A[SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]],cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)            
-            except:
-                self._createErrorMessage("Can't perform this. No SubImage selected")
-        elif self.view == "Sub. Flat":
-            try:
-                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.axial_flat(acq=values[0])[SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
-                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.sagittal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1]]))
-                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.coronal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]]))
-            except:
-                self._createErrorMessage("Can't perform this. No SubImage selected")
-        elif self.view == "Segm. Sub. Slice":
-            try:
-                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.voi[f"{key}"][values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
-                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]]))
-                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]]))
-            except:
-                self._createErrorMessage("Can't perform this. No SubImage selected or no segmentation done")
-        elif self.view == "Segm. Sub. Flat":
-            try:
-                self.axial.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[2,0],SubI[2,1]+1),func(self.Image.axial_flat(counter=key)[SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]))
-                self.sagittal.axes.pcolormesh(np.arange(SubI[2,0],SubI[2,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.sagittal_flat(counter=key)[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1]]))
-                self.coronal.axes.pcolormesh(np.arange(SubI[3,0],SubI[3,1]+1),np.arange(SubI[1,0],SubI[1,1]+1),func(self.Image.coronal_flat(counter=key)[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]]))
-            except:
-                self._createErrorMessage("Can't perform this. No SubImage selected or no segmentation done")
+            self.axial.axes.axhline(widthAxis[int(self.parameters.subImage[2,0])],color='y')
+            self.axial.axes.axhline(widthAxis[int(self.parameters.subImage[2,1])],color='y')
+            self.sagittal.axes.axhline(sliceAxis[int(self.parameters.subImage[1,0])],color='y')
+            self.sagittal.axes.axhline(sliceAxis[int(self.parameters.subImage[1,1])],color='y')
+            self.coronal.axes.axhline(sliceAxis[int(self.parameters.subImage[1,0])],color='y')
+            self.coronal.axes.axhline(sliceAxis[int(self.parameters.subImage[1,1])],color='y')
+            self.axial.axes.axvline(lengthAxis[int(self.parameters.subImage[3,0])],color='y')
+            self.axial.axes.axvline(lengthAxis[int(self.parameters.subImage[3,1])],color='y')
+            self.sagittal.axes.axvline(widthAxis[int(self.parameters.subImage[2,0])],color='y')
+            self.sagittal.axes.axvline(widthAxis[int(self.parameters.subImage[2,1])],color='y')
+            self.coronal.axes.axvline(lengthAxis[int(self.parameters.subImage[3,0])],color='y')
+            self.coronal.axes.axvline(lengthAxis[int(self.parameters.subImage[3,1])],color='y')
+
+        #Second Image to be Seen
+        if self.resultImageType in ["Physical: CT","Physical: Combined","Array: CT"]:
+            if self.resultImageType == "Array: CT":
+                sliceAxis2 = np.arange(self.Image2.nb_slice)
+                widthAxis2 = np.arange(self.Image2.width)
+                lengthAxis2 = np.arange(self.Image2.length)
+            else:
+                sliceAxis2 = self.Image2.sliceAxis
+                widthAxis2 = self.Image2.widthAxis
+                lengthAxis2 = self.Image2.lengthAxis                
+            #Find closest index for each point on the axis:
+            value1 = (np.abs(self.Image2.sliceAxis - sliceAxis[values[1]])).argmin()
+            value2 = (np.abs(self.Image2.widthAxis - widthAxis[values[2]])).argmin()
+            value3 = (np.abs(self.Image2.lengthAxis - lengthAxis[values[3]])).argmin()
+            #Linear interpolation of the slice
+            remValue1 = value1 - int(value1)
+            remValue2 = value2 - int(value2)
+            remValue3 = value3 - int(value3)
+            if self.view == "Slice":
+                self.axial.axes.pcolormesh(lengthAxis2,widthAxis2,
+                                            value1*func(self.Image2.Image[0,value1,:,:]),# + (1 - value1) * func(self.Image2.Image[0,value1,:,:]),
+                                            shading='gouraud',cmap='gray')
+                self.sagittal.axes.pcolormesh(widthAxis2,sliceAxis2,
+                                            value2*func(self.Image2.Image[0,:,:,value2]),#+ (1 - value2)*func(self.Image2.Image[0,:,:,value3]),
+                                            shading='gouraud',cmap='gray')
+                self.coronal.axes.pcolormesh(lengthAxis2,sliceAxis2,
+                                            value3*func(self.Image2.Image[0,:,value3,:]),#+ (1 - value3)*func(self.Image2.Image[0,:,value2,:]),
+                                            shading='gouraud',cmap='gray')
+            elif self.view == "Sub. Slice":
+                subImage2 = np.zeros_like(SubI)
+                subImage2[1,0] = (np.abs(self.Image2.sliceAxis - sliceAxis[SubI[1,0]])).argmin()
+                subImage2[1,1] = (np.abs(self.Image2.sliceAxis - sliceAxis[SubI[1,1]])).argmin()
+                subImage2[2,0] = (np.abs(self.Image2.lengthAxis - lengthAxis[SubI[2,0]])).argmin()
+                subImage2[2,1] = (np.abs(self.Image2.lengthAxis - lengthAxis[SubI[2,1]])).argmin()
+                subImage2[3,0] = (np.abs(self.Image2.widthAxis - widthAxis[SubI[3,0]])).argmin()
+                subImage2[3,1] = (np.abs(self.Image2.widthAxis - widthAxis[SubI[3,1]])).argmin()
+
+                #Problem with missing voxel
+
+                self.axial.axes.pcolormesh(lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])],
+                                           widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])],
+                                            value1*func(self.Image2.Image[0,value1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]]),# + (1 - value1) * func(self.Image2.Image[0,value1,:,:]),
+                                            shading='gouraud',cmap='gray')
+                self.sagittal.axes.pcolormesh(widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])],
+                                              sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])],
+                                            value2*func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2]),#+ (1 - value2)*func(self.Image2.Image[0,:,:,value3]),
+                                            shading='gouraud',cmap='gray')
+                self.coronal.axes.pcolormesh(lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])],
+                                             sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])],
+                                            value3*func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3,subImage2[3,0]:subImage2[3,1]]),#+ (1 - value3)*func(self.Image2.Image[0,:,value2,:]),
+                                            shading='gouraud',cmap='gray')
+
+
+        if self.resultImageType in ["Array: Base Image","Physical: Base Image","Physical: Combined"]:
+            if self.view == "Slice":
+                try:
+                    self.axial.axes.pcolormesh(lengthAxis,widthAxis,func(self.Image.Image[values[0],values[1],:,:]),shading='gouraud',alpha = alphaValueImage)
+                    self.sagittal.axes.pcolormesh(widthAxis,sliceAxis,func(self.Image.Image[values[0],:,:,values[3]]),shading='gouraud',alpha = alphaValueImage)
+                    self.coronal.axes.pcolormesh(lengthAxis,sliceAxis,func(self.Image.Image[values[0],:,values[2],:]),shading='gouraud',alpha = alphaValueImage)
+                    if self.showSuperpose:
+                        top_value = np.max([np.max(self.Image.Image[values[0],:,:,:]*self.Image.voi[f"{key}"]),5])
+                        A = np.where(self.Image.voi[f"{key}"]>0.5,top_value,np.nan)
+                        self.axial.axes.pcolormesh(lengthAxis,widthAxis,A[values[1],:,:],shading='gouraud',cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                        self.sagittal.axes.pcolormesh(widthAxis,sliceAxis,A[:,:,values[3]],shading='gouraud',cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                        self.coronal.axes.pcolormesh(lengthAxis,sliceAxis,A[:,values[2],:],shading='gouraud',cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                except:
+                    pass
+            elif self.view == "Flat":
+                try:
+                    self.axial.axes.pcolormesh(lengthAxis,widthAxis,func(self.Image.axial_flats[int(values[0]),:,:]),shading='gouraud',alpha = alphaValueImage)
+                    self.sagittal.axes.pcolormesh(widthAxis,sliceAxis,func(self.Image.sagittal_flats[int(values[0]),:,:]),shading='gouraud',alpha = alphaValueImage)
+                    self.coronal.axes.pcolormesh(lengthAxis,sliceAxis,func(self.Image.coronal_flats[int(values[0]),:,:]),shading='gouraud',alpha = alphaValueImage)
+                except:
+                    self._createErrorMessage("Can't perform this. No image is loaded or the flats are not done")
+            elif self.view == "Segm. Slice":
+                try:
+                    self.axial.axes.pcolormesh(lengthAxis,widthAxis,func(self.Image.voi[f"{key}"][values[1],:,:]),shading='gouraud',alpha = alphaValueImage)
+                    self.sagittal.axes.pcolormesh(widthAxis,sliceAxis,func(self.Image.voi[f"{key}"][:,:,values[3]]),shading='gouraud',alpha = alphaValueImage)
+                    self.coronal.axes.pcolormesh(lengthAxis,sliceAxis,func(self.Image.voi[f"{key}"][:,values[2],:]),shading='gouraud',alpha = alphaValueImage)
+                except:
+                    self._createErrorMessage("Can't perform this. No segmentations are present")
+            elif self.view == "Segm. Flat":
+                try:
+                    self.axial.axes.pcolormesh(lengthAxis,widthAxis,func(self.Image.axial_flat(counter=key)),shading='gouraud',alpha = alphaValueImage)
+                    self.sagittal.axes.pcolormesh(widthAxis,sliceAxis,func(self.Image.sagittal_flat(counter=key)),shading='gouraud',alpha = alphaValueImage)
+                    self.coronal.axes.pcolormesh(lengthAxis,sliceAxis,func(self.Image.coronal_flat(counter=key)),shading='gouraud',alpha = alphaValueImage)
+                except:
+                    self._createErrorMessage("Can't perform this. No segmentations are present")
+            elif self.view == "Sub. Slice":
+                try:
+                    self.axial.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],widthAxis[int(SubI[2,0]):int(SubI[2,1])],
+                                            func(self.Image.Image[values[0],values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]),
+                                            shading='gouraud',alpha = alphaValueImage)
+                    self.sagittal.axes.pcolormesh(widthAxis[int(SubI[2,0]):int(SubI[2,1])],sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]]),
+                                                shading='gouraud',alpha = alphaValueImage)
+                    self.coronal.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                func(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]]),
+                                                shading='gouraud',alpha = alphaValueImage)
+                    if self.showSuperpose: 
+                        top_value = np.max([np.max(self.Image.Image[values[0],SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]*self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]),5])
+                        A = np.where(self.Image.voi[f"{key}"]>0.5,top_value,np.nan)
+                        self.axial.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],
+                                                widthAxis[int(SubI[2,0]):int(SubI[2,1])],
+                                                        A[values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]],
+                                                        shading='gouraud',cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                        self.sagittal.axes.pcolormesh(widthAxis[int(SubI[2,0]):int(SubI[2,1])],
+                                                    sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                        A[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]],
+                                                        shading='gouraud',cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)
+                        self.coronal.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],
+                                                    sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                        A[SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]],
+                                                        shading='gouraud',cmap=plt.cm.Reds_r, vmin=0,vmax=top_value,alpha=0.3)            
+                except:
+                    self._createErrorMessage("Can't perform this. No SubImage selected")
+            elif self.view == "Sub. Flat":
+                try:
+                    self.axial.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],widthAxis[int(SubI[2,0]):int(SubI[2,1])],
+                                            func(self.Image.axial_flat(acq=values[0])[SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]),
+                                            shading='gouraud',alpha = alphaValueImage)
+                    self.sagittal.axes.pcolormesh(widthAxis[int(SubI[2,0]):int(SubI[2,1])],sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                func(self.Image.sagittal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1]]),
+                                                shading='gouraud',alpha = alphaValueImage)
+                    self.coronal.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                func(self.Image.coronal_flat(acq=values[0])[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]]),
+                                                shading='gouraud',alpha = alphaValueImage)
+                except:
+                    self._createErrorMessage("Can't perform this. No SubImage selected")
+            elif self.view == "Segm. Sub. Slice":
+                try:
+                    self.axial.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],widthAxis[int(SubI[2,0]):int(SubI[2,1])],
+                                            func(self.Image.voi[f"{key}"][values[1],SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]),
+                                            shading='gouraud',alpha = alphaValueImage)
+                    self.sagittal.axes.pcolormesh(widthAxis[int(SubI[2,0]):int(SubI[2,1])],sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                func(self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1],values[3]]),
+                                                shading='gouraud',alpha = alphaValueImage)
+                    self.coronal.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                func(self.Image.voi[f"{key}"][SubI[1,0]:SubI[1,1],values[2],SubI[3,0]:SubI[3,1]]),
+                                                shading='gouraud',alpha = alphaValueImage)
+                except:
+                    self._createErrorMessage("Can't perform this. No SubImage selected or no segmentation done")
+            elif self.view == "Segm. Sub. Flat":
+                try:
+                    self.axial.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],widthAxis[int(SubI[2,0]):int(SubI[2,1])],
+                                            func(self.Image.axial_flat(counter=key)[SubI[2,0]:SubI[2,1],SubI[3,0]:SubI[3,1]]),
+                                            shading='gouraud',alpha = alphaValueImage)
+                    self.sagittal.axes.pcolormesh(widthAxis[int(SubI[2,0]):int(SubI[2,1])],sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                func(self.Image.sagittal_flat(counter=key)[SubI[1,0]:SubI[1,1],SubI[2,0]:SubI[2,1]]),
+                                                shading='gouraud',alpha = alphaValueImage)
+                    self.coronal.axes.pcolormesh(lengthAxis[int(SubI[3,0]):int(SubI[3,1])],sliceAxis[int(SubI[1,0]):int(SubI[1,1])],
+                                                func(self.Image.coronal_flat(counter=key)[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]]),
+                                                shading='gouraud',alpha = alphaValueImage)
+                except:
+                    self._createErrorMessage("Can't perform this. No SubImage selected or no segmentation done")
+
         try:
             self.axial.draw()
             self.sagittal.draw()
@@ -1571,7 +1700,10 @@ class Window(QMainWindow):
                 new_status = f"{action} started at {time.strftime('%H:%M:%S')}"
             self.statusBar.showMessage(new_status)
             try:
-                self.Image.progress_log += "\n" + new_status
+                if self.Image.progress_log == "":
+                    self.Image.progress_log += new_status
+                else:
+                    self.Image.progress_log += "\n" + new_status
                 self.logText.textCursor().insertHtml(new_status + '<br>')
             except: pass
         try:
@@ -1621,7 +1753,18 @@ class Window(QMainWindow):
         self.displayStatus("File extracted",what = 'starting' ,time_i = initial)
         try:
             a = self.name
-            self._createErrorMessage("An image is already loaded")
+            try:
+                self.Image2 = Extract.Extract_Images(source.text(),name = source.text(), verbose=True,save=False)
+                self.displayStatus("Second file extracted", initial)
+                self._createErrorMessage("An image is already loaded, loading the second for superposition")
+            except:
+                try:
+                    self.Image2 = Extract_r.Extract_Images(source.text(),name = source.text(),verbose=True,save=False)
+                    self.displayStatus("Second file extracted", initial)
+                    self._createErrorMessage("An image is already loaded, loading the second for superposition")
+                except:
+                    self._createErrorMessage("Second extraction is not possible")
+            
         except:
             try:
                 self.Image = Extract.Extract_Images(source.text(),name = source.text(), verbose=True,save=False)
@@ -1630,6 +1773,7 @@ class Window(QMainWindow):
                 self._createImageDisplay()
                 self._createImageDisplayBars()
                 self.parameters = GUIParameters(self.Image)
+                self.displayStatus("Interface initialization", initial)
             except:
                 self.displayStatus("Initial method not working, looking for adjacent folders", initial)
                 try:
@@ -1638,6 +1782,7 @@ class Window(QMainWindow):
                     self._createImageDisplay()
                     self._createImageDisplayBars()
                     self.parameters = GUIParameters(self.Image)
+                    self.displayStatus("Interface initialization", initial)
                 except:
                     self._createErrorMessage("Extraction is not possible")
 
@@ -1678,8 +1823,6 @@ class Window(QMainWindow):
                         break
             else:
                 path = text[0]
-            print(path)
-            print(repr(path))
             source.setText(path)
         except: 
             pass
@@ -1700,23 +1843,38 @@ class Window(QMainWindow):
                 self._createErrorMessage(f"Impossible to save to the desired folder")
         self.displayStatus("File saved", initial)  
     def onClick(self,event,which):
+        if self.resultImageType in ["Physical: Base Image","Physical: CT","Physical: Combined"]:
+            sliceAxis = self.Image.sliceAxis
+            widthAxis = self.Image.widthAxis
+            lengthAxis = self.Image.lengthAxis
+        else:
+            sliceAxis = np.arange(self.Image.nb_slice)
+            widthAxis = np.arange(self.Image.width)
+            lengthAxis = np.arange(self.Image.length)
         ix, iy = event.xdata, event.ydata
         #print (f'x = {ix}, y = {iy}')
         which.coords = []
         which.coords.append((ix, iy))
         if len(which.coords) == 2:
             which.fig.canvas.mpl_disconnect(self.cid)
+        
         if which == self.axial:
+            ix = int((np.abs(lengthAxis - ix)).argmin())
+            iy = int((np.abs(widthAxis - iy)).argmin())
             self.sliderCoronalValue.setText(f"{int(iy)}")
             self.sliderSagittalValue.setText(f"{int(ix)}")
             self.sliderCoronal.setValue(int(iy))
             self.sliderSagittal.setValue(int(ix))
         elif which == self.sagittal:
+            ix = int((np.abs(widthAxis - ix)).argmin())
+            iy = int((np.abs(sliceAxis - iy)).argmin())
             self.sliderAxialValue.setText(f"{int(iy)}")
             self.sliderCoronalValue.setText(f"{int(ix)}")
             self.sliderAxial.setValue(int(iy))
             self.sliderCoronal.setValue(int(ix))
         elif which == self.coronal:
+            ix = int((np.abs(lengthAxis - ix)).argmin())
+            iy = int((np.abs(sliceAxis - iy)).argmin())
             self.sliderAxialValue.setText(f"{int(iy)}")
             self.sliderSagittalValue.setText(f"{int(ix)}")
             self.sliderAxial.setValue(int(iy))
@@ -1727,12 +1885,15 @@ class Window(QMainWindow):
             self.sliderAcq.setValue(int(idx))
             self.sliderAcqValue.setText(f"{int(idx)}")
         elif which == self.AxialImage1D:
+            ix = int((np.abs(sliceAxis - ix)).argmin())
             self.sliderAxialValue.setText(f"{int(ix)}")
             self.sliderAxial.setValue(int(ix))
         elif which == self.SagittalImage1D:
+            ix = int((np.abs(lengthAxis - ix)).argmin())
             self.sliderSagittalValue.setText(f"{int(ix)}")
             self.sliderSagittal.setValue(int(ix))
         elif which == self.CoronalImage1D:
+            ix = int((np.abs(widthAxis - ix)).argmin())
             self.sliderCoronalValue.setText(f"{int(ix)}")
             self.sliderCoronal.setValue(int(ix))
     def onRoll(self,event,which):
