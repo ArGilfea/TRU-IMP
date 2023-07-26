@@ -22,6 +22,7 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
     initial1 = time.time()
     counter = 0
     for i,dicom_file in enumerate(os.listdir(path_in),start=0):
+
         if((dicom_file[0:4]=='PET_' or dicom_file.endswith('.dcm')) and dicom_file[0] != "."):
             try:
                 ds = pydicom.dcmread(path_in+dicom_file)
@@ -36,7 +37,9 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         if((i%1000 == 0 or i == number_of_files)and verbose):
             print("Time Elapsed: ", "{:.2f}".format(time.time()-initial1),'s; % done: ',"{:.1f}".format(i/number_of_files*100),' %')
     ###
+    print(number_of_files)
     number_of_files -= counter
+    print(counter)
     if verbose_precise:
         print('Number of Files',number_of_files)
     all_files_Im_ordered = np.zeros((number_of_files),dtype=object)
@@ -44,9 +47,10 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         print('Ordering Files')
     initial2 = time.time()
     all_files_Header_ordered = all_files_Header.copy()
+    print(max(IntNum),min(IntNum))
     for i in range(number_of_files):
-        all_files_Im_ordered[int(IntNum[i]-1)] = all_files_Im[i]
-        all_files_Header_ordered[int(IntNum[i]-1)] = all_files_Header[i]
+        all_files_Im_ordered[int(IntNum[i] - min(IntNum))] = all_files_Im[i]
+        all_files_Header_ordered[int(IntNum[i] - min(IntNum))] = all_files_Header[i]
         if((i%1000 == 0 or i == number_of_files - 1)and verbose_precise):
             print("Time Elapsed: ", "{:.2f}".format(time.time()-initial2),'s; % done: ',"{:.1f}".format(i/number_of_files*100),' %')
     ###
