@@ -131,10 +131,15 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         print(times)
     except: pass
 
-    nb_slice = 1
-    for i in range(1,number_of_files):
-        if(temps[i] == temps[0]):
-            nb_slice += 1
+    if max(times) >= 0:
+        nb_slice = 1
+        for i in range(1,number_of_files):
+            if(temps[i] == temps[0]):
+                nb_slice += 1
+    else:
+        nb_slice = number_of_files
+        nb_acq = 1
+
 
     if verbose_precise:
         print('Number of Slices: ',nb_slice)
