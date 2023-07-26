@@ -33,6 +33,9 @@ Temporary host website with infos and links: [PhilippeTheMedicalPhysicist.com](h
 * matplotlib     --To create the images and graphs
 * pydicom        --To extract the images
 * pickle         --To save and load data
+* markdown       --To display some files in the GUI
+* PyQt5          --For the GUI
+* functools      --For part of the GUI interface to link buttons
 
 ## GUI:
 The GUI is the easy way to work with the code. 

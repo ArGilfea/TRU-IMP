@@ -396,6 +396,7 @@ class Window(QMainWindow):
         self.ResultViewCombo = QComboBox()
         self.resultView = "TAC"
         self.ResultViewCombo.addItem("TAC")
+        self.ResultViewCombo.addItem("TAC Total")
         self.ResultViewCombo.addItem("TAC Slice")
         self.ResultViewCombo.addItem("Dice")
         self.ResultViewCombo.addItem("Jaccard")
@@ -850,7 +851,7 @@ class Window(QMainWindow):
         """
         initial = time.time()
         self.displayStatus(f"{self.parameters.deformationType} deformations",what = 'starting', time_i = initial)
-        if True:
+        try:
             MyFunctions.Batch_Deform.Batch_Deform(Image = self.Image, deform_type= self.parameters.deformationType,
                                                     k = self.parameters.deformationSegm,
                                                     linear_d= self.parameters.deformationDistanceShift,
@@ -887,7 +888,7 @@ class Window(QMainWindow):
             else:
                 self.displayStatus("",initial)
             self.update_all()
-        else:
+        except:
             self._createErrorMessage("Unable to deform the segmentations")
     def run_erase(self):
         """
@@ -940,7 +941,7 @@ class Window(QMainWindow):
         """Update the middle image according to the type of result to be displayed"""
         try: self.cb.remove()
         except: pass
-        if self.resultView == "TAC" or self.resultView == "TAC Slice":
+        if self.resultView in ["TAC", "TAC Slice", "TAC Total"]:
             self.update_TAC()
         elif self.resultView == "Dice":
             self.update_Dice()
@@ -1219,9 +1220,12 @@ class Window(QMainWindow):
             key = self.sliderSegm.value()
 
             x_axis = self.Image.time
-            self.AxialImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,:,values[2],values[3]]*self.Image.voi[f"{key}"][:,values[2],values[3]]/np.sum(self.Image.voi[f"{key}"][:,values[2],values[3]]),axis = 1))
-            self.SagittalImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,values[1],values[2],:]*self.Image.voi[f"{key}"][values[1],values[2],:]/np.sum(self.Image.voi[f"{key}"][values[1],values[2],:]),axis=1))
-            self.CoronalImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,values[1],:,values[3]]*self.Image.voi[f"{key}"][values[1],:,values[3]]/np.sum(self.Image.voi[f"{key}"][values[1],:,values[3]]),axis=1))
+            self.AxialImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,:,values[2],
+                                                        values[3]]*self.Image.voi[f"{key}"][:,values[2],values[3]]/np.sum(self.Image.voi[f"{key}"][:,values[2],values[3]]),axis = 1))
+            self.SagittalImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,values[1],
+                                                        values[2],:]*self.Image.voi[f"{key}"][values[1],values[2],:]/np.sum(self.Image.voi[f"{key}"][values[1],values[2],:]),axis=1))
+            self.CoronalImage1D.axes.plot(x_axis,np.sum(self.Image.Image[:,values[1],:,
+                                            values[3]]*self.Image.voi[f"{key}"][values[1],:,values[3]]/np.sum(self.Image.voi[f"{key}"][values[1],:,values[3]]),axis=1))
 
             if self.showFocus:
                 self.AxialImage1D.axes.axvline(self.Image.time[values[0]],color='r')
@@ -1259,6 +1263,14 @@ class Window(QMainWindow):
         For the 1D spatial axes, see update_1D function.
         """
         try:
+            if self.resultView == "TAC Total":
+                factorSeg = self.Image.voi_voxels[self.sliderSegm.value()]
+                factorErr = self.Image.voi_voxels[self.sliderSegmStats.value()]
+                factorBay = self.Image.voi_voxels[self.sliderFitted.value()]
+            else:
+                factorSeg = 1
+                factorErr = 1
+                factorBay = 1
             try:
                 if self.sliderFitted.value() > 0:
                     if self.parameters.ModelBayesian == "2_Comp_A1":
@@ -1281,24 +1293,24 @@ class Window(QMainWindow):
                 x_axis = self.Image.time
                 if self.sliderSegm.value() >= 0 or self.sliderSegmStats.value() >= 0 or self.sliderFitted.value() >= 0:
                     if self.sliderSegm.value() >= 0:
-                        y_axis = self.Image.voi_statistics[self.sliderSegm.value()]
+                        y_axis = self.Image.voi_statistics[self.sliderSegm.value()] * factorSeg
                     if self.sliderSegmStats.value() >= 0:
-                        y_axis2 = self.Image.voi_statistics_avg[self.sliderSegmStats.value()]
-                        error = self.Image.voi_statistics_std[self.sliderSegmStats.value()]
+                        y_axis2 = self.Image.voi_statistics_avg[self.sliderSegmStats.value()] * factorErr
+                        error = self.Image.voi_statistics_std[self.sliderSegmStats.value()] * factorErr
                     if self.sliderFitted.value() > 0:
-                        y_axis3 = model(x_axis,self.Image.bayesian_results_avg[self.sliderFitted.value(),:])
+                        y_axis3 = model(x_axis,self.Image.bayesian_results_avg[self.sliderFitted.value(),:]) * factorBay
                 else:
                     y_axis = self.Image.Image[:,values[1],values[2],values[3]]
             else:
                 x_axis = self.Image.time[subI[0]:subI[1]]
                 if self.sliderSegm.value() >= 0 or self.sliderSegmStats.value() >= 0:
                     if self.sliderSegm.value() >= 0:
-                        y_axis = self.Image.voi_statistics[self.sliderSegm.value()][subI[0]:subI[1]]
+                        y_axis = self.Image.voi_statistics[self.sliderSegm.value()][subI[0]:subI[1]] * factorSeg
                     if self.sliderSegmStats.value() >= 0:
-                        y_axis2 = self.Image.voi_statistics_avg[self.sliderSegmStats.value()][subI[0]:subI[1]]
-                        error = self.Image.voi_statistics_std[self.sliderSegmStats.value()][subI[0]:subI[1]]
+                        y_axis2 = self.Image.voi_statistics_avg[self.sliderSegmStats.value()][subI[0]:subI[1]] * factorErr
+                        error = self.Image.voi_statistics_std[self.sliderSegmStats.value()][subI[0]:subI[1]] * factorErr
                     if self.sliderFitted.value() > 0:
-                        y_axis3 = model(x_axis,self.Image.bayesian_results_avg[self.sliderFitted.value(),:])[subI[0]:subI[1]]
+                        y_axis3 = model(x_axis,self.Image.bayesian_results_avg[self.sliderFitted.value(),:])[subI[0]:subI[1]] * factorBay
                 else:
                     y_axis = self.Image.Image[:,values[1],values[2],values[3]][subI[0]:subI[1]]
             if self.showFocus:
@@ -1523,57 +1535,56 @@ class Window(QMainWindow):
             self.coronal.axes.axvline(lengthAxis[int(self.parameters.subImage[3,1])],color='y')
 
         #Second Image to be Seen
-        if self.resultImageType in ["Physical: CT","Physical: Combined","Array: CT"]:
-            if self.resultImageType == "Array: CT":
-                sliceAxis2 = np.arange(self.Image2.nb_slice)
-                widthAxis2 = np.arange(self.Image2.width)
-                lengthAxis2 = np.arange(self.Image2.length)
-            else:
-                sliceAxis2 = self.Image2.sliceAxis
-                widthAxis2 = self.Image2.widthAxis
-                lengthAxis2 = self.Image2.lengthAxis                
-            #Find closest index for each point on the axis:
-            value1 = (np.abs(self.Image2.sliceAxis - sliceAxis[values[1]])).argmin()
-            value2 = (np.abs(self.Image2.widthAxis - widthAxis[values[2]])).argmin()
-            value3 = (np.abs(self.Image2.lengthAxis - lengthAxis[values[3]])).argmin()
-            #Linear interpolation of the slice
-            remValue1 = value1 - int(value1)
-            remValue2 = value2 - int(value2)
-            remValue3 = value3 - int(value3)
-            if self.view == "Slice":
-                self.axial.axes.pcolormesh(lengthAxis2,widthAxis2,
-                                            value1*func(self.Image2.Image[0,value1,:,:]),# + (1 - value1) * func(self.Image2.Image[0,value1,:,:]),
-                                            shading='gouraud',cmap='gray')
-                self.sagittal.axes.pcolormesh(widthAxis2,sliceAxis2,
-                                            value2*func(self.Image2.Image[0,:,:,value2]),#+ (1 - value2)*func(self.Image2.Image[0,:,:,value3]),
-                                            shading='gouraud',cmap='gray')
-                self.coronal.axes.pcolormesh(lengthAxis2,sliceAxis2,
-                                            value3*func(self.Image2.Image[0,:,value3,:]),#+ (1 - value3)*func(self.Image2.Image[0,:,value2,:]),
-                                            shading='gouraud',cmap='gray')
-            elif self.view == "Sub. Slice":
-                subImage2 = np.zeros_like(SubI)
-                subImage2[1,0] = (np.abs(self.Image2.sliceAxis - sliceAxis[SubI[1,0]])).argmin()
-                subImage2[1,1] = (np.abs(self.Image2.sliceAxis - sliceAxis[SubI[1,1]])).argmin()
-                subImage2[2,0] = (np.abs(self.Image2.lengthAxis - lengthAxis[SubI[2,0]])).argmin()
-                subImage2[2,1] = (np.abs(self.Image2.lengthAxis - lengthAxis[SubI[2,1]])).argmin()
-                subImage2[3,0] = (np.abs(self.Image2.widthAxis - widthAxis[SubI[3,0]])).argmin()
-                subImage2[3,1] = (np.abs(self.Image2.widthAxis - widthAxis[SubI[3,1]])).argmin()
+        try:
+            if self.resultImageType in ["Physical: CT","Physical: Combined","Array: CT"]:
+                if self.resultImageType == "Array: CT":
+                    sliceAxis2 = np.arange(self.Image2.nb_slice)
+                    widthAxis2 = np.arange(self.Image2.width)
+                    lengthAxis2 = np.arange(self.Image2.length)
+                else:
+                    sliceAxis2 = self.Image2.sliceAxis
+                    widthAxis2 = self.Image2.widthAxis
+                    lengthAxis2 = self.Image2.lengthAxis                
+                #Find closest index for each point on the axis:
+                value1 = (np.abs(self.Image2.sliceAxis - sliceAxis[values[1]])).argmin()
+                value2 = (np.abs(self.Image2.widthAxis - widthAxis[values[2]])).argmin()
+                value3 = (np.abs(self.Image2.lengthAxis - lengthAxis[values[3]])).argmin()
+                #Linear interpolation of the slice
+                remValue1 = value1 - int(value1)
+                remValue2 = value2 - int(value2)
+                remValue3 = value3 - int(value3)
+                if self.view == "Slice":
+                    self.axial.axes.pcolormesh(lengthAxis2,widthAxis2,
+                                                value1*func(self.Image2.Image[0,value1,:,:]),# + (1 - value1) * func(self.Image2.Image[0,value1,:,:]),
+                                                shading='gouraud',cmap='gray')
+                    self.sagittal.axes.pcolormesh(widthAxis2,sliceAxis2,
+                                                value2*func(self.Image2.Image[0,:,:,value2]),#+ (1 - value2)*func(self.Image2.Image[0,:,:,value3]),
+                                                shading='gouraud',cmap='gray')
+                    self.coronal.axes.pcolormesh(lengthAxis2,sliceAxis2,
+                                                value3*func(self.Image2.Image[0,:,value3,:]),#+ (1 - value3)*func(self.Image2.Image[0,:,value2,:]),
+                                                shading='gouraud',cmap='gray')
+                elif self.view == "Sub. Slice":
+                    subImage2 = np.zeros_like(SubI)
+                    subImage2[1,0] = (np.abs(self.Image2.sliceAxis - sliceAxis[SubI[1,0]])).argmin()
+                    subImage2[1,1] = (np.abs(self.Image2.sliceAxis - sliceAxis[SubI[1,1]])).argmin()
+                    subImage2[2,0] = (np.abs(self.Image2.lengthAxis - lengthAxis[SubI[2,0]])).argmin()
+                    subImage2[2,1] = (np.abs(self.Image2.lengthAxis - lengthAxis[SubI[2,1]])).argmin()
+                    subImage2[3,0] = (np.abs(self.Image2.widthAxis - widthAxis[SubI[3,0]])).argmin()
+                    subImage2[3,1] = (np.abs(self.Image2.widthAxis - widthAxis[SubI[3,1]])).argmin()
 
-                #Problem with missing voxel
-
-                self.axial.axes.pcolormesh(lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])],
-                                           widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])],
-                                            value1*func(self.Image2.Image[0,value1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]]),# + (1 - value1) * func(self.Image2.Image[0,value1,:,:]),
-                                            shading='gouraud',cmap='gray')
-                self.sagittal.axes.pcolormesh(widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])],
-                                              sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])],
-                                            value2*func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2]),#+ (1 - value2)*func(self.Image2.Image[0,:,:,value3]),
-                                            shading='gouraud',cmap='gray')
-                self.coronal.axes.pcolormesh(lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])],
-                                             sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])],
-                                            value3*func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3,subImage2[3,0]:subImage2[3,1]]),#+ (1 - value3)*func(self.Image2.Image[0,:,value2,:]),
-                                            shading='gouraud',cmap='gray')
-
+                    self.axial.axes.pcolormesh(lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])],
+                                            widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])],
+                                                value1*func(self.Image2.Image[0,value1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]]),# + (1 - value1) * func(self.Image2.Image[0,value1,:,:]),
+                                                shading='gouraud',cmap='gray')
+                    self.sagittal.axes.pcolormesh(widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])],
+                                                sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])],
+                                                value2*func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2]),#+ (1 - value2)*func(self.Image2.Image[0,:,:,value3]),
+                                                shading='gouraud',cmap='gray')
+                    self.coronal.axes.pcolormesh(lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])],
+                                                sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])],
+                                                value3*func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3,subImage2[3,0]:subImage2[3,1]]),#+ (1 - value3)*func(self.Image2.Image[0,:,value2,:]),
+                                                shading='gouraud',cmap='gray')
+        except: pass
 
         if self.resultImageType in ["Array: Base Image","Physical: Base Image","Physical: Combined"]:
             if self.view == "Slice":

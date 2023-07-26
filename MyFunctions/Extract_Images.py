@@ -37,9 +37,7 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         if((i%1000 == 0 or i == number_of_files)and verbose):
             print("Time Elapsed: ", "{:.2f}".format(time.time()-initial1),'s; % done: ',"{:.1f}".format(i/number_of_files*100),' %')
     ###
-    print(number_of_files)
     number_of_files -= counter
-    print(counter)
     if verbose_precise:
         print('Number of Files',number_of_files)
     all_files_Im_ordered = np.zeros((number_of_files),dtype=object)
@@ -47,12 +45,20 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         print('Ordering Files')
     initial2 = time.time()
     all_files_Header_ordered = all_files_Header.copy()
-    print(max(IntNum),min(IntNum))
-    for i in range(number_of_files):
-        all_files_Im_ordered[int(IntNum[i] - min(IntNum))] = all_files_Im[i]
-        all_files_Header_ordered[int(IntNum[i] - min(IntNum))] = all_files_Header[i]
-        if((i%1000 == 0 or i == number_of_files - 1)and verbose_precise):
-            print("Time Elapsed: ", "{:.2f}".format(time.time()-initial2),'s; % done: ',"{:.1f}".format(i/number_of_files*100),' %')
+
+    if np.isnan(max(IntNum)) and np.isnan(min(IntNum)):
+        lowIntNum = 1
+    else:
+        lowIntNum = min(IntNum)
+    if number_of_files != 1:
+        for i in range(number_of_files):
+            all_files_Im_ordered[int(IntNum[i] - lowIntNum)] = all_files_Im[i]
+            all_files_Header_ordered[int(IntNum[i] - lowIntNum)] = all_files_Header[i]
+            if((i%1000 == 0 or i == number_of_files - 1)and verbose_precise):
+                print("Time Elapsed: ", "{:.2f}".format(time.time()-initial2),'s; % done: ',"{:.1f}".format(i/number_of_files*100),' %')
+    else:
+        all_files_Im_ordered[0] = all_files_Im[i]
+        all_files_Header_ordered[0] = all_files_Header[i]
     ###
     ###
     if verbose:
@@ -76,11 +82,18 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         except:
             temps[i] = 1
         Instance[i] = all_files_Header_ordered[i].InstanceNumber
-        position[i,:] = all_files_Header_ordered[i].ImagePositionPatient
+        try:
+            position[i,:] = all_files_Header_ordered[i].ImagePositionPatient
+        except:
+            position[i,:] = all_files_Header_ordered[i].DetectorInformationSequence[0].ImagePositionPatient
         width[i] = all_files_Header_ordered[i].Rows
         length[i] = all_files_Header_ordered[i].Columns
-        rescaleS[i] = all_files_Header_ordered[i].RescaleSlope
-        rescaleI[i] = all_files_Header_ordered[i].RescaleIntercept
+        try:
+            rescaleS[i] = all_files_Header_ordered[i].RescaleSlope
+            rescaleI[i] = all_files_Header_ordered[i].RescaleIntercept
+        except:
+            rescaleS[i] = 1
+            rescaleI[i] = 1
         voxel_thickness[i] = all_files_Header_ordered[i].SliceThickness
         voxel_width[i] = all_files_Header_ordered[i].PixelSpacing[0]
         voxel_length[i] = all_files_Header_ordered[i].PixelSpacing[1]
@@ -138,13 +151,18 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
 
     if verbose:
         print('Creating the 4d array')
-    Im = np.zeros((nb_acq,nb_slice,Width,Length))
-    for i in range(nb_acq):
-        for j in range(nb_slice):
-            Im[i,j,:,:] = all_files_Im_ordered[int(i*nb_slice+j)]
-            #*RescaleSlope[i]
-            if rescale:
-                Im[i,j,:,:] = Im[i,j,:,:] * RescaleSlope[i] + RescaleIntercept[i]
+    if number_of_files != 1:
+        Im = np.zeros((nb_acq,nb_slice,Width,Length))
+        for i in range(nb_acq):
+            for j in range(nb_slice):
+                Im[i,j,:,:] = all_files_Im_ordered[int(i*nb_slice+j)]
+                #*RescaleSlope[i]
+                if rescale:
+                    Im[i,j,:,:] = Im[i,j,:,:] * RescaleSlope[i] + RescaleIntercept[i]
+    else:
+        shape = all_files_Im_ordered[0].shape
+        Im = np.zeros((1,shape[0],shape[1],shape[2]))
+        Im[0,:,:,:] = np.array(all_files_Im_ordered[0])
     ###
     if np.max(voxel_thickness) == np.min(voxel_thickness):
         vt = voxel_thickness[0]
@@ -158,7 +176,10 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         vl = voxel_length[0]
     else:
         vl = 0
-    sliceAxis = position[:nb_slice,2]
+    if number_of_files != 1:
+        sliceAxis = position[:nb_slice,2]
+    else:
+        sliceAxis = position[0,2] + all_files_Header_ordered[0].SpacingBetweenSlices * np.arange(Im.shape[1])
 
     widthAxis = position[0,0] + vw * np.arange(Width)
     lengthAxis = position[0,1] + vl * np.arange(Length)
