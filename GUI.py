@@ -281,7 +281,6 @@ class Window(QMainWindow):
         btn_extr.setToolTip("Extracts the relevant information from a folder containing .dcm files (Ctrl + E)")
         btn_load.setToolTip("Loads the selected .pkl file (Ctrl + L)")
         btn_browse.setToolTip("Opens a local browser to select a file (Ctrl + B)")
-        source.setText("/Users/philippelaporte/Desktop/FantDYN9/PET-AC-DYN-1-MIN/")
         
         btn_extr.clicked.connect(partial(self.extract_button,source))
         btn_load.clicked.connect(partial(self.load_button,source))
