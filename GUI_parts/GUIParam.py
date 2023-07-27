@@ -109,4 +109,9 @@ class GUIParameters(object):
         self.EraseError = -1
         self.EraseBayesian = -1
 
+        self.ColourBaseImage = "viridis"
+        self.ColourSegmentationImage = "Wistia"
+        self.AlphaSegmentation = 0.3
+        self.AlphaCombined = 0.2
+
         del Image

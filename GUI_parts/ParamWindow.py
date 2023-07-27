@@ -37,18 +37,21 @@ class ParamWindow(QMainWindow):
         self.generalLayoutBayesian = QGridLayout()
         self.generalLayoutNoise = QGridLayout()
         self.generalLayoutErase = QGridLayout()
+        self.generalLayoutOptions = QGridLayout()
         centralWidgetSegm = QWidget(self)
         centralWidgetDefor = QWidget(self)
         centralWidgetErrors = QWidget(self)
         centralWidgetBayesian = QWidget(self)
         centralWidgetNoise = QWidget(self)
         centralWidgetErase = QWidget(self)
+        centralWidgetOptions = QWidget(self)
         centralWidgetSegm.setLayout(self.generalLayoutSegm)
         centralWidgetDefor.setLayout(self.generalLayoutDefor)
         centralWidgetErrors.setLayout(self.generalLayoutError)
         centralWidgetBayesian.setLayout(self.generalLayoutBayesian)
         centralWidgetNoise.setLayout(self.generalLayoutNoise)
         centralWidgetErase.setLayout(self.generalLayoutErase)
+        centralWidgetOptions.setLayout(self.generalLayoutOptions)
 
         self.tabs.addTab(centralWidgetSegm,"Segm.")
         self.tabs.addTab(centralWidgetDefor,"Defor.")
@@ -56,6 +59,7 @@ class ParamWindow(QMainWindow):
         self.tabs.addTab(centralWidgetBayesian,"Bayesian.")
         self.tabs.addTab(centralWidgetNoise,"Noise")
         self.tabs.addTab(centralWidgetErase,"Erase")
+        self.tabs.addTab(centralWidgetOptions,"Options")
         self.setCentralWidget(self.tabs)
         self.initialize_param_window()
 
@@ -67,6 +71,7 @@ class ParamWindow(QMainWindow):
         self.current_line_Bayesian = 2
         self.current_line_Noise = 2
         self.current_line_Erase = 2
+        self.current_line_Options = 2
         self._createParamList()
 
     def _createSeedSliders(self):
@@ -949,7 +954,73 @@ class ParamWindow(QMainWindow):
 
         self.generalLayoutErase.addWidget(self.EraseButton,self.current_line_Erase,1)
         self.current_line_Erase += 1
+    
+    def _createColourImageOption(self):
+        """Creates the options for the colour scheme of the 1st image"""
+        self.ColourImageCombo = QComboBox()
+        self.ColourImageCombo.addItem("viridis")
+        self.ColourImageCombo.addItem("plasma")
+        self.ColourImageCombo.addItem("inferno")
+        self.ColourImageCombo.addItem("magma")
+        self.ColourImageCombo.addItem("twilight")
+        self.ColourImageCombo.addItem("twilight_shifted")
+        self.ColourImageCombo.addItem("hsv")
+        self.ColourImageCombo.addItem("cividis")
 
+        self.ColourImageCombo.setCurrentText(self.parameters.ColourBaseImage)
+        self.ColourImageCombo.activated[str].connect(self.ColourMapImageCombo_Changed)
+
+        self.generalLayoutOptions.addWidget(QLabel("Colour Map"),self.current_line_Options,0)
+        self.generalLayoutOptions.addWidget(QLabel(f"{self.parameters.ColourBaseImage}"),self.current_line_Options,1)
+        self.generalLayoutOptions.addWidget(self.ColourImageCombo,self.current_line_Options,2)
+        self.generalLayoutOptions.setRowStretch(self.current_line_Options,1)
+        self.current_line_Options +=1
+    def _createColourSegmentationImageOption(self):
+        """Creates the options for the colour scheme of the 1st image"""
+        self.ColourSegmentationImageCombo = QComboBox()
+        self.ColourSegmentationImageCombo.addItem("Reds")
+        self.ColourSegmentationImageCombo.addItem("Blues")
+        self.ColourSegmentationImageCombo.addItem("Greens")
+        self.ColourSegmentationImageCombo.addItem("Greys")
+        self.ColourSegmentationImageCombo.addItem("Purples")
+        self.ColourSegmentationImageCombo.addItem("YlOrRd")
+        self.ColourSegmentationImageCombo.addItem("Wistia")
+        self.ColourSegmentationImageCombo.addItem("tab10")
+
+        self.ColourSegmentationImageCombo.setCurrentText(self.parameters.ColourSegmentationImage)
+        self.ColourSegmentationImageCombo.activated[str].connect(self.ColourSegmentationImageCombo_Changed)
+
+        self.generalLayoutOptions.addWidget(QLabel("Colour Segmentation"),self.current_line_Options,0)
+        self.generalLayoutOptions.addWidget(QLabel(f"{self.parameters.ColourSegmentationImage}"),self.current_line_Options,1)
+        self.generalLayoutOptions.addWidget(self.ColourSegmentationImageCombo,self.current_line_Options,2)
+        self.generalLayoutOptions.setRowStretch(self.current_line_Options,1)
+        self.current_line_Options +=1
+    def _createAlphaImageSegmentationOptionValue(self):
+        """Creates the slider and the line edit for the choice of alpha when the segmentation is superposed"""
+        btnNew,slider = self._createIntInput(self.parameters.AlphaSegmentation)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(1)
+        slider.setRange(1,100)
+        slider.setValue(int(self.parameters.AlphaSegmentation*100))
+        self.sliderAlphaSegmentationOption = slider   
+
+        self.generalLayoutOptions.addWidget(QLabel("Alpha Segm."),self.current_line_Options,0)
+        self.generalLayoutOptions.addWidget(QLabel(f"{self.parameters.AlphaSegmentation:.2f}"),self.current_line_Options,1)
+        self.generalLayoutOptions.addWidget(btnNew,self.current_line_Options,2)
+        self.current_line_Options +=1
+    def _createAlphaImageOptionValue(self):
+        """Creates the slider and the line edit for the choice of alpha when the images are superposed"""
+        btnNew,slider = self._createIntInput(self.parameters.AlphaCombined)
+        slider.valueChanged.connect(self.update_int)
+        slider.setTickInterval(1)
+        slider.setRange(1,100)
+        slider.setValue(int(self.parameters.AlphaCombined*100))
+        self.sliderAlphaImageOption = slider   
+
+        self.generalLayoutOptions.addWidget(QLabel("Alpha Combined"),self.current_line_Options,0)
+        self.generalLayoutOptions.addWidget(QLabel(f"{self.parameters.AlphaCombined:.2f}"),self.current_line_Options,1)
+        self.generalLayoutOptions.addWidget(btnNew,self.current_line_Options,2)
+        self.current_line_Options +=1
     def _createExitButtons(self):
         """Creates exit buttons for the param window"""
         self.exitSegm = QPushButton("Close")
@@ -964,6 +1035,8 @@ class ParamWindow(QMainWindow):
         self.exitDeform.setShortcut("Ctrl+E")
         self.exitErase = QPushButton("Close")
         self.exitErase.setShortcut("Ctrl+E")
+        self.exitOptions = QPushButton("Close")
+        self.exitOptions.setShortcut("Ctrl+E")
 
         self.exitSegm.clicked.connect(self.close)
         self.exitNoise.clicked.connect(self.close)
@@ -971,18 +1044,21 @@ class ParamWindow(QMainWindow):
         self.exitBayesian.clicked.connect(self.close)
         self.exitDeform.clicked.connect(self.close)
         self.exitErase.clicked.connect(self.close)
+        self.exitOptions.clicked.connect(self.close)
         self.generalLayoutSegm.addWidget(self.exitSegm,self.current_line_Segm,3)  
         self.generalLayoutNoise.addWidget(self.exitNoise,self.current_line_Noise,3)  
         self.generalLayoutError.addWidget(self.exitError,self.current_line_Error,3)  
         self.generalLayoutBayesian.addWidget(self.exitBayesian,self.current_line_Bayesian,3)  
         self.generalLayoutDefor.addWidget(self.exitDeform,self.current_line_Defor,3)  
         self.generalLayoutErase.addWidget(self.exitErase,self.current_line_Erase,3)  
+        self.generalLayoutOptions.addWidget(self.exitOptions,self.current_line_Options,3)  
         self.current_line_Segm += 1
         self.current_line_Noise += 1
         self.current_line_Error += 1
         self.current_line_Bayesian += 1
         self.current_line_Defor += 1
         self.current_line_Erase += 1
+        self.current_line_Options += 1
     def _createThreshBaySliders(self):
         btnNew,slider = self._createIntInput(self.parameters.Bayesian_thresh_perc)
         btnNew2,slider2 = self._createIntInput(self.parameters.Bayesian_thresh_value)
@@ -1541,6 +1617,9 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise.addWidget(QLabel("Parameter"),1,0)
         self.generalLayoutNoise.addWidget(QLabel("Values"),1,1)
         self.generalLayoutNoise.addWidget(QLabel("New Values"),1,2)
+        self.generalLayoutOptions.addWidget(QLabel("Parameter"),1,0)
+        self.generalLayoutOptions.addWidget(QLabel("Values"),1,1)
+        self.generalLayoutOptions.addWidget(QLabel("New Values"),1,2)
 
         #Segmentation Specific
         self._createSegmType()
@@ -1638,6 +1717,11 @@ class ParamWindow(QMainWindow):
         #Erase Specific
         self._createHeadersErase()
         #self._createEraseButton()
+        #Options
+        self._createColourImageOption()
+        self._createColourSegmentationImageOption()
+        self._createAlphaImageSegmentationOptionValue()
+        self._createAlphaImageOptionValue()
         #Utilities
         self._createSaveBox()
         self._createVerbose()
@@ -1683,6 +1767,14 @@ class ParamWindow(QMainWindow):
         """Links the method of error and the combo box in the parameters"""
         self.parameters.CurveTypeBayesian = self.CurvesCombo.currentText()
         self.refresh_app()
+    def ColourMapImageCombo_Changed(self):
+        """Links the colour of the map for the image and the combo box in the parameters"""
+        self.parameters.ColourBaseImage = self.ColourImageCombo.currentText()
+        self.refresh_app()
+    def ColourSegmentationImageCombo_Changed(self):
+        """Links the colour of the map for the segmentation and the combo box in the parameters"""
+        self.parameters.ColourSegmentationImage = self.ColourSegmentationImageCombo.currentText()
+        self.refresh_app()        
     def set_value_checked_doCoefficients(self,box:QCheckBox):
         """Links the compute coefficient bool and the combo box in the parameters"""
         self.parameters.doCoefficients = box.isChecked()
@@ -1931,6 +2023,15 @@ class ParamWindow(QMainWindow):
             self.parameters.flipAxis = self.sliderDeformationAxisFlip.value()
         except:
             pass
+        try:
+            self.parameters.AlphaSegmentation = self.sliderAlphaSegmentationOption.value()/100
+        except:
+            self.parameters.AlphaSegmentation = 0.3
+        try:
+            self.parameters.AlphaCombined = self.sliderAlphaImageOption.value()/100
+        except:
+            self.parameters.AlphaCombined = 0.2
+
 
     def update_EraseValues(self):
         """Updates the parameters for the erase values"""
@@ -2041,6 +2142,12 @@ class ParamWindow(QMainWindow):
         if self.generalLayoutErase is not None:
             while self.generalLayoutErase.count():
                 item = self.generalLayoutErase.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+        if self.generalLayoutOptions is not None:
+            while self.generalLayoutOptions.count():
+                item = self.generalLayoutOptions.takeAt(0)
                 widget = item.widget()
                 if widget is not None:
                     widget.deleteLater()

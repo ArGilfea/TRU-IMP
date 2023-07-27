@@ -47,6 +47,12 @@ By clicking "Extract", the dicom files will be opened and put together to form a
 Otherwise, if a pickle file (.pkl) of a DicomImage (in-package code) class is selected,
 the GUI will open it with the "Load" button,
 instantiating all the segmentations and other analyses already done.
+
+Once the acquisition is loaded or extracted, it cannot be removed or changed directly:
+the GUI must be reinitialized to change it. 
+If the extract or load option is selected again, a second acquisition will be loaded in the GUI.
+This second acquisition can be used to coregister the first one and see both at the same time.
+Note that this second acquisition is not used for any segmentation or other schemes, for now.
 ### Visualising an Image:
 When an image is loaded, the sliders on the left-hand side can be moved to change the view.
 To see exactly where one is looking, the right hand side focus option can be toggled:
@@ -65,6 +71,17 @@ A drop-down menu, initially set at "Slice" can allow different views of the imag
 * The "Segm. Flat" shows the flattened segmentation;
 * The "Segm. Sub. Slice" shows the slices of the subsegmentation;
 * The "Segm. Sub. Flat" shows the flattened subsegmentation;
+### Image Visualisation Options:
+A drop-down menu, initially set at "Array: Base Image" can allow different views of the image:
+* "Array: Base Image": Shows the acquisition with voxel indices as axes.
+* "Physical: Base Image": Shows the acquisitions with physical dimensions as axes, as given by the DICOM file headers.
+* "Array: CT": Shows the second acquisition loaded with voxel indices as axes. Note that this is not properly implemented yet.
+* "Physical: CT": Shows the second acquisition with physical dimensions for the axes, as given by the DICOM file headers.
+* "Physical: Combined": Shows the superposed images, with different colour schemes. The superposition
+is done with the physical dimensions, as given by the DICOM files. Note that for the visualisation, 
+a closest neighbour interpolation is done to visualize the slices. In this mode, only the slice and subslice
+options will lead to a visualization of both acquisitions.
+
 ### Visualising a TAC:
 - The middle image, in its default setting, shows the Time-Activity Curve for the 
 voxel selected by the sliders on the left.

@@ -166,7 +166,7 @@ class DicomImage(object):
                 for j in range(self.width):
                     flat_image[i,j] = np.sum(self.voi[f"{counter}"][i,j,:])/self.length
         return flat_image
-    def show_flats(self,acq:int=-2,key:int=-2,name:str=''): #Done in 1.2.1
+    def show_flats(self,acq:int=-2,key:int=-2,physical:bool = False, name:str=''): #Done in 1.2.1
         """Outputs three flat images in one figure of the three cuts (axial, sagittal and coronal) 
         of a given timeframe or voi.\n
         The specific image flattened and shown is given by the argument which is greater or equal to 0.
@@ -174,32 +174,43 @@ class DicomImage(object):
         Keyword arguments:\n
         acq -- the timeframe of interest (default -2)\n
         key -- the VOI of interest (default -2). (-1 for all VOIs)\n
+        physical -- show the physial dimensions of the acquisitions (default False)\n
         name -- optional name for the graphs (default '')\n
         """
         if ((acq >= 0 and key >= 0) or (acq < -1 and key < -1)):
             raise Exception("Key xor Acq argument must be greater than 0 to select a valid image to check")
         if key >= self.voi_counter:
             raise Exception("Key argument must be lower than the number of VOIs")
+        if physical:
+            sliceAxis = self.sliceAxis
+            widthAxis = self.widthAxis
+            lengthAxis = self.lengthAxis
+        else:
+            sliceAxis = np.arange(self.nb_slice)
+            widthAxis = np.arange(self.width)
+            lengthAxis = np.arange(self.length)
         if acq >= 0:
             fig, axs = plt.subplots(2,2)
-            axs[0,0].pcolormesh(self.axial_flat(acq=acq));axs[0,0].set_title("Axial");axs[0,0].set_xlabel("y (voxels)");axs[0,0].set_ylabel("z (voxels)")
-            axs[1,0].pcolormesh(self.sagittal_flat(acq=acq));axs[1,0].set_title("Sagittal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("y (voxels)")
-            axs[0,1].pcolormesh(self.coronal_flat(acq=acq));axs[0,1].set_title("Coronal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("z (voxels)")
+            axs[0,0].pcolormesh(lengthAxis,widthAxis,self.axial_flat(acq=acq));axs[0,0].set_title("Axial");axs[0,0].set_xlabel("y (voxels)");axs[0,0].set_ylabel("z (voxels)")
+            axs[1,0].pcolormesh(widthAxis,sliceAxis,self.sagittal_flat(acq=acq));axs[1,0].set_title("Sagittal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("y (voxels)")
+            axs[0,1].pcolormesh(lengthAxis,sliceAxis,self.coronal_flat(acq=acq));axs[0,1].set_title("Coronal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("z (voxels)")
             fig.suptitle(f"Time Acquisition {acq} {name}")
         elif key >= 0:
             fig, axs = plt.subplots(2,2)
-            axs[0,0].pcolormesh(self.axial_flat(counter = key));axs[0,0].set_title("Axial");axs[0,0].set_xlabel("y (voxels)");axs[0,0].set_ylabel("z (voxels)")
-            axs[1,0].pcolormesh(self.sagittal_flat(counter = key));axs[1,0].set_title("Sagittal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("y (voxels)")
-            axs[0,1].pcolormesh(self.coronal_flat(counter = key));axs[0,1].set_title("Coronal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("z (voxels)")
+            axs[0,0].pcolormesh(lengthAxis,widthAxis,self.axial_flat(counter = key));axs[0,0].set_title("Axial");axs[0,0].set_xlabel("y (voxels)");axs[0,0].set_ylabel("z (voxels)")
+            axs[1,0].pcolormesh(widthAxis,sliceAxis,self.sagittal_flat(counter = key));axs[1,0].set_title("Sagittal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("y (voxels)")
+            axs[0,1].pcolormesh(lengthAxis,sliceAxis,self.coronal_flat(counter = key));axs[0,1].set_title("Coronal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("z (voxels)")
             fig.suptitle(f"VOI {key} {name} {self.voi_name[key]}")
         elif key == -1:
             for i in range(self.voi_counter):
                 fig, axs = plt.subplots(2,2)
-                axs[0,0].pcolormesh(self.axial_flat(counter = i));axs[0,0].set_title("Axial");axs[0,0].set_xlabel("y (voxels)");axs[0,0].set_ylabel("z (voxels)")
-                axs[1,0].pcolormesh(self.sagittal_flat(counter = i));axs[1,0].set_title("Sagittal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("y (voxels)")
-                axs[0,1].pcolormesh(self.coronal_flat(counter = i));axs[0,1].set_title("Coronal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("z (voxels)")
+                axs[0,0].pcolormesh(lengthAxis,widthAxis,self.axial_flat(counter = i));axs[0,0].set_title("Axial");axs[0,0].set_xlabel("y (voxels)");axs[0,0].set_ylabel("z (voxels)")
+                axs[1,0].pcolormesh(widthAxis,sliceAxis,self.sagittal_flat(counter = i));axs[1,0].set_title("Sagittal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("y (voxels)")
+                axs[0,1].pcolormesh(lengthAxis,sliceAxis,self.coronal_flat(counter = i));axs[0,1].set_title("Coronal");axs[0,0].set_xlabel("x (voxels)");axs[0,0].set_ylabel("z (voxels)")
                 fig.suptitle(f"VOI {i} {name} {self.voi_name[i]}")                         
-    def show_point(self,point:list = [-1,0,0,0],star:bool=False,log:bool=False, sub_im:list = [[-1,-1],[-1,-1],[-1,-1]]): #Done in 1.2.1
+    def show_point(self,point:list = [-1,0,0,0],star:bool=False,
+                   log:bool=False, physical: bool = False,
+                   sub_im:list = [[-1,-1],[-1,-1],[-1,-1]]): #Done in 1.2.1
         """Outputs three images in one figure of the three cuts (axial, sagittal and coronal) 
         at a given acquisition and spatial point.\n
         The specific image flattened and shown is given by the argument which is greater or equal to 0.
@@ -208,6 +219,8 @@ class DicomImage(object):
         point -- point from which to look in the three planes (default [-1,0,0,0])\n
         star -- indicates with a star the location of the point (default False)\n
         log -- apply a log_e on all voxels of the image, which is useful for low contrast images (default True)\n
+        physical -- show the physial dimensions of the acquisitions (default False)\n
+        sub_im -- show only part of the image (default [[-1,-1],[-1,-1],[-1,-1]])\n
         """
         sub_im = np.array(sub_im)
         if (point[0]<0 or point[0] >= self.nb_acq):
@@ -215,33 +228,44 @@ class DicomImage(object):
         if (point[1]<0 or point[1]>= self.nb_slice) or (point[2]<0 or point[2]>= self.width) or (point[3]<0 or point[3]>= self.length):
             raise Exception("Spatial values must be within the image")
         fig, axs = plt.subplots(2,2)
+        if physical:
+            sliceAxis = self.sliceAxis
+            widthAxis = self.widthAxis
+            lengthAxis = self.lengthAxis
+        else:
+            sliceAxis = np.arange(self.nb_slice)
+            widthAxis = np.arange(self.width)
+            lengthAxis = np.arange(self.length)
         if np.sum(sub_im < 0):
             if log:
-                axs[0,0].pcolormesh(np.log(self.Image[point[0],point[1],:,:]));axs[0,0].set_title("Axial")
-                axs[1,0].pcolormesh(np.log(self.Image[point[0],:,:,point[3]]));axs[1,0].set_title("Sagittal")
-                axs[0,1].pcolormesh(np.log(self.Image[point[0],:,point[2],:]));axs[0,1].set_title("Coronal")
+                axs[0,0].pcolormesh(lengthAxis,widthAxis,np.log(self.Image[point[0],point[1],:,:]));axs[0,0].set_title("Axial")
+                axs[1,0].pcolormesh(widthAxis,sliceAxis,np.log(self.Image[point[0],:,:,point[3]]));axs[1,0].set_title("Sagittal")
+                axs[0,1].pcolormesh(lengthAxis,sliceAxis,np.log(self.Image[point[0],:,point[2],:]));axs[0,1].set_title("Coronal")
             else:
-                axs[0,0].pcolormesh(self.Image[point[0],point[1],:,:]);axs[0,0].set_title("Axial")
-                axs[1,0].pcolormesh(self.Image[point[0],:,:,point[3]]);axs[1,0].set_title("Sagittal")
-                axs[0,1].pcolormesh(self.Image[point[0],:,point[2],:]);axs[0,1].set_title("Coronal")
+                axs[0,0].pcolormesh(lengthAxis,widthAxis,self.Image[point[0],point[1],:,:]);axs[0,0].set_title("Axial")
+                axs[1,0].pcolormesh(widthAxis,sliceAxis,self.Image[point[0],:,:,point[3]]);axs[1,0].set_title("Sagittal")
+                axs[0,1].pcolormesh(lengthAxis,sliceAxis,self.Image[point[0],:,point[2],:]);axs[0,1].set_title("Coronal")
             fig.suptitle(f"Three slice around point: {point}")      
         else:
             if log:
-                axs[0,0].pcolormesh(np.log(self.Image[point[0],point[1],sub_im[1,0]:sub_im[1,1],sub_im[2,0]:sub_im[2,1]]));axs[0,0].set_title("Axial")
-                axs[1,0].pcolormesh(np.log(self.Image[point[0],sub_im[0,0]:sub_im[0,1],sub_im[1,0]:sub_im[1,1],point[3]]));axs[1,0].set_title("Sagittal")
-                axs[0,1].pcolormesh(np.log(self.Image[point[0],sub_im[0,0]:sub_im[0,1],point[2],sub_im[2,0]:sub_im[2,1]]));axs[0,1].set_title("Coronal")
+                axs[0,0].pcolormesh(lengthAxis[sub_im[2,0]:sub_im[2,1]],widthAxis[sub_im[1,0]:sub_im[1,1]],
+                                    np.log(self.Image[point[0],point[1],sub_im[1,0]:sub_im[1,1],sub_im[2,0]:sub_im[2,1]]));axs[0,0].set_title("Axial")
+                axs[1,0].pcolormesh(widthAxis[sub_im[1,0]:sub_im[1,1]],sliceAxis[sub_im[0,0]:sub_im[0,1]],
+                                    np.log(self.Image[point[0],sub_im[0,0]:sub_im[0,1],sub_im[1,0]:sub_im[1,1],point[3]]));axs[1,0].set_title("Sagittal")
+                axs[0,1].pcolormesh(lengthAxis[sub_im[2,0]:sub_im[2,1]],sliceAxis[sub_im[0,0]:sub_im[0,1]],
+                                    np.log(self.Image[point[0],sub_im[0,0]:sub_im[0,1],point[2],sub_im[2,0]:sub_im[2,1]]));axs[0,1].set_title("Coronal")
             else:
-                axs[0,0].pcolormesh(np.arange(sub_im[2,0],sub_im[2,1]),np.arange(sub_im[1,0],sub_im[1,1]),
+                axs[0,0].pcolormesh(lengthAxis[sub_im[2,0]:sub_im[2,1]],widthAxis[sub_im[1,0]:sub_im[1,1]],
                                     self.Image[point[0],point[1],sub_im[1,0]:sub_im[1,1],sub_im[2,0]:sub_im[2,1]]);axs[0,0].set_title("Axial")
-                axs[1,0].pcolormesh(np.arange(sub_im[1,0],sub_im[1,1]),np.arange(sub_im[0,0],sub_im[0,1]),
+                axs[1,0].pcolormesh(widthAxis[sub_im[1,0]:sub_im[1,1]],sliceAxis[sub_im[0,0]:sub_im[0,1]],
                                     self.Image[point[0],sub_im[0,0]:sub_im[0,1],sub_im[1,0]:sub_im[1,1],point[3]]);axs[1,0].set_title("Sagittal")
-                axs[0,1].pcolormesh(np.arange(sub_im[2,0],sub_im[2,1]),np.arange(sub_im[0,0],sub_im[0,1]),
+                axs[0,1].pcolormesh(lengthAxis[sub_im[2,0]:sub_im[2,1]],sliceAxis[sub_im[0,0]:sub_im[0,1]],
                                     self.Image[point[0],sub_im[0,0]:sub_im[0,1],point[2],sub_im[2,0]:sub_im[2,1]]);axs[0,1].set_title("Coronal")
             fig.suptitle(f"Three slice around point: {point} for a reduced image around ({sub_im[0,0]}-{sub_im[0,1]},{sub_im[1,0]}-{sub_im[1,1]},{sub_im[2,0]}-{sub_im[2,1]})")    
         if star:
-            axs[0,0].plot(point[3],point[2],'*',markersize = 6,color='y') 
-            axs[1,0].plot(point[2],point[1],'*',markersize = 6,color='y') 
-            axs[0,1].plot(point[3],point[1],'*',markersize = 6,color='y') 
+            axs[0,0].plot(lengthAxis[point[3]],widthAxis[point[2]],'*',markersize = 6,color='y') 
+            axs[1,0].plot(widthAxis[point[2]],sliceAxis[point[1]],'*',markersize = 6,color='y') 
+            axs[0,1].plot(lengthAxis[point[3]],sliceAxis[point[1]],'*',markersize = 6,color='y') 
     def show_curves(self,point:list = [-1,0,0,0]): #Done in 1.2.1
         """Outputs three images in one figure of the three cuts (axial, sagittal and coronal) 
         at a given acquisition and spatial point.\n
