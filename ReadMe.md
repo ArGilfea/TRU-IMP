@@ -413,6 +413,15 @@ The currently available types of noise are:
 * Exponential: This is the Erlang distribution with the second parameter (b) set to 1;
 * Uniform: Constant distribution, spread equally over a given range.
 
+## Options
+Options are available in a specific tab of the parameters for the GUI, among which the colour maps and the transparency when many 
+aspects are shown.
+An option allows the user to select between various ways of combining the two images, when two acquisitions are loaded (such as a PET and a CT).
+
+* Closest Neighbour: Looks for the closest neighbour. Fastest method, but with some errors;
+* Linear approximation: If a slice would fall between two slices of a given axis, 
+this option will approximate the position by assuming a linear variation between slices.
+
 ## References:
 * Canny: Canny, J. A Computational Approach to Edge Detection. IEEE Transactions on Pattern Analysis and Machine Intelligence 8(6). 1986.
 * Dynesty: https://dynesty.readthedocs.io/en/latest/

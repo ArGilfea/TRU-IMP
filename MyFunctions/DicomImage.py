@@ -13,7 +13,7 @@ import MyFunctions.Statistic_Functions as SF
 
 class DicomImage(object):
     """
-    Contains an image from Nuclear Medicine with many functions to compute segmentations, statistics, parameters and outputs images.
+    Contains an image from Nuclear Medicine with many functions to compute segmentations, statistics, parameters, and outputs images.
     """
     def __init__(self,Image:np.ndarray,time:list = [0],name:str='',rescaleSlope:list = [1],rescaleIntercept:list = [0],
                 voxel_thickness:float=1,voxel_width:float=1,voxel_length:float=1,time_scale:str='min',

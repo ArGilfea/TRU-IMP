@@ -9,7 +9,8 @@ def Batch_Deform(Image:DicomImage = None,deform_type:str = "None", k:int =-1,
                 linear_d: np.ndarray = np.array([0,0,0]), rotate_angle: np.ndarray = np.array([0,0,0]),
                 factors_exp: np.ndarray = np.array([1,1,1]), reflection_axis: int = -1, flipAxis: int = -1,
                 switchAxes: list = [1,2],
-                verbose:bool=False, do_coefficients:bool = True, delete_after:bool = False):
+                verbose:bool=False, do_coefficients:bool = True, delete_after:bool = False,
+                verboseNotGUI = True):
     """
     Makes many deformations of given segmentations for a DicomImage, either loaded directly as a parameter or whose path is given.\n
     Keyword arguments:\n
@@ -31,6 +32,7 @@ def Batch_Deform(Image:DicomImage = None,deform_type:str = "None", k:int =-1,
     verbose -- outputs the progress (default False)\n
     do_coefficients -- compute all Jaccard and Dice coefficients (default True)\n
     delete_after -- deletes the original segmentations once the new ones are computed (default False)\n
+    verboseNotGUI -- hides print statements when in the GUI (default True)\n
     """
     initial = time.time()
     try: 
@@ -46,10 +48,11 @@ def Batch_Deform(Image:DicomImage = None,deform_type:str = "None", k:int =-1,
         if path_out == '':
             path_out = path_in
         Image = PF.pickle_open(path_in+name_in+'.pkl')
-    if k == -1:
-        k = np.arange(Image.voi_counter)
-    else:
-        k = np.array([k])
+    if isinstance(k,int):
+        if k == -1:
+            k = np.arange(Image.nb_acq)
+    elif not isinstance(k,np.ndarray):
+        k = np.array(k)
     if deform_type == "Linear Shift":
         Linear_Shift_Batch(Image = Image,k=k,d=linear_d,verbose=verbose)
     if deform_type == "Rotation":
@@ -73,10 +76,10 @@ def Batch_Deform(Image:DicomImage = None,deform_type:str = "None", k:int =-1,
             for i in range(k.shape[0]):
                 Image.remove_VOI(key = 0) #Removes the key "0" k times. As soon as one is deleted, it gets bumped lower in the dictionary.
     if do_coefficients:
-        print(f"Doing the Dice and Jaccard coefficients at {time.strftime('%H:%M:%S')}")
+        if verboseNotGUI: print(f"Doing the Dice and Jaccard coefficients at {time.strftime('%H:%M:%S')}")
         Image.Dice_all()
         Image.Jaccard_all()
-    print(f"All the deformations were made in {(time.time() - initial):.2f} s.")
+    if verboseNotGUI: print(f"All the deformations were made in {(time.time() - initial):.2f} s.")
 
 def Linear_Shift_Batch(Image:DicomImage,k:np.ndarray,d=[0,0,0],verbose:bool=True):
     """

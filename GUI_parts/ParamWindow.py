@@ -7,7 +7,7 @@ from sys import platform
 import numpy as np
 ###
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from functools import partial
 from PyQt5.QtGui import QPixmap
 ###
@@ -24,6 +24,7 @@ class ParamWindow(QMainWindow):
     """
     Class to open a parameter window to get user's inputs
     """
+    signalClosed = pyqtSignal()
     def __init__(self,parameters:GUIParameters,parent=None):
         """Initializes the ParamWindow with the GUI Parameters"""
         super().__init__(parent)
@@ -1008,6 +1009,20 @@ class ParamWindow(QMainWindow):
         self.generalLayoutOptions.addWidget(QLabel(f"{self.parameters.AlphaSegmentation:.2f}"),self.current_line_Options,1)
         self.generalLayoutOptions.addWidget(btnNew,self.current_line_Options,2)
         self.current_line_Options +=1
+    def _createCombinationImagesTypeOption(self):
+        """Creates the options for the method of coregistration"""
+        self.CombinationImagesTypeCombo = QComboBox()
+        self.CombinationImagesTypeCombo.addItem("Closest Neighbour")
+        self.CombinationImagesTypeCombo.addItem("Linear Interpolation")
+
+        self.CombinationImagesTypeCombo.setCurrentText(self.parameters.ImagesCombinedMethod)
+        self.CombinationImagesTypeCombo.activated[str].connect(self.ImagesCombinationTypeCombo_Changed)
+
+        self.generalLayoutOptions.addWidget(QLabel("Coregistration Method"),self.current_line_Options,0)
+        self.generalLayoutOptions.addWidget(QLabel(f"{self.parameters.ImagesCombinedMethod}"),self.current_line_Options,1)
+        self.generalLayoutOptions.addWidget(self.CombinationImagesTypeCombo,self.current_line_Options,2)
+        self.generalLayoutOptions.setRowStretch(self.current_line_Options,1)
+        self.current_line_Options +=1
     def _createAlphaImageOptionValue(self):
         """Creates the slider and the line edit for the choice of alpha when the images are superposed"""
         btnNew,slider = self._createIntInput(self.parameters.AlphaCombined)
@@ -1721,6 +1736,7 @@ class ParamWindow(QMainWindow):
         self._createColourImageOption()
         self._createColourSegmentationImageOption()
         self._createAlphaImageSegmentationOptionValue()
+        self._createCombinationImagesTypeOption()
         self._createAlphaImageOptionValue()
         #Utilities
         self._createSaveBox()
@@ -1774,7 +1790,11 @@ class ParamWindow(QMainWindow):
     def ColourSegmentationImageCombo_Changed(self):
         """Links the colour of the map for the segmentation and the combo box in the parameters"""
         self.parameters.ColourSegmentationImage = self.ColourSegmentationImageCombo.currentText()
-        self.refresh_app()        
+        self.refresh_app()    
+    def ImagesCombinationTypeCombo_Changed(self):
+        """Links the colour of the map for the segmentation and the combo box in the parameters"""
+        self.parameters.ImagesCombinedMethod = self.CombinationImagesTypeCombo.currentText()
+        self.refresh_app()      
     def set_value_checked_doCoefficients(self,box:QCheckBox):
         """Links the compute coefficient bool and the combo box in the parameters"""
         self.parameters.doCoefficients = box.isChecked()
@@ -2152,6 +2172,9 @@ class ParamWindow(QMainWindow):
                 if widget is not None:
                     widget.deleteLater()
         self.initialize_param_window()
+    
+    def closeEvent(self,event):
+        self.signalClosed.emit()
 
 
 class MplCanvas(FigureCanvasQTAgg):

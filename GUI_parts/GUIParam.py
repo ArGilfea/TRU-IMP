@@ -113,5 +113,6 @@ class GUIParameters(object):
         self.ColourSegmentationImage = "Wistia"
         self.AlphaSegmentation = 0.3
         self.AlphaCombined = 0.2
+        self.ImagesCombinedMethod = "Closest Neighbour"
 
         del Image

@@ -7,7 +7,7 @@ import MyFunctions.Pickle_Functions as PF
 def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
                 path_in:str='',name_in:str='',path_out:str = '',name_out:str='',saveResult:bool = False,
                 verbose:bool=False,order:int=1,d:float=1,weight=1, angle:float = 0,factor:float = 1,
-                iterations: int = 50):
+                iterations: int = 50, verboseNotGUI = True):
     """
     Computes errors on segmentations of a DicomImage class, which is either given directly as a parameter or whose path is given.
     This will compute the errors on TACs from segmentations. 
@@ -29,8 +29,11 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
     factor -- factor of expansion for the expansion error (default 1)\n
     iterations -- number of iterations for the FCM error (default 50)\n
     verbose -- outputs the progress (default False)\n
+    verboseNotGUI -- hides print statements when in the GUI (default True)\n
     """
     initial = time.time()
+    global verboseNotGUIGlobal
+    verboseNotGUIGlobal = verboseNotGUI
     try: 
         a = Image.version
         del a
@@ -61,7 +64,7 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
 
     if saveResult:
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
-    print(f"All the errors were computed in {(time.time() - initial):.2f} s.")
+    if verboseNotGUI: print(f"All the errors were computed in {(time.time() - initial):.2f} s.")
 
 def Linear_Shift_Errors_Batch(Image:DicomImage,k:np.ndarray,order:int=1,d:float=1,weight=1,verbose:bool=True):
     """
@@ -124,4 +127,4 @@ def FCM_Error_Batch(Image:DicomImage,k:np.ndarray,iteration:int = 50, verbose:bo
     initial = time.time()
     for i in range(k.shape[0]):
         Image.FCM_errors(key = k[i], iterations = iteration, verbose = verbose)
-        print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
+        if verboseNotGUIGlobal: print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")

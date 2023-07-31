@@ -23,7 +23,7 @@ import time
 ###
 import sys
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
 from PyQt5 import QtGui
 from functools import partial
 ###
@@ -36,7 +36,7 @@ import markdown
 
 size_Image = 200
 
-class Window(QMainWindow):
+class MainWindow(QMainWindow):
     """
     Main window of the GUI.
     """    
@@ -59,6 +59,7 @@ class Window(QMainWindow):
         self.generalLayoutLicense = QGridLayout()
         self.generalLayoutCodeOfConduct = QGridLayout()
         centralWidget = QWidget(self)
+        self.centralWidget = centralWidget
         centralWidgetLog = QWidget(self)
         centralWidgetReadMe = QWidget(self)
         centralWidgetContributing = QWidget(self)
@@ -104,6 +105,7 @@ class Window(QMainWindow):
         self._createCodeOfConduct()
         #Status Bar
         self._createStatusBar()
+        self._createProgressBar()
 
         #self.setGeometry(0,0,100,100)
 
@@ -128,6 +130,7 @@ class Window(QMainWindow):
         self.exit3 = QPushButton("Exit")
         self.exit3.setToolTip("Closes the GUI and its dependencies")
         self.exit3.clicked.connect(self.closing_button)
+        self.exit3.setShortcut("Ctrl+Shift+E")
         self.generalLayoutLog.addWidget(self.exit3)  
     def _createReadMe(self):
         """Creates a ReadMe tab with the ReadMe file infos"""
@@ -143,6 +146,7 @@ class Window(QMainWindow):
         self.exit2 = QPushButton("Exit")
         self.exit2.setToolTip("Closes the GUI and its dependencies")
         self.exit2.clicked.connect(self.closing_button)
+        self.exit2.setShortcut("Ctrl+Shift+E")
         self.generalLayoutReadMe.addWidget(self.exit2)  
     def _createContributing(self):
         """Creates a Contributing tab with the Contributing file infos"""
@@ -158,6 +162,7 @@ class Window(QMainWindow):
         self.exit4 = QPushButton("Exit")
         self.exit4.setToolTip("Closes the GUI and its dependencies")
         self.exit4.clicked.connect(self.closing_button)
+        self.exit4.setShortcut("Ctrl+Shift+E")
         self.generalLayoutContributing.addWidget(self.exit4)
     def _createLicense(self):
         """Creates a License tab with the License file infos"""
@@ -173,6 +178,7 @@ class Window(QMainWindow):
         self.exit5 = QPushButton("Exit")
         self.exit5.setToolTip("Closes the GUI and its dependencies")
         self.exit5.clicked.connect(self.closing_button)
+        self.exit5.setShortcut("Ctrl+Shift+E")
         self.generalLayoutLicense.addWidget(self.exit5)
     def _createCodeOfConduct(self):
         """Creates a Code of Conduct tab with the Code of Conduct file infos"""
@@ -188,35 +194,42 @@ class Window(QMainWindow):
         self.exit6 = QPushButton("Exit")
         self.exit6.setToolTip("Closes the GUI and its dependencies")
         self.exit6.clicked.connect(self.closing_button)
+        self.exit6.setShortcut("Ctrl+Shift+E")
         self.generalLayoutCodeOfConduct.addWidget(self.exit6)
     def _createStatusBar(self):
         """Create a status bar at the bottom of the GUI"""
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)      
         self.statusBar.showMessage("Nothing started")
+    def _createProgressBar(self):
+        """Creates a Progress Bar at the bottom of the GUI"""
+        self.progressBar = QProgressBar(self.centralWidget)
+        self.progressBar.setValue(0)
+        self.generalLayout.addWidget(self.progressBar,self.current_line-2,2)
+
     def _createNoiseButtons(self):
         """Create the Noise button at the top of the GUI"""
         subWidget = QWidget()
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
 
-        btn_noise = QPushButton("Noise")
-        btn_noise.setShortcut("Ctrl+N")
-        btn_noise.setToolTip("Adds the noise to the images according to the selected parameters (Ctrl+N)")
-        btn_noise.clicked.connect(self.run_noise)
+        self.btn_noise = QPushButton("Noise")
+        self.btn_noise.setShortcut("Ctrl+N")
+        self.btn_noise.setToolTip("Adds the noise to the images according to the selected parameters (Ctrl+N)")
+        self.btn_noise.clicked.connect(self.run_noise)
 
-        btn_deform = QPushButton("Deform.")
-        btn_deform.setShortcut("Ctrl+D")
-        btn_deform.setToolTip("Makes a deformation on a segmentation according to the selected parameters (Ctrl+D)")
-        btn_deform.clicked.connect(self.run_deform)
+        self.btn_deform = QPushButton("Deform.")
+        self.btn_deform.setShortcut("Ctrl+D")
+        self.btn_deform.setToolTip("Makes a deformation on a segmentation according to the selected parameters (Ctrl+D)")
+        self.btn_deform.clicked.connect(self.run_deform)
 
-        btn_erase = QPushButton("Erase")
-        btn_erase.setToolTip("Danger! Will erase a calculated aspect as specified")
-        btn_erase.clicked.connect(self.run_erase)
+        self.btn_erase = QPushButton("Erase")
+        self.btn_erase.setToolTip("Danger! Will erase a calculated aspect as specified")
+        self.btn_erase.clicked.connect(self.run_erase)
 
-        layout.addWidget(btn_noise)
-        layout.addWidget(btn_deform)
-        layout.addWidget(btn_erase)
+        layout.addWidget(self.btn_noise)
+        layout.addWidget(self.btn_deform)
+        layout.addWidget(self.btn_erase)
         self.generalLayout.addWidget(subWidget,self.current_line,3,1,1)    
         self.current_line += 1
     def _createInfoParam(self):
@@ -225,22 +238,24 @@ class Window(QMainWindow):
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
         
-        btn_segm = QPushButton("Segment")
-        btn_segm.setShortcut("Ctrl+S")
-        buttonErrors = QPushButton("ErrorBars")
-        buttonBayesian = QPushButton("Bayesian")
+        self.btn_segm = QPushButton("Segment")
+        self.btn_segm.setShortcut("Ctrl+S")
+        self.buttonErrors = QPushButton("ErrorBars")
+        self.buttonErrors.setShortcut("Ctrl+R")
+        self.buttonBayesian = QPushButton("Bayesian")
+        self.buttonBayesian.setShortcut("Ctrl+Y")
 
-        btn_segm.setToolTip("Runs the segmentations according to the selected parameters (Ctrl+S)")
-        buttonErrors.setToolTip("Runs the error bars according to the selected parameters")
-        buttonBayesian.setToolTip("Runs the Bayesian analyses according to the selected parameters")
+        self.btn_segm.setToolTip("Runs the segmentations according to the selected parameters (Ctrl+S)")
+        self.buttonErrors.setToolTip("Runs the error bars according to the selected parameters (Ctrl+R)")
+        self.buttonBayesian.setToolTip("Runs the Bayesian analyses according to the selected parameters (Ctrl+Y)")
 
-        buttonErrors.clicked.connect(self.run_errors)
-        buttonBayesian.clicked.connect(self.run_Bayesian)
-        btn_segm.clicked.connect(self.run_segm)
+        self.buttonErrors.clicked.connect(self.run_errors)
+        self.buttonBayesian.clicked.connect(self.run_Bayesian)
+        self.btn_segm.clicked.connect(self.run_segm)
 
-        layout.addWidget(btn_segm)
-        layout.addWidget(buttonErrors)
-        layout.addWidget(buttonBayesian)
+        layout.addWidget(self.btn_segm)
+        layout.addWidget(self.buttonErrors)
+        layout.addWidget(self.buttonBayesian)
         self.generalLayout.addWidget(subWidget,self.current_line,3)    
     def _createExitButton(self):
         """Create an exit button"""
@@ -271,26 +286,26 @@ class Window(QMainWindow):
         subWidget = QWidget()
         msg_extract = QLabel("Path: ")
         source = QLineEdit()
-        btn_extr = QPushButton("Extract")
-        btn_extr.setShortcut("Ctrl+E")
-        btn_load = QPushButton("Load")
-        btn_load.setShortcut("Ctrl+L")
+        self.btn_extr = QPushButton("Extract")
+        self.btn_extr.setShortcut("Ctrl+E")
+        self.btn_load = QPushButton("Load")
+        self.btn_load.setShortcut("Ctrl+L")
         btn_browse = QPushButton("Browse")
         btn_browse.setShortcut("Ctrl+B")
 
-        btn_extr.setToolTip("Extracts the relevant information from a folder containing .dcm files (Ctrl+E)")
-        btn_load.setToolTip("Loads the selected .pkl file (Ctrl+L)")
+        self.btn_extr.setToolTip("Extracts the relevant information from a folder containing .dcm files (Ctrl+E)")
+        self.btn_load.setToolTip("Loads the selected .pkl file (Ctrl+L)")
         btn_browse.setToolTip("Opens a local browser to select a file (Ctrl+B)")
         
-        btn_extr.clicked.connect(partial(self.extract_button,source))
-        btn_load.clicked.connect(partial(self.load_button,source))
+        self.btn_extr.clicked.connect(partial(self.extract_button,source))
+        self.btn_load.clicked.connect(partial(self.load_button,source))
         btn_browse.clicked.connect(partial(self.browse_button_file,source))
 
         layout = QHBoxLayout()
         subWidget.setLayout(layout)
         layout.addWidget(btn_browse)
-        layout.addWidget(btn_extr)
-        layout.addWidget(btn_load)
+        layout.addWidget(self.btn_extr)
+        layout.addWidget(self.btn_load)
 
         self.generalLayout.addWidget(msg_extract,self.current_line,0)  
         self.generalLayout.addWidget(source,self.current_line,1)           
@@ -303,10 +318,10 @@ class Window(QMainWindow):
         layout2 = QHBoxLayout()
         subWidget1.setLayout(layout1)
         subWidget2.setLayout(layout2)
-        btn_param = QPushButton("Parameters")
-        btn_param.setShortcut("Ctrl+P")
-        btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Bayesian analyses (Ctrl+P)")
-        btn_param.clicked.connect(self.open_parameters)
+        self.btn_param = QPushButton("Parameters")
+        self.btn_param.setShortcut("Ctrl+P")
+        self.btn_param.setToolTip("Opens a window to select the paremeters used for segmentations, error bars, and Bayesian analyses (Ctrl+P)")
+        self.btn_param.clicked.connect(self.open_parameters)
           
         self.btn = QPushButton("Info")
         self.btn.setShortcut("Ctrl+I")
@@ -316,14 +331,14 @@ class Window(QMainWindow):
         path_name = QLineEdit()
         path.setText("")
         btn_export = QPushButton("Export")
-        btn_export.setToolTip("Opens an window to decide what to export (Ctrl+X)")
+        btn_export.setToolTip("Opens an window to decide what to export (Ctrl+T)")
         btn_export.clicked.connect(self.open_export)
-        btn_export.setShortcut("Ctrl+X")
+        btn_export.setShortcut("Ctrl+T")
         layout1.addWidget(path)
         layout1.addWidget(path_name)
         layout2.addWidget(btn_export)
         layout2.addWidget(self.btn)
-        layout2.addWidget(btn_param)
+        layout2.addWidget(self.btn_param)
         self.generalLayout.addWidget(subWidget2,self.current_line,2)  
     def _createImageDisplay(self):
         """Create the docks for the 2D images to be shown"""
@@ -698,13 +713,14 @@ class Window(QMainWindow):
             self.update_all()
         except: pass
     def open_parameters(self):
-        "Open a window to show the basic informations of the acquisition"
         try:
             window = ParamWindow(self.parameters,self)
             window.setWindowModality(Qt.ApplicationModal)
+            window.signalClosed.connect(self.update_all)
             window.show()
         except:
-            self._createErrorMessage()
+            self._createErrorMessage("No acquisition loaded yet")
+
     def open_export(self):
         """
         Opens a new window to decide what to export and what to save
@@ -719,199 +735,166 @@ class Window(QMainWindow):
         """
         Function to run the segmentations based on the input parameters
         """
-        initial = time.time()
-        self.displayStatus(f"{self.parameters.SegmType} segmentation",what = 'starting', time_i = initial)
         try:
-            if self.parameters.SegmAcq >= 0:
-                k = np.array([self.parameters.SegmAcq])
-            else:
-                k=-1
-            if self.parameters.subImage[0,0] != 0:
-                k = np.arange(self.parameters.subImage[0,0], self.parameters.subImage[0,1])
-            MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
-                                                            seed = self.parameters.seed,k=k,
-                                                            subimage=self.parameters.subImage[1:,:],
-                                                            sigma_Canny=self.parameters.sigmaCanny,combinationCanny=self.parameters.combinationCanny,
-                                                            CannyThreshLow=self.parameters.sigmaThreshLowCanny,CannyThreshHigh=self.parameters.sigmaThreshHighCanny,
-                                                            methodCanny=self.parameters.methodCanny,
-                                                            alpha=self.parameters.alphaICM,max_iter_ICM=self.parameters.max_iter_ICM,
-                                                            max_iter_kmean_ICM=self.parameters.max_iter_kmean_ICM,
-                                                            steps_Fill = self.parameters.steps_filling,
-                                                            max_iter_Fill = self.parameters.max_iter_fill,
-                                                            factor_Fill_range = self.parameters.factor_Fill_range,
-                                                            factor_fill= self.parameters.factor_fill_f,
-                                                            growth = self.parameters.growth,
-                                                            min_f_growth = self.parameters.min_f_growth,
-                                                            threshold_fill=self.parameters.threshold_fill,
-                                                            verbose_graph_fill = self.parameters.verbose_graph_fill,
-                                                            classNumberFCM = self.parameters.classNumberFCM, alphaFCM = self.parameters.alphaFCM, 
-                                                            mFCM = self.parameters.mFCM, 
-                                                            maxIterFCM = self.parameters.maxIterFCM, maxIterConvergenceFCM = self.parameters.maxIterConvergenceFCM, 
-                                                            convergenceDeltaFCM = self.parameters.convergenceDeltaFCM, convergenceStepFCM = self.parameters.convergenceStepFCM,
-                                                            centerEllipsoid=self.parameters.centerEllipsoid,
-                                                            axesEllipsoid=self.parameters.axesEllipsoid,
-                                                            save=False,
-                                                            do_Thresh=self.parameters.doThreshold,threshold=self.parameters.threshold,
-                                                            do_coefficients=self.parameters.doCoefficients,
-                                                            SaveSegm=self.parameters.SaveSegm,do_moments=self.parameters.doMoments,
-                                                            do_stats=self.parameters.doStats,verbose=self.parameters.verbose)
-            if self.parameters.SegmType != "None":
-                if isinstance(k,int):
-                    if k == -1 and self.parameters.SegmType != "Ellipsoid":
-                        self.parameters._nbSeg += self.parameters._size[0]
-                else:
-                    self.parameters._nbSeg += k.shape[0]
-            self.displayStatus(f"{self.parameters.SegmType} segmentation",initial)
-            self.update_segm()
-            self.parameters.ErrorType = "None" #Avoid running twice
-        except:
-            self._createErrorMessage("Unable to run the segmentation")
+            self.threadSegmentation = QThread()
+            self.workerSegmentation = WorkerSegmentation(Image = self.Image, parameters = self.parameters)
+            self.workerSegmentation.moveToThread(self.threadSegmentation)
+
+            self.threadSegmentation.started.connect(self.workerSegmentation.segment)
+            self.workerSegmentation.finished.connect(self.threadSegmentation.quit)
+            self.workerSegmentation.finished.connect(self.workerSegmentation.deleteLater)
+            self.threadSegmentation.finished.connect(self.threadSegmentation.deleteLater)
+            self.workerSegmentation.progress.connect(self.workerDisplayStatus)
+            self.workerSegmentation.error.connect(self._createErrorMessage)
+            #self.workerSegmentation.completed.connect(self.WorkerTaskDone)
+
+            self.threadSegmentation.start()
+
+            self.btn_segm.setEnabled(False)
+            self.threadSegmentation.finished.connect(
+                lambda: self.btn_segm.setEnabled(True)
+            )
+            self.workerSegmentation.finished.connect(self.update_all)
+ 
+        except: pass
+
     def run_errors(self):
         """
         Function to run the errors based on the input parameters
         """
-        initial = time.time()
-        self.displayStatus(f"{self.parameters.ErrorType} errors",what = 'starting',time_i = initial)
-        try:
-            if self.parameters.ErrorSegm >= 0:
-                k = np.array([self.parameters.ErrorSegm])
-            else:
-                k=-1
-            MyFunctions.Batch_Errors.Batch_Errors(Image=self.Image,error_type=self.parameters.ErrorType,k=k,
-                                                    order=self.parameters.orderShift,d=self.parameters.distanceShift,
-                                                    angle = self.parameters.angleError*2*np.pi/360,
-                                                    factor= self.parameters.factorError,
-                                                    iterations = self.parameters.iterationError,
-                                                    verbose=self.parameters.verbose)
-            self.update_segm()
-            if self.parameters.ErrorType != "None":
-                self.parameters._nbError = self.Image.voi_statistics_counter
-                self.displayStatus(f"{self.parameters.ErrorType} Errors",initial)
-                self.parameters.ErrorType = "None" #Avoid running twice
-        except:
-            self._createErrorMessage("Unable to run the error bars production")
+        if True:
+            self.threadErrors = QThread()
+            self.workerErrors = WorkerErrors(Image = self.Image, parameters = self.parameters)
+            self.workerErrors.moveToThread(self.threadErrors)
+
+            self.threadErrors.started.connect(self.workerErrors.errors)
+            self.workerErrors.finished.connect(self.threadErrors.quit)
+            self.workerErrors.finished.connect(self.workerErrors.deleteLater)
+            self.threadErrors.finished.connect(self.threadErrors.deleteLater)
+            self.workerErrors.progress.connect(self.workerDisplayStatus)
+            self.workerErrors.error.connect(self._createErrorMessage)
+            #self.workerErrors.completed.connect(self.WorkerTaskDone)
+
+            self.threadErrors.start()
+
+            self.buttonErrors.setEnabled(False)
+            self.threadErrors.finished.connect(
+                lambda: self.buttonErrors.setEnabled(True)
+            )
+            self.workerErrors.finished.connect(self.update_all)
+ 
+        else: pass
+
     def run_Bayesian(self):
         """
         Function to run the Bayesian Analyses to extract the coefficients based on the input parameters
         """
-        initial = time.time()
-        self.displayStatus(f"{self.parameters.BayesianType} Bayesian analyses",what = 'starting',time_i = initial)
-        try:
-            if self.parameters.BayesianAcq >= 0:
-                k = np.array([self.parameters.BayesianAcq])
-            else:
-                k=-1
-            self.Image.Bayesian_analyses(key=k,curves = self.parameters.CurveTypeBayesian,method=self.parameters.BayesianType,
-                                        model = self.parameters.ModelBayesian,
-                                        thresh_perc=self.parameters.Bayesian_thresh_perc,
-                                        thresh_value=self.parameters.Bayesian_thresh_value,
-                                        verbose = self.parameters.verbose,
-                                        save=True)
-            self.displayStatus(f"{self.parameters.BayesianType} Bayesian analyses",initial)
-            self.update_segm()
-            if self.parameters.BayesianType != "None":
-                self.parameters._nbBayesian = self.Image.bayesian_dynesty_counter
-                self.displayStatus(f"{self.parameters.BayesianType} Bayesian",initial)
-                self.parameters.BayesianType = "None" #Avoid running twice
-        except:
-            self._createErrorMessage("Unable to run the Bayesian analyses")
+
+        if True:
+            self.threadBayesian = QThread()
+            self.workerBayesian = WorkerBayesian(Image = self.Image, parameters = self.parameters)
+            self.workerBayesian.moveToThread(self.threadBayesian)
+
+            self.threadBayesian.started.connect(self.workerBayesian.bayesian)
+            self.workerBayesian.finished.connect(self.threadBayesian.quit)
+            self.workerBayesian.finished.connect(self.workerBayesian.deleteLater)
+            self.threadBayesian.finished.connect(self.threadBayesian.deleteLater)
+            self.workerBayesian.progress.connect(self.workerDisplayStatus)
+            self.workerBayesian.error.connect(self._createErrorMessage)
+            #self.workerBayesian.completed.connect(self.WorkerTaskDone)
+
+            self.threadBayesian.start()
+
+            self.buttonBayesian.setEnabled(False)
+            self.threadBayesian.finished.connect(
+                lambda: self.buttonBayesian.setEnabled(True)
+            )
+            self.workerBayesian.finished.connect(self.update_all)
+ 
+        else: pass
+
     def run_noise(self):
         """
         Function to add noise to the image.
         For now, the resulting image will overwrite the previous (or basic) one
         """   
-        initial = time.time()
-        self.displayStatus(f"{self.parameters.NoiseType} noise",what = 'starting',time_i = initial)
-        try:
-            self.Image.add_noise(noiseType= self.parameters.NoiseType,
-                                    noiseMu = self.parameters.NoiseMu,
-                                    noiseSigma= self.parameters.NoiseSigma,
-                                    Rayleigh_a= self.parameters.NoiseARayleigh,
-                                    Rayleigh_b= self.parameters.NoiseBRayleigh,
-                                    Erlang_a= self.parameters.NoiseAErlang,
-                                    Erlang_b= self.parameters.NoiseBErlang,
-                                    Unif_a= self.parameters.NoiseAUniform,
-                                    Unif_b= self.parameters.NoiseBUniform,
-                                    Exponential= self.parameters.NoiseExponential
-                                    )
-            if self.parameters.NoiseType != "None":
-                self.displayStatus(f"{self.parameters.NoiseType} noise added",initial)
-                self.parameters.NoiseType = "None" #Avoid running twice
-            else:
-                self.displayStatus("",initial)
-            self.update_all()
-        except:
-            self._createErrorMessage("Unable to add the noise")
+        if True:
+            self.threadNoise = QThread()
+            self.workerNoise = WorkerNoise(Image = self.Image, parameters = self.parameters)
+            self.workerNoise.moveToThread(self.threadNoise)
+
+            self.threadNoise.started.connect(self.workerNoise.noise)
+            self.workerNoise.finished.connect(self.threadNoise.quit)
+            self.workerNoise.finished.connect(self.workerNoise.deleteLater)
+            self.threadNoise.finished.connect(self.threadNoise.deleteLater)
+            self.workerNoise.progress.connect(self.workerDisplayStatus)
+            self.workerNoise.error.connect(self._createErrorMessage)
+            #self.workerNoise.completed.connect(self.WorkerTaskDone)
+
+            self.threadNoise.start()
+
+            self.btn_noise.setEnabled(False)
+            self.threadNoise.finished.connect(
+                lambda: self.btn_noise.setEnabled(True)
+            )
+            self.workerNoise.finished.connect(self.update_all)
+ 
+        else: pass
+
     def run_deform(self):
         """
         Function to deform segmentations.
         """
-        initial = time.time()
-        self.displayStatus(f"{self.parameters.deformationType} deformations",what = 'starting', time_i = initial)
-        try:
-            MyFunctions.Batch_Deform.Batch_Deform(Image = self.Image, deform_type= self.parameters.deformationType,
-                                                    k = self.parameters.deformationSegm,
-                                                    linear_d= self.parameters.deformationDistanceShift,
-                                                    rotate_angle= self.parameters.deformationRotate*2*np.pi/360,
-                                                    factors_exp= self.parameters.deformationExpansion,
-                                                    reflection_axis = self.parameters.deformationReflectionAxis,
-                                                    flipAxis = self.parameters.flipAxis,
-                                                    switchAxes = self.parameters.switchAxes,
-                                                    verbose= self.parameters.verbose,
-                                                    do_coefficients = self.parameters.doCoefficients,
-                                                    delete_after = self.parameters.deleteAfterDeformation)
+        if True:
+            self.threadDeform = QThread()
+            self.workerDeform = WorkerDeformation(Image = self.Image, parameters = self.parameters)
+            self.workerDeform.moveToThread(self.threadDeform)
 
-            if self.parameters.deformationType == "Switch Two":
-                tmp = [self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
-                if self.parameters.switchAxes == [1,2]:
-                    self.sliderAxial.setValue(int(tmp[1]))
-                    self.sliderCoronal.setValue(int(tmp[0]))
-                elif self.parameters.switchAxes == [1,3]:
-                    self.sliderAxial.setValue(int(tmp[2]))
-                    self.sliderSagittal.setValue(int(tmp[0]))
-                elif self.parameters.switchAxes == [2,3]:
-                    self.sliderCoronal.setValue(int(tmp[2]))
-                    self.sliderSagittal.setValue(int(tmp[1]))
-                self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice-1)
-                self.sliderSagittal.setMinimum(0);self.sliderSagittal.setMaximum(self.Image.width-1)
-                self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length-1)
-            if self.parameters.deformationType != "None" and not self.parameters.deleteAfterDeformation:
-                self.displayStatus(f"{self.parameters.deformationType} deformations done",initial)
-                #self.parameters.deformationType = "None" #Avoid running twice
-                if self.parameters.deformationSegm == -1:
-                    self.parameters._nbSeg += self.parameters._size[0]
-                else:
-                    self.parameters._nbSeg += 1
-            else:
-                self.displayStatus("",initial)
-            self.update_all()
-        except:
-            self._createErrorMessage("Unable to deform the segmentations")
+            self.threadDeform.started.connect(self.workerDeform.deformation)
+            self.workerDeform.finished.connect(self.threadDeform.quit)
+            self.workerDeform.finished.connect(self.workerDeform.deleteLater)
+            self.threadDeform.finished.connect(self.threadDeform.deleteLater)
+            self.workerDeform.progress.connect(self.workerDisplayStatus)
+            self.workerDeform.error.connect(self._createErrorMessage)
+            #self.workerDeform.completed.connect(self.WorkerTaskDone)
+
+            self.threadDeform.start()
+
+            self.btn_deform.setEnabled(False)
+            self.threadDeform.finished.connect(
+                lambda: self.btn_deform.setEnabled(True)
+            )
+            self.workerDeform.finished.connect(self.workerDeformFinished)
+            self.workerDeform.finished.connect(self.update_all)
+ 
+        else: pass
+
     def run_erase(self):
         """
         Function to erase computations
         """
-        initial = time.time()
-        self.displayStatus(f"{self.parameters.EraseType} removal",what = 'starting', time_i = initial)
-        try:
+        if True:
+            self.threadErase = QThread()
+            self.workerErase = WorkerErase(Image = self.Image, parameters = self.parameters)
+            self.workerErase.moveToThread(self.threadErase)
 
-            if self.parameters.EraseType == "Segmentation":
-                self.Image.remove_VOI(self.parameters.EraseSegm)
-                self.parameters._nbSeg = self.Image.voi_counter
-            elif self.parameters.EraseType == "Error":
-                self.Image.remove_Error(self.parameters.EraseError)                                
-                self.parameters._nbError = self.Image.voi_statistics_counter
-            elif self.parameters.EraseType == "Bayesian":
-                self.Image.remove_Bayesian(self.parameters.EraseBayesian)
-                self.parameters._nbBayesian = self.Image.bayesian_dynesty_counter
-            if self.parameters.EraseType != "None":
-                self.displayStatus(f"{self.parameters.EraseType} removal done",initial)
-                self.parameters.EraseType = "None" #Avoids erasing twice
-            else:
-                self.displayStatus("",initial)
-            self.update_all()
-        except:
-            self._createErrorMessage("Unable to erase the selected computation")
+            self.threadErase.started.connect(self.workerErase.erase)
+            self.workerErase.finished.connect(self.threadErase.quit)
+            self.workerErase.finished.connect(self.workerErase.deleteLater)
+            self.threadErase.finished.connect(self.threadErase.deleteLater)
+            self.workerErase.progress.connect(self.workerDisplayStatus)
+            self.workerErase.error.connect(self._createErrorMessage)
+            #self.workerErase.completed.connect(self.WorkerTaskDone)
+
+            self.threadErase.start()
+
+            self.btn_erase.setEnabled(False)
+            self.threadErase.finished.connect(
+                lambda: self.btn_erase.setEnabled(True)
+            )
+            self.workerErase.finished.connect(self.update_all)
+ 
+        else: pass
 
     def update_all(self):
         """Main function when something is changed to update all the views"""
@@ -1549,20 +1532,41 @@ class Window(QMainWindow):
                 value1 = (np.abs(self.Image2.sliceAxis - sliceAxis[values[1]])).argmin()
                 value2 = (np.abs(self.Image2.widthAxis - widthAxis[values[2]])).argmin()
                 value3 = (np.abs(self.Image2.lengthAxis - lengthAxis[values[3]])).argmin()
-                #Linear interpolation of the slice
-                remValue1 = value1 - int(value1)
-                remValue2 = value2 - int(value2)
-                remValue3 = value3 - int(value3)
                 if self.view == "Slice":
-                    self.axial.axes.pcolormesh(lengthAxis2,widthAxis2,
-                                                value1*func(self.Image2.Image[0,value1,:,:]),# + (1 - value1) * func(self.Image2.Image[0,value1,:,:]),
-                                                shading='gouraud',cmap='gray')
-                    self.sagittal.axes.pcolormesh(widthAxis2,sliceAxis2,
-                                                value2*func(self.Image2.Image[0,:,:,value2]),#+ (1 - value2)*func(self.Image2.Image[0,:,:,value3]),
-                                                shading='gouraud',cmap='gray')
-                    self.coronal.axes.pcolormesh(lengthAxis2,sliceAxis2,
-                                                value3*func(self.Image2.Image[0,:,value3,:]),#+ (1 - value3)*func(self.Image2.Image[0,:,value2,:]),
-                                                shading='gouraud',cmap='gray')
+                    LAxis2 = lengthAxis2
+                    WAxis2 = widthAxis2
+                    SAxis2 = sliceAxis2
+                    if self.parameters.ImagesCombinedMethod == "Closest Neighbour":
+                        LWImage2 = func(self.Image2.Image[0,value1,:,:])
+                        WSImage2 = func(self.Image2.Image[0,:,:,value2])
+                        LSImage2 = func(self.Image2.Image[0,:,value3,:])
+                    elif self.parameters.ImagesCombinedMethod == "Linear Interpolation":
+                        if self.Image2.sliceAxis[value1] > sliceAxis[values[1]]:
+                            fraction1_under = np.abs(self.Image2.sliceAxis[value1] - sliceAxis[values[1]])/(self.Image2.sliceAxis[1]-self.Image2.sliceAxis[0])
+                            fraction1_over = np.abs(self.Image2.sliceAxis[value1+1] - sliceAxis[values[1]])/(self.Image2.sliceAxis[1]-self.Image2.sliceAxis[0])
+                            LWImage2 = fraction1_under * func(self.Image2.Image[0,value1,:,:]) + fraction1_over * func(self.Image2.Image[0,value1+1,:,:])
+                        else:
+                            fraction1_over = np.abs(self.Image2.sliceAxis[value1] - sliceAxis[values[1]])/(self.Image2.sliceAxis[1]-self.Image2.sliceAxis[0])
+                            fraction1_under = np.abs(self.Image2.sliceAxis[value1-1] - sliceAxis[values[1]])/(self.Image2.sliceAxis[1]-self.Image2.sliceAxis[0])
+                            LWImage2 = fraction1_under * func(self.Image2.Image[0,value1-1,:,:]) + fraction1_over * func(self.Image2.Image[0,value1,:,:])
+                        if self.Image2.widthAxis[value1] > widthAxis[values[1]]:
+                            fraction2_under = np.abs(self.Image2.widthAxis[value1] - widthAxis[values[1]])/(self.Image2.widthAxis[1]-self.Image2.widthAxis[0])
+                            fraction2_over = np.abs(self.Image2.widthAxis[value1+1] - widthAxis[values[1]])/(self.Image2.widthAxis[1]-self.Image2.widthAxis[0])
+                            WSImage2 = fraction2_under * func(self.Image2.Image[0,:,:,value2]) + fraction2_over * func(self.Image2.Image[0,:,:,value2+1])
+                        else:
+                            fraction2_over = np.abs(self.Image2.widthAxis[value1] - widthAxis[values[1]])/(self.Image2.widthAxis[1]-self.Image2.widthAxis[0])
+                            fraction2_under = np.abs(self.Image2.widthAxis[value1-1] - widthAxis[values[1]])/(self.Image2.widthAxis[1]-self.Image2.widthAxis[0])
+                            WSImage2 = fraction2_under * func(self.Image2.Image[0,:,:,value2-1]) + fraction2_over * func(self.Image2.Image[0,:,:,value2])
+                        if self.Image2.lengthAxis[value1] > lengthAxis[values[1]]:
+                            fraction3_under = np.abs(self.Image2.lengthAxis[value1] - lengthAxis[values[1]])/(self.Image2.lengthAxis[1]-self.Image2.lengthAxis[0])
+                            fraction3_over = np.abs(self.Image2.lengthAxis[value1+1] - lengthAxis[values[1]])/(self.Image2.lengthAxis[1]-self.Image2.lengthAxis[0])
+                            LSImage2 = fraction3_under * func(self.Image2.Image[0,:,value3,:]) + fraction3_over * func(self.Image2.Image[0,:,value3+1,:])
+                        else:
+                            fraction3_over = np.abs(self.Image2.lengthAxis[value1] - lengthAxis[values[1]])/(self.Image2.lengthAxis[1]-self.Image2.lengthAxis[0])
+                            fraction3_under = np.abs(self.Image2.lengthAxis[value1-1] - lengthAxis[values[1]])/(self.Image2.lengthAxis[1]-self.Image2.lengthAxis[0])
+                            LSImage2 = fraction3_under * func(self.Image2.Image[0,:,value3-1,:]) + fraction3_over * func(self.Image2.Image[0,:,value3,:])
+
+
                 elif self.view == "Sub. Slice":
                     subImage2 = np.zeros_like(SubI)
                     subImage2[1,0] = (np.abs(self.Image2.sliceAxis - sliceAxis[SubI[1,0]])).argmin()
@@ -1587,19 +1591,39 @@ class Window(QMainWindow):
                         while widthAxis2[subImage2[2,1]] > widthAxis[SubI[2,1]]: subImage2[2,1] -= 1
                         while lengthAxis2[subImage2[3,0]] < lengthAxis[SubI[3,0]]: subImage2[3,0] += 1
                         while lengthAxis2[subImage2[3,1]] > lengthAxis[SubI[3,1]]: subImage2[3,1] -= 1
+                    LAxis2 = lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])]
+                    WAxis2 = widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])]
+                    SAxis2 = sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])]
+                    if self.parameters.ImagesCombinedMethod == "Closest Neighbour":
+                        LWImage2 = func(self.Image2.Image[0,value1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]])
+                        WSImage2 = func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2])
+                        LSImage2 = func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3,subImage2[3,0]:subImage2[3,1]])
+                    elif self.parameters.ImagesCombinedMethod == "Linear Interpolation":
+                        if self.Image2.sliceAxis[value1] > sliceAxis[values[1]]:
+                            fraction1_under = np.abs(self.Image2.sliceAxis[value1] - sliceAxis[values[1]])/(self.Image2.sliceAxis[1]-self.Image2.sliceAxis[0])
+                            fraction1_over = np.abs(self.Image2.sliceAxis[value1+1] - sliceAxis[values[1]])/(self.Image2.sliceAxis[1]-self.Image2.sliceAxis[0])
+                            LWImage2 = fraction1_under * func(self.Image2.Image[0,value1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]]) + fraction1_over * func(self.Image2.Image[0,value1+1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]])
+                        else:
+                            fraction1_over = np.abs(self.Image2.sliceAxis[value1] - sliceAxis[values[1]])/(self.Image2.sliceAxis[1]-self.Image2.sliceAxis[0])
+                            fraction1_under = np.abs(self.Image2.sliceAxis[value1-1] - sliceAxis[values[1]])/(self.Image2.sliceAxis[1]-self.Image2.sliceAxis[0])
+                            LWImage2 = fraction1_under * func(self.Image2.Image[0,value1-1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]]) + fraction1_over * func(self.Image2.Image[0,value1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]])
+                        if self.Image2.widthAxis[value1] > widthAxis[values[1]]:
+                            fraction2_under = np.abs(self.Image2.widthAxis[value1] - widthAxis[values[1]])/(self.Image2.widthAxis[1]-self.Image2.widthAxis[0])
+                            fraction2_over = np.abs(self.Image2.widthAxis[value1+1] - widthAxis[values[1]])/(self.Image2.widthAxis[1]-self.Image2.widthAxis[0])
+                            WSImage2 = fraction2_under * func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2]) + fraction2_over * func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2+1])
+                        else:
+                            fraction2_over = np.abs(self.Image2.widthAxis[value1] - widthAxis[values[1]])/(self.Image2.widthAxis[1]-self.Image2.widthAxis[0])
+                            fraction2_under = np.abs(self.Image2.widthAxis[value1-1] - widthAxis[values[1]])/(self.Image2.widthAxis[1]-self.Image2.widthAxis[0])
+                            WSImage2 = fraction2_under * func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2-1]) + fraction2_over * func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2])
+                        if self.Image2.lengthAxis[value1] > lengthAxis[values[1]]:
+                            fraction3_under = np.abs(self.Image2.lengthAxis[value1] - lengthAxis[values[1]])/(self.Image2.lengthAxis[1]-self.Image2.lengthAxis[0])
+                            fraction3_over = np.abs(self.Image2.lengthAxis[value1+1] - lengthAxis[values[1]])/(self.Image2.lengthAxis[1]-self.Image2.lengthAxis[0])
+                            LSImage2 = fraction3_under * func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3,subImage2[3,0]:subImage2[3,1]]) + fraction3_over * func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3+1,subImage2[3,0]:subImage2[3,1]])
+                        else:
+                            fraction3_over = np.abs(self.Image2.lengthAxis[value1] - lengthAxis[values[1]])/(self.Image2.lengthAxis[1]-self.Image2.lengthAxis[0])
+                            fraction3_under = np.abs(self.Image2.lengthAxis[value1-1] - lengthAxis[values[1]])/(self.Image2.lengthAxis[1]-self.Image2.lengthAxis[0])
+                            LSImage2 = fraction3_under * func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3-1,subImage2[3,0]:subImage2[3,1]]) + fraction3_over * func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3,subImage2[3,0]:subImage2[3,1]])
 
-                    self.axial.axes.pcolormesh(lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])],
-                                            widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])],
-                                                value1*func(self.Image2.Image[0,value1,subImage2[2,0]:subImage2[2,1],subImage2[3,0]:subImage2[3,1]]),# + (1 - value1) * func(self.Image2.Image[0,value1,:,:]),
-                                                shading='gouraud',cmap='gray')
-                    self.sagittal.axes.pcolormesh(widthAxis2[int(subImage2[2,0]):int(subImage2[2,1])],
-                                                sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])],
-                                                value2*func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],subImage2[2,0]:subImage2[2,1],value2]),#+ (1 - value2)*func(self.Image2.Image[0,:,:,value3]),
-                                                shading='gouraud',cmap='gray')
-                    self.coronal.axes.pcolormesh(lengthAxis2[int(subImage2[3,0]):int(subImage2[3,1])],
-                                                sliceAxis2[int(subImage2[1,0]):int(subImage2[1,1])],
-                                                value3*func(self.Image2.Image[0,subImage2[1,0]:subImage2[1,1],value3,subImage2[3,0]:subImage2[3,1]]),#+ (1 - value3)*func(self.Image2.Image[0,:,value2,:]),
-                                                shading='gouraud',cmap='gray')
         except: pass
 
         if self.resultImageType in ["Array: Base Image","Physical: Base Image","Physical: Combined"]:
@@ -1695,6 +1719,12 @@ class Window(QMainWindow):
                     LSImage = func(self.Image.coronal_flat(counter=key)[SubI[1,0]:SubI[1,1],SubI[3,0]:SubI[3,1]])
                 except:
                     self._createErrorMessage("Can't perform this. No SubImage selected or no segmentation done")
+        #Show 2nd Image
+        try:
+                    self.axial.axes.pcolormesh(LAxis2,WAxis2,LWImage2,shading='gouraud',cmap='gray')
+                    self.sagittal.axes.pcolormesh(WAxis2,SAxis2,WSImage2,shading='gouraud',cmap='gray')
+                    self.coronal.axes.pcolormesh(LAxis2,SAxis2,LSImage2,shading='gouraud',cmap='gray')
+        except: pass
         #Show 1st Image
         try:
             self.axial.axes.pcolormesh(LAxis, WAxis, LWImage, shading = 'gouraud', alpha = alphaValueImage, cmap = self.parameters.ColourBaseImage)
@@ -1727,10 +1757,46 @@ class Window(QMainWindow):
         """Set the display's text (unused, part of the basic model used)."""
         self.display.setText(text)
         self.display.setFocus()
-    def displayStatus(self,action:str="",time_i=time.time(),what = 'done'):
+
+    def workerDisplayStatus(self,update:list):
+        """X"""
+        try:
+            try:
+                self.displayStatus(action = update[0],time_i = update[1],what = update[2],perc = update[3])
+            except:
+                self.displayStatus(action = update[0],time_i = update[1],what = update[2])
+        except:
+            self.displayStatus(action = update[0],time_i = update[1])
+        try:
+            if update[4]:
+                self.update_all()
+        except: pass
+
+    def workerDeformFinished(self):
+        """Updates the sliders if necessary after a deformation"""
+        if self.parameters.deformationType == "Switch Two":
+            tmp = [self.sliderAxial.value(),self.sliderCoronal.value(),self.sliderSagittal.value()]
+            if self.parameters.switchAxes == [1,2]:
+                self.sliderAxial.setValue(int(tmp[1]))
+                self.sliderCoronal.setValue(int(tmp[0]))
+            elif self.parameters.switchAxes == [1,3]:
+                self.sliderAxial.setValue(int(tmp[2]))
+                self.sliderSagittal.setValue(int(tmp[0]))
+            elif self.parameters.switchAxes == [2,3]:
+                self.sliderCoronal.setValue(int(tmp[2]))
+                self.sliderSagittal.setValue(int(tmp[1]))
+            self.sliderAxial.setMinimum(0);self.sliderAxial.setMaximum(self.Image.nb_slice-1)
+            self.sliderSagittal.setMinimum(0);self.sliderSagittal.setMaximum(self.Image.width-1)
+            self.sliderCoronal.setMinimum(0);self.sliderCoronal.setMaximum(self.Image.length-1)
+
+    def displayStatus(self,action:str="",time_i=time.time(),what:str = 'done', perc : float = 0):
         """Updates the display bar (far bottom)"""
+        try:
+            self.Image.progress_log = self.backupLogText
+        except:
+            pass
         if action != "":
-            if what == 'done':
+            if what == 'done' or what == "":
                 new_status = f"{action} done in {(time.time()-time_i):.2f} s at {time.strftime('%H:%M:%S')}"
             else:
                 new_status = f"{action} started at {time.strftime('%H:%M:%S')}"
@@ -1745,6 +1811,11 @@ class Window(QMainWindow):
         try:
             self.logText.setText(self.Image.progress_log)
         except: pass
+        self.progressBar.setValue(int(perc))
+        try:
+            self.backupLogText = self.Image.progress_log
+        except: 
+            self.backupLogText = ""
     def displayText(self):
         """Get the display's text (unused, part of the basic model used)."""
         return self.display.text()
@@ -1786,67 +1857,85 @@ class Window(QMainWindow):
             Will try both methods of extraction to see which one works.
             Fails if an image is already loaded."""
         initial = time.time()
-        self.displayStatus("File extracted",what = 'starting' ,time_i = initial)
+        self.displayStatus("File extraction",what = 'starting' ,time_i = initial)
+
         try:
-            a = self.name
-            try:
-                self.Image2 = Extract.Extract_Images(source.text(),name = source.text(), verbose=True,save=False)
-                self.displayStatus("Second file extracted", initial)
-                self._createErrorMessage("An image is already loaded, loading the second for superposition")
-            except:
-                try:
-                    self.Image2 = Extract_r.Extract_Images(source.text(),name = source.text(),verbose=True,save=False)
-                    self.displayStatus("Second file extracted", initial)
-                    self._createErrorMessage("An image is already loaded, loading the second for superposition")
-                except:
-                    self._createErrorMessage("Second extraction is not possible")
-            
+            a = self.Image.version
+            which = "second"
         except:
-            try:
-                self.Image = Extract.Extract_Images(source.text(),name = source.text(), verbose=True,save=False)
-                self.name = self.Image.version
-                self.displayStatus("File extracted", initial)
-                self.parameters = GUIParameters(self.Image)
-                self._createImageDisplay()
-                self._createImageDisplayBars()
-                self.displayStatus("Interface initialization", initial)
-            except:
-                self.displayStatus("Initial method not working, looking for adjacent folders", initial)
-                try:
-                    self.Image = Extract_r.Extract_Images(source.text(),name = source.text(),verbose=True,save=False)
-                    self.displayStatus("File extracted", initial)
-                    self.parameters = GUIParameters(self.Image)
-                    self._createImageDisplay()
-                    self._createImageDisplayBars()
-                    self.displayStatus("Interface initialization", initial)
-                except:
-                    self._createErrorMessage("Extraction is not possible")
+            which = "first"
+        try:
+            self.threadExtract = QThread()
+            self.workerExtract = WorkerExtraction(source = source, which = which)
+            self.workerExtract.moveToThread(self.threadExtract)
+
+            self.threadExtract.started.connect(self.workerExtract.extract)
+            self.workerExtract.finished.connect(self.threadExtract.quit)
+            self.workerExtract.finished.connect(self.workerExtract.deleteLater)
+            self.threadExtract.finished.connect(self.threadExtract.deleteLater)
+            self.workerExtract.progress.connect(self.workerDisplayStatus)
+            self.workerExtract.error.connect(self._createErrorMessage)
+
+            self.threadExtract.start()
+
+            self.btn_extr.setEnabled(False)
+            self.threadExtract.finished.connect(
+                lambda: self.btn_extr.setEnabled(True)
+            )
+            self.workerExtract.extracted.connect(self.ImageExtracted)
+        except: pass
+
+    def ImageExtracted(self,GivenList:list):
+        """Creates the Display and places things once the Image is extracted"""
+        if GivenList[2] == "first":
+            self.Image = GivenList[0]
+            self.parameters = GivenList[1]
+            self._createImageDisplay()
+            self._createImageDisplayBars()
+            self.displayStatus("Interface initialization", initial)
+        elif GivenList[2] == "second":
+            self.Image2 = GivenList[0]
+        elif GivenList[2] == "param":
+            self.parameters = GivenList[1]
+
+    def WorkerTaskDone(self,GivenList:list):
+        """Reupdates the Image and the parameters once the task is done,
+        i.e. segmentation, noise, Bayesian, errors, or other"""
+        self.Image = GivenList[0]
+        self.parameters = GivenList[1]
 
     def load_button(self,source:QLineEdit):
         """Loads the image according to the given QLineEdit.
             Will fail if an image is already loaded."""
         initial = time.time()
-        self.displayStatus(action = "File loading", what = 'starting' ,time_i = initial)
+        self.displayStatus("File loading",what = 'starting' ,time_i = initial)
+
         try:
-            tmp = PF.pickle_open(source.text())
-            a = tmp.SegmAcq
-            self.parameters = tmp
+            a = self.Image.version
+            which = "second"
         except:
-            try:
-                a = self.name
-                self.Image2 = PF.pickle_open(source.text())
-                self.displayStatus("Second file loaded", initial)
-                self._createErrorMessage("An image is already loaded, loading the second for superposition")
-            except:
-                try:
-                    self.Image = PF.pickle_open(source.text())
-                    self.name = self.Image.version
-                    self.displayStatus(action = "File loading", time_i = initial)
-                    self.parameters = GUIParameters(self.Image)
-                    self._createImageDisplay()
-                    self._createImageDisplayBars()
-                except:
-                    self._createErrorMessage("Loading is not possible")
+            which = "first"
+        try:
+            self.threadLoad = QThread()
+            self.workerLoad = WorkerLoad(source = source, which = which)
+            self.workerLoad.moveToThread(self.threadLoad)
+
+            self.threadLoad.started.connect(self.workerLoad.load)
+            self.workerLoad.finished.connect(self.threadLoad.quit)
+            self.workerLoad.finished.connect(self.workerLoad.deleteLater)
+            self.threadLoad.finished.connect(self.threadLoad.deleteLater)
+            self.workerLoad.progress.connect(self.workerDisplayStatus)
+            self.workerLoad.error.connect(self._createErrorMessage)
+
+            self.threadLoad.start()
+
+            self.btn_load.setEnabled(False)
+            self.threadLoad.finished.connect(
+                lambda: self.btn_load.setEnabled(True)
+            )
+            self.workerLoad.extracted.connect(self.ImageExtracted)
+        except: pass
+
     def browse_button_directory(self,source:QLineEdit):
         """Depleted"""
         text =  QFileDialog.getExistingDirectory()
@@ -1966,6 +2055,371 @@ class MplCanvas(FigureCanvasQTAgg):
         self.fig = fig
         super(MplCanvas, self).__init__(fig)
 
+class WorkerExtraction(QObject):
+    def __init__(self,source:str, which:str):
+        QObject.__init__(self)
+        self.source = source
+        self.which = which
+    finished = pyqtSignal()
+    progress = pyqtSignal(list)
+    error = pyqtSignal(str)
+
+    extracted = pyqtSignal(list)
+    def extract(self):
+        """Extracts the Acquistion from files"""
+        initial = time.time()
+        if self.which == "second":
+            try:
+                self.Image = Extract.Extract_Images(self.source.text(),name = self.source.text(), verbose=True,save=False)
+                self.progress.emit(["Second file extracted", initial])
+                self.error.emit("An image is already loaded, loading the second for superposition")
+            except:
+                try:
+                    self.Image = Extract_r.Extract_Images(self.source.text(),name = self.source.text(),verbose=True,save=False)
+                    self.progress.emit(["Second file extracted", initial])
+                    self.error.emit("An image is already loaded, loading the second for superposition")
+                except:
+                    self.error.emit("Second extraction is not possible")
+            self.parameters = 0
+        elif self.which == "first":
+            try:
+                self.Image = Extract.Extract_Images(self.source.text(),name = self.source.text(), verbose=True,save=False)
+                self.progress.emit(["File extracted", initial])
+                self.parameters = GUIParameters(self.Image)
+            except:
+                self.progress.emit(["Initial method not working, looking for adjacent folders", initial])
+                try:
+                    self.Image = Extract_r.Extract_Images(self.source.text(),name = self.source.text(),verbose=True,save=False)
+                    self.progress.emit(["File extracted", initial])
+                    self.parameters = GUIParameters(self.Image)
+                except:
+                    self.error.emit("Extraction is not possible")
+        try:
+            values = [self.Image,self.parameters,self.which]
+            self.extracted.emit(values)
+        except:
+            pass
+        self.finished.emit()
+
+
+class WorkerLoad(QObject):
+    def __init__(self,source:str, which:str):
+        QObject.__init__(self)
+        self.source = source
+        self.which = which
+    finished = pyqtSignal()
+    progress = pyqtSignal(list)
+    error = pyqtSignal(str)
+
+    extracted = pyqtSignal(list)
+    
+    def load(self):
+        """Extracts the Acquistion from files"""
+        initial = time.time()
+        try:
+            tmp = PF.pickle_open(self.source.text())
+            a = tmp.SegmAcq
+            self.parameters = tmp
+            self.Image = 0
+            self.which = "param"
+            self.progress.emit(["Parameter file loaded", initial])
+        except:
+            try:
+                self.Image = PF.pickle_open(self.source.text())
+                self.parameters = GUIParameters(self.Image)
+                if self.which == "first":
+                    self.progress.emit(["File loaded", initial])
+                elif self.which == "second":
+                    self.progress.emit(["Second file loaded", initial])
+                    self.error.emit("An image is already loaded, loading the second for superposition")
+            except: 
+                self.error.emit("Loading is not possible")
+        try:
+            values = [self.Image,self.parameters,self.which]
+            self.extracted.emit(values)
+        except: pass
+        self.finished.emit()
+
+class WorkerSegmentation(QObject):
+    def __init__(self,Image:DicomImage, parameters:GUIParameters):
+        QObject.__init__(self)
+        self.Image = Image
+        self.parameters = parameters
+
+    finished = pyqtSignal()
+    progress = pyqtSignal(list)
+    error = pyqtSignal(str)
+    completed = pyqtSignal(list)
+
+    def segment(self):
+        initial = time.time()
+        try:
+            self.progress.emit([f"{self.parameters.SegmType} segmentation(s)",initial,'starting'])
+            if self.parameters.SegmAcq >= 0:
+                k = np.array([self.parameters.SegmAcq])
+            else:
+                k = np.arange(self.Image.nb_acq)
+            if self.parameters.subImage[0,0] != 0:
+                k = np.arange(self.parameters.subImage[0,0], self.parameters.subImage[0,1])
+            for i in range(k.shape[0]):
+                MyFunctions.Batch_Segmentations.Batch_Segmentations(segmentation_type=self.parameters.SegmType,Image=self.Image,
+                                                            seed = self.parameters.seed,k=np.array([k[i]]),
+                                                            subimage=self.parameters.subImage[1:,:],
+                                                            sigma_Canny=self.parameters.sigmaCanny,combinationCanny=self.parameters.combinationCanny,
+                                                            CannyThreshLow=self.parameters.sigmaThreshLowCanny,CannyThreshHigh=self.parameters.sigmaThreshHighCanny,
+                                                            methodCanny=self.parameters.methodCanny,
+                                                            alpha=self.parameters.alphaICM,max_iter_ICM=self.parameters.max_iter_ICM,
+                                                            max_iter_kmean_ICM=self.parameters.max_iter_kmean_ICM,
+                                                            steps_Fill = self.parameters.steps_filling,
+                                                            max_iter_Fill = self.parameters.max_iter_fill,
+                                                            factor_Fill_range = self.parameters.factor_Fill_range,
+                                                            factor_fill= self.parameters.factor_fill_f,
+                                                            growth = self.parameters.growth,
+                                                            min_f_growth = self.parameters.min_f_growth,
+                                                            threshold_fill=self.parameters.threshold_fill,
+                                                            verbose_graph_fill = self.parameters.verbose_graph_fill,
+                                                            classNumberFCM = self.parameters.classNumberFCM, alphaFCM = self.parameters.alphaFCM, 
+                                                            mFCM = self.parameters.mFCM, 
+                                                            maxIterFCM = self.parameters.maxIterFCM, maxIterConvergenceFCM = self.parameters.maxIterConvergenceFCM, 
+                                                            convergenceDeltaFCM = self.parameters.convergenceDeltaFCM, convergenceStepFCM = self.parameters.convergenceStepFCM,
+                                                            centerEllipsoid=self.parameters.centerEllipsoid,
+                                                            axesEllipsoid=self.parameters.axesEllipsoid,
+                                                            save=False,
+                                                            do_Thresh=self.parameters.doThreshold,threshold=self.parameters.threshold,
+                                                            do_coefficients=False,
+                                                            SaveSegm=self.parameters.SaveSegm,do_moments=self.parameters.doMoments,
+                                                            do_stats=self.parameters.doStats,verbose=self.parameters.verbose,
+                                                            verboseNotGUI = False)
+                self.progress.emit([f"Part done: {i+1} of {k.shape[0]}: {((i+1)/k.shape[0]*100):.2f} %, key = {k[i]} ",
+                                    initial,
+                                    "",((i+1)/k.shape[0]*100),
+                                    True])   
+            if self.parameters.doCoefficients:
+                self.progress.emit([f"Dice and Jaccard coefficients computation",initial,'starting',100])
+                self.Image.Dice_all()         
+                self.Image.Jaccard_all()         
+            if self.parameters.SegmType != "None":
+                if isinstance(k,int):
+                    if k == -1 and self.parameters.SegmType != "Ellipsoid":
+                        self.parameters._nbSeg += self.parameters._size[0]
+                else:
+                    self.parameters._nbSeg += k.shape[0]
+            self.progress.emit([f"{self.parameters.SegmType} segmentation(s)",initial])
+            self.parameters.SegmType = "None" #Avoid running twice
+            results = [self.Image, self.parameters]
+            self.completed.emit(results)
+        except:
+            self.error.emit("Unable to run the segmentation")
+
+        self.finished.emit()
+
+class WorkerErrors(QObject):
+    def __init__(self,Image:DicomImage, parameters:GUIParameters):
+        QObject.__init__(self)
+        self.Image = Image
+        self.parameters = parameters
+
+    finished = pyqtSignal()
+    progress = pyqtSignal(list)
+    error = pyqtSignal(str)
+    completed = pyqtSignal(list)
+
+    def errors(self):
+        """
+        Function to run the errors based on the input parameters
+        """
+        initial = time.time()
+        if True:        
+            self.progress.emit([f"{self.parameters.ErrorType} errors",initial,'starting'])
+            if self.parameters.ErrorSegm >= 0:
+                k = np.array([self.parameters.ErrorSegm])
+            else: #(if k == -1)
+                k = np.arange(self.parameters._nbSeg)        
+            for i in range(k.shape[0]):            
+                MyFunctions.Batch_Errors.Batch_Errors(Image=self.Image,error_type=self.parameters.ErrorType,k=np.array([k[i]]),
+                                                    order=self.parameters.orderShift,d=self.parameters.distanceShift,
+                                                    angle = self.parameters.angleError*2*np.pi/360,
+                                                    factor= self.parameters.factorError,
+                                                    iterations = self.parameters.iterationError,
+                                                    verbose=self.parameters.verbose,
+                                                    verboseNotGUI = False)
+                self.progress.emit([f"Part done: {i+1} of {k.shape[0]}: {((i+1)/k.shape[0]*100):.2f} % ",initial,"",((i+1)/k.shape[0]*100),True])            
+
+            if self.parameters.ErrorType != "None":
+                self.parameters._nbError = self.Image.voi_statistics_counter
+                self.progress.emit([f"{self.parameters.ErrorType} Errors",initial])
+                self.parameters.ErrorType = "None" #Avoid running twice
+            results = [self.Image, self.parameters]
+            self.completed.emit(results)
+        else:
+            self.error.emit("Unable to run the errors")
+        self.finished.emit()
+
+class WorkerBayesian(QObject):
+    def __init__(self,Image:DicomImage, parameters:GUIParameters):
+        QObject.__init__(self)
+        self.Image = Image
+        self.parameters = parameters
+
+    finished = pyqtSignal()
+    progress = pyqtSignal(list)
+    error = pyqtSignal(str)
+    completed = pyqtSignal(list)
+    def bayesian(self):
+        """
+        Function to run the Bayesian analyses based on the input parameters
+        """
+        initial = time.time()
+        if True:
+            self.progress.emit([f"{self.parameters.BayesianType} Bayesian analyses",initial,'starting'])
+            if self.parameters.BayesianAcq >= 0:
+                k = np.array([self.parameters.BayesianAcq])
+            else: #(if k == -1)
+                k = np.arange(self.parameters._nbError)   
+            for i in range(k.shape[0]):            
+                self.Image.Bayesian_analyses(key=np.array([k[i]]),
+                                        curves = self.parameters.CurveTypeBayesian,
+                                        method=self.parameters.BayesianType,
+                                        model = self.parameters.ModelBayesian,
+                                        thresh_perc=self.parameters.Bayesian_thresh_perc,
+                                        thresh_value=self.parameters.Bayesian_thresh_value,
+                                        verbose = False,
+                                        save=True)
+                self.progress.emit([f"Part done: {i+1} of {k.shape[0]}: {((i+1)/k.shape[0]*100):.2f} % ",initial,"",((i+1)/k.shape[0]*100),True])            
+            if self.parameters.BayesianType != "None":
+                self.parameters._nbBayesian = self.Image.bayesian_dynesty_counter
+                self.progress.emit([f"{self.parameters.BayesianType} Bayesian",initial])
+                self.parameters.BayesianType = "None" #Avoid running twice
+            results = [self.Image, self.parameters]
+            self.completed.emit(results)
+        else:
+            self.error.emit("Unable to run the Bayesian analyses")
+        self.finished.emit()
+
+class WorkerNoise(QObject):
+    def __init__(self,Image:DicomImage, parameters:GUIParameters):
+        QObject.__init__(self)
+        self.Image = Image
+        self.parameters = parameters
+
+    finished = pyqtSignal()
+    progress = pyqtSignal(list)
+    error = pyqtSignal(str)
+    completed = pyqtSignal(list)
+
+    def noise(self):
+        """
+        Function to run the noise based on the input parameters
+        """
+        initial = time.time()
+        if True:
+            self.progress.emit([f"{self.parameters.NoiseType} noise",initial,'starting'])
+            self.Image.add_noise(noiseType= self.parameters.NoiseType,
+                                    noiseMu = self.parameters.NoiseMu,
+                                    noiseSigma= self.parameters.NoiseSigma,
+                                    Rayleigh_a= self.parameters.NoiseARayleigh,
+                                    Rayleigh_b= self.parameters.NoiseBRayleigh,
+                                    Erlang_a= self.parameters.NoiseAErlang,
+                                    Erlang_b= self.parameters.NoiseBErlang,
+                                    Unif_a= self.parameters.NoiseAUniform,
+                                    Unif_b= self.parameters.NoiseBUniform,
+                                    Exponential= self.parameters.NoiseExponential
+                                    )
+            if self.parameters.NoiseType != "None":
+                self.progress.emit([f"{self.parameters.NoiseType} noise added",initial])
+                self.parameters.NoiseType = "None" #Avoid running twice
+            else:
+                self.progress.emit(["",initial])
+            results = [self.Image, self.parameters]
+            self.completed.emit(results)
+        else:
+            self.error.emit("Unable to run the noise")
+        self.finished.emit()
+
+class WorkerDeformation(QObject):
+    def __init__(self,Image:DicomImage, parameters:GUIParameters):
+        QObject.__init__(self)
+        self.Image = Image
+        self.parameters = parameters
+
+    finished = pyqtSignal()
+    progress = pyqtSignal(list)
+    error = pyqtSignal(str)
+    completed = pyqtSignal(list)
+    def deformation(self):
+        """
+        Function to run the deformations based on the input parameters
+        """
+        initial = time.time()
+        if True:
+            self.progress.emit([f"{self.parameters.deformationType} deformations",initial,'starting'])
+            if self.parameters.deformationSegm >= 0:
+                k = np.array([self.parameters.deformationSegm])
+            else: #(if k == -1)
+                k = np.arange(self.parameters._nbSeg)   
+            for i in range(k.shape[0]):   
+                MyFunctions.Batch_Deform.Batch_Deform(Image = self.Image, deform_type= self.parameters.deformationType,
+                                                    k = np.array([k[i]]),
+                                                    linear_d= self.parameters.deformationDistanceShift,
+                                                    rotate_angle= self.parameters.deformationRotate*2*np.pi/360,
+                                                    factors_exp= self.parameters.deformationExpansion,
+                                                    reflection_axis = self.parameters.deformationReflectionAxis,
+                                                    flipAxis = self.parameters.flipAxis,
+                                                    switchAxes = self.parameters.switchAxes,
+                                                    verbose= False,
+                                                    do_coefficients = self.parameters.doCoefficients,
+                                                    delete_after = self.parameters.deleteAfterDeformation,
+                                                    verboseNotGUI= False)
+                self.progress.emit([f"Part done: {i+1} of {k.shape[0]}: {((i+1)/k.shape[0]*100):.2f} % ",initial,"",((i+1)/k.shape[0]*100),True])            
+
+
+            if self.parameters.deformationType != "None" and not self.parameters.deleteAfterDeformation:
+
+                self.progress.emit([f"{self.parameters.deformationType} deformations ",initial])
+                if self.parameters.deformationSegm == -1:
+                    self.parameters._nbSeg += self.parameters._size[0]
+                else:
+                    self.parameters._nbSeg += 1
+            else:
+                self.progress.emit(["",initial])
+        else:
+            self.error.emit("Unable to run the deformations")
+        self.finished.emit()
+
+class WorkerErase(QObject):
+    def __init__(self,Image:DicomImage, parameters:GUIParameters):
+        QObject.__init__(self)
+        self.Image = Image
+        self.parameters = parameters
+
+    finished = pyqtSignal()
+    progress = pyqtSignal(list)
+    error = pyqtSignal(str)
+    completed = pyqtSignal(list)
+    def erase(self):
+        """
+        Function to run the deformations based on the input parameters
+        """
+        initial = time.time()
+        if True:
+            self.progress.emit([f"{self.parameters.EraseType} removal",initial,'starting'])
+            if self.parameters.EraseType == "Segmentation":
+                self.Image.remove_VOI(self.parameters.EraseSegm)
+                self.parameters._nbSeg = self.Image.voi_counter
+            elif self.parameters.EraseType == "Error":
+                self.Image.remove_Error(self.parameters.EraseError)                                
+                self.parameters._nbError = self.Image.voi_statistics_counter
+            elif self.parameters.EraseType == "Bayesian":
+                self.Image.remove_Bayesian(self.parameters.EraseBayesian)
+                self.parameters._nbBayesian = self.Image.bayesian_dynesty_counter
+            if self.parameters.EraseType != "None":
+                self.progress.emit([f"{self.parameters.EraseType} removal ",initial])
+                self.parameters.EraseType = "None" #Avoids erasing twice
+            else:
+                self.progress.emit(["",initial])
+        else:
+            self.error.emit("Unable to erase the selected computation")
+        self.finished.emit()
 
 ###
 if __name__ == "__main__":
@@ -1974,6 +2428,6 @@ if __name__ == "__main__":
     print(f"Starting program at {time.strftime('%H:%M:%S')}")
     initial = time.time()
     app = QApplication([])
-    window=Window()
+    window=MainWindow()
     window.show()
     sys.exit(app.exec())

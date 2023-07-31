@@ -103,8 +103,9 @@ class ExportWindow(QMainWindow):
         """
         self.pathName = QLineEdit()
         btn_browse = QPushButton("Browse")
+        btn_browse.setShortcut("Ctrl+B")
         self.pathName.setToolTip("Destination folder for the exportation process")
-        btn_browse.setToolTip("Open a local browser to determine the path for the exportation")
+        btn_browse.setToolTip("Open a local browser to determine the path for the exportation (Ctrl+B)")
         self.generalLayout.addWidget(QLabel("Path"),self.current_line,0)
         btn_browse.clicked.connect(partial(self.browse_button_directory,self.pathName))
         self.generalLayout.addWidget(self.pathName,self.current_line,2)
@@ -448,7 +449,8 @@ Useful for the reproducibility of analyses.""")
         Create the Export Button
         """
         self.saveButton = QPushButton("Export")
-        self.saveButton.setToolTip("Export the selected choices from above.\nBoxes need to be checked to be exported.")
+        self.saveButton.setShortcut("Ctrl+E")
+        self.saveButton.setToolTip("Export the selected choices from above.\nBoxes need to be checked to be exported (Ctrl+E).")
         self.saveButton.clicked.connect(self.exportInfo)
 
         self.generalLayout.addWidget(self.saveButton,self.current_line,2)
