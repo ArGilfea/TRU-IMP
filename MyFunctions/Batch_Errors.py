@@ -52,15 +52,15 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
     else:
         k = np.array(k)
     if error_type == "Linear Shift":
-        Linear_Shift_Errors_Batch(Image,k=k,order=order,d=d,weight=weight,verbose=verbose)
+        Linear_Shift_Errors_Batch(Image,k=k,order=order,d=d,weight=weight,verbose=verboseNotGUI)
     if error_type == "Rotation":
-        Rotation_Error_Batch(Image,k=k,order=order,angle = angle, verbose = verbose)
+        Rotation_Error_Batch(Image,k=k,order=order,angle = angle, verbose = verboseNotGUI)
     if error_type == "Expansion":
-        Expansion_Error_Batch(Image,k=k,order=order,factor = factor, verbose = verbose)
+        Expansion_Error_Batch(Image,k=k,order=order,factor = factor, verbose = verboseNotGUI)
     if error_type == "Reflection":
-        Reflection_Error_Batch(Image,k=k, verbose = verbose)
+        Reflection_Error_Batch(Image,k=k, verbose = verboseNotGUI)
     if error_type == "FCM":
-        FCM_Error_Batch(Image,k=k,iteration = iterations,verbose = verbose)
+        FCM_Error_Batch(Image,k=k,iteration = iterations,verbose = verboseNotGUI)
 
     if saveResult:
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')

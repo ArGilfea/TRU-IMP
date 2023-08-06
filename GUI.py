@@ -20,6 +20,7 @@ import MyFunctions.Batch_Deform
 ###
 import numpy as np
 import time
+import scipy.integrate
 ###
 import sys
 from PyQt5.QtWidgets import *
@@ -409,6 +410,8 @@ class MainWindow(QMainWindow):
         self.resultView = "TAC"
         self.ResultViewCombo.addItem("TAC")
         self.ResultViewCombo.addItem("TAC Total")
+        self.ResultViewCombo.addItem("TAC Cumulative")
+        self.ResultViewCombo.addItem("TAC Cumulative Total")
         self.ResultViewCombo.addItem("TAC Slice")
         self.ResultViewCombo.addItem("Dice")
         self.ResultViewCombo.addItem("Jaccard")
@@ -921,7 +924,7 @@ class MainWindow(QMainWindow):
         """Update the middle image according to the type of result to be displayed"""
         try: self.cb.remove()
         except: pass
-        if self.resultView in ["TAC", "TAC Slice", "TAC Total"]:
+        if self.resultView in ["TAC", "TAC Slice", "TAC Total", "TAC Cumulative", "TAC Cumulative Total"]:
             self.update_TAC()
         elif self.resultView == "Dice":
             self.update_Dice()
@@ -1243,7 +1246,7 @@ class MainWindow(QMainWindow):
         For the 1D spatial axes, see update_1D function.
         """
         try:
-            if self.resultView == "TAC Total":
+            if self.resultView in ["TAC Total","TAC Cumulative Total"]:
                 factorSeg = self.Image.voi_voxels[self.sliderSegm.value()]
                 factorErr = self.Image.voi_voxels[self.sliderSegmStats.value()]
                 factorBay = self.Image.voi_voxels[self.sliderFitted.value()]
@@ -1302,12 +1305,30 @@ class MainWindow(QMainWindow):
                 except:
                     self.TACImage.axes.axvline(self.Image.time[-1],color='y')
             try:
+                if self.resultView in ["TAC Cumulative","TAC Cumulative Total"]:
+                    tmp = np.zeros(x_axis.shape[0])
+                    for i in range(tmp.shape[0]):
+                        tmp[i] = scipy.integrate.trapezoid(y_axis[:i],x = x_axis[:i])
+                    y_axis = tmp
                 self.TACImage.axes.plot(x_axis,y_axis,color='b',label="TAC")
             except: pass
             try:
+                if self.resultView in ["TAC Cumulative","TAC Cumulative Total"]:
+                    tmp = np.zeros(x_axis.shape[0])
+                    tmp_err = np.zeros(x_axis.shape[0])
+                    for i in range(tmp.shape[0]):
+                        tmp[i] = scipy.integrate.trapezoid(y_axis2[:i],x = x_axis[:i])
+                        tmp_err[i] = scipy.integrate.trapezoid(error[:i],x = x_axis[:i])
+                    y_axis2 = tmp
+                    error = tmp_err
                 self.TACImage.axes.errorbar(x_axis,y_axis2,error,color='r',label="Error TAC")
             except: pass
             try:
+                if self.resultView in ["TAC Cumulative","TAC Cumulative Total"]:
+                    tmp = np.zeros(x_axis.shape[0])
+                    for i in range(tmp.shape[0]):
+                        tmp[i] = scipy.integrate.trapezoid(y_axis3[:i],x = x_axis[:i])
+                    y_axis3 = tmp
                 self.TACImage.axes.plot(x_axis,y_axis3,color='g',label="Fit")
             except: pass
             self.base_TAC_axes()

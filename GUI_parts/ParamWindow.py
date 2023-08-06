@@ -28,7 +28,9 @@ class ParamWindow(QMainWindow):
     def __init__(self,parameters:GUIParameters,parent=None):
         """Initializes the ParamWindow with the GUI Parameters"""
         super().__init__(parent)
-        self.setMinimumSize(300, 850)
+        print(QApplication.primaryScreen().size().height())
+        self.setMinimumSize(300, 700)
+        self.setMaximumSize(QApplication.primaryScreen().size().width(), QApplication.primaryScreen().size().height())
         self.tabs = QTabWidget()
         self.parameters = parameters
         self.setWindowTitle("Parameters")
