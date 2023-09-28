@@ -118,9 +118,14 @@ def inverse_cdf(x:np.ndarray,fct,param:np.ndarray,stretch:float = 100) -> np.nda
     fct -- pdf function to use\n
     param -- parameters to be given to the pdf function\n
     """
-    value = np.copy(x)*stretch
+    ###
+    """value = np.copy(x)*stretch
     cdf = sum_pdf(value,fct,param)
     icdf = np.interp(x, cdf, x)*stretch
+    return icdf"""
+    value = np.linspace(-10,10,x.shape[0])
+    cdf = sum_pdf(value,fct,param)
+    icdf = np.interp(x, cdf, value)
     return icdf
 
 def get_pdf_from_uniform(y:np.ndarray,fct,param:list) -> np.ndarray:
@@ -133,9 +138,14 @@ def get_pdf_from_uniform(y:np.ndarray,fct,param:list) -> np.ndarray:
     fct -- pdf function to use\n
     param -- parameters to be given to the pdf function\n    
     """
-    x = np.arange(0,1,0.0001)
+    ###
+    """x = np.arange(0,1,0.0001)
     y = np.copy(y) * x.shape[0]
     y = y.astype(int)
     icdf = inverse_cdf(x,fct,param)
 
-    return icdf[y]
+    return icdf[y]"""
+    x = np.linspace(0,1-1e-100,10000)
+
+    icdf = inverse_cdf(x,fct,param)
+    return np.interp(y, x, icdf)

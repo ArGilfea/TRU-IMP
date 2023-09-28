@@ -261,7 +261,7 @@ class MainWindow(QMainWindow):
     def _createExitButton(self):
         """Create an exit button"""
         self.exit = QPushButton("Exit")
-        self.exit.setToolTip("Closes the GUI and its dependencies ")
+        self.exit.setToolTip("Closes the GUI and its dependencies (Ctrl+Shift+E)")
         self.exit.setShortcut("Ctrl+Shift+E")
         self.exit.clicked.connect(self.closing_button)
         self.generalLayout.addWidget(self.exit,self.current_line,3)  
@@ -417,6 +417,7 @@ class MainWindow(QMainWindow):
         self.ResultViewCombo.addItem("Jaccard")
         self.ResultViewCombo.addItem("Energy")
         self.ResultViewCombo.addItem("Mus")
+        self.ResultViewCombo.addItem("Factor f")
         self.ResultViewCombo.addItem("Bayesian")
         self.ResultViewCombo.addItem("Center of Mass")
         self.ResultViewCombo.addItem("Moments")
@@ -934,6 +935,8 @@ class MainWindow(QMainWindow):
             self.update_Energy_View()
         elif self.resultView == "Mus":
             self.update_Mus_View()
+        elif self.resultView == "Factor f":
+            self.update_FactorF_View()
         elif self.resultView == "Bayesian":
             try:
                 self.update_Bayesian(self.sliderBayesian.value())
@@ -1014,6 +1017,24 @@ class MainWindow(QMainWindow):
             self.switch_bottom_view()
         except:
             pass
+    def update_FactorF_View(self):
+        """Shows the factor f graph used in the filling algorithm"""
+        try:
+            try:
+                self.TACImage.fig.delaxes(self.axTAC)
+            except:
+                pass
+            self.TACImage.axes.cla()
+            if self.sliderSegm.value() >= 0:
+                self.TACImage.axes.plot(self.Image.fFactorsFillingAxisX[f"{self.sliderSegm.value()}"],
+                                        self.Image.fFactorsFillingAxisY[f"{self.sliderSegm.value()}"])
+
+            self.TACImage.axes.set_title("Segmented volume as a function of the f factor");self.TACImage.axes.grid()
+            self.TACImage.axes.set_xlabel("f");self.TACImage.axes.set_ylabel("Segmented ratio")
+            self.TACImage.draw() 
+            self.switch_bottom_view()
+        except:
+            pass        
     def update_centerMass(self):
         """Shows the Center of Mass in the middle image"""
         try:
@@ -2028,7 +2049,7 @@ class MainWindow(QMainWindow):
             self.sliderSagittalValue.setText(f"{int(ix)}")
             self.sliderAxial.setValue(int(iy))
             self.sliderSagittal.setValue(int(ix))
-        elif which == self.TACImage:
+        elif which == self.TACImage and self.resultView not in ["Dice","Jaccard","Energy","Mus","Factor f","Bayesian","Center of Mass","Moments"]:
             idx = (np.abs(self.Image.time - ix)).argmin()
             ix = self.Image.time[idx]
             self.sliderAcq.setValue(int(idx))

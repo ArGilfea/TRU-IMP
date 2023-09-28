@@ -58,6 +58,8 @@ class DicomImage(object):
         self.voi_fuzzy = {}
         self.energies = {}
         self.mus = {}
+        self.fFactorsFillingAxisX = {}
+        self.fFactorsFillingAxisY = {}
         self.voi_voxels = []
         self.voi_name = []
         self.voi_center_of_mass = []
@@ -883,6 +885,8 @@ class DicomImage(object):
 ############################################################
     def save_VOI(self,VOI:np.ndarray,Fuzzy_VOI: np.ndarray = np.zeros((1,1,1,1)),
                  energies: np.ndarray = np.zeros(10), mus: np.ndarray = np.zeros((1,10)),
+                 fFactorsFillingAxisX: np.ndarray = np.zeros(1),
+                 fFactorsFillingAxisY: np.ndarray = np.zeros(1),
                  name:str='',do_stats:bool=True,do_moments:bool=True): #Added in 1.3.1
         """
         Save the VOI being worked with in the dictionary
@@ -891,6 +895,8 @@ class DicomImage(object):
         Fuzzy_VOI -- (default [])\n
         energies -- (default [])\n
         mus -- (default [])\n
+        fFactorsFillingAxisX -- Values of the factor f for filling segmentations (default [0])\n
+        fFactorsFillingAxisY -- Values of the volume for the factor f for filling segmentations (default [0])\n
         name -- name of the VOI to be saved (default '')\n
         do_stats -- compute the statistics for the VOI of interest (default True)\n
         do_moments -- compute the moments for the VOI of interest (default True)\n
@@ -899,6 +905,8 @@ class DicomImage(object):
         self.voi_fuzzy[f"{self.voi_counter}"] = Fuzzy_VOI
         self.energies[f"{self.voi_counter}"] = energies
         self.mus[f"{self.voi_counter}"] = mus
+        self.fFactorsFillingAxisX[f"{self.voi_counter}"] = fFactorsFillingAxisX
+        self.fFactorsFillingAxisY[f"{self.voi_counter}"] = fFactorsFillingAxisY
         self.voi_voxels.append(self.count_voxels(self.voi_counter))
         self.voi_name.append(name)
         self.voi_counter += 1
@@ -1197,7 +1205,8 @@ class DicomImage(object):
         name: str = '',max_iter: int = 100,do_moments: bool = False,
         save:bool=True,do_stats:bool=False,
         verbose:bool=True,save_between:bool=False,fraction_f:np.ndarray=[-1,0],
-        size_f:np.ndarray=[-1,0],voxels_f:np.ndarray=[-1,0],counter_save: int = 0): #Done in 1.3.2
+        size_f:np.ndarray=[-1,0],voxels_f:np.ndarray=[-1,0],counter_save: int = 0,
+        fAxisX: np.ndarray=np.zeros(1),fAxisY: np.ndarray=np.zeros(1)): #Done in 1.3.2
         """
         This function determines a VOI using a filling algorithm, as discussed in TG211.\n
         Keyword arguments:\n
@@ -1217,6 +1226,8 @@ class DicomImage(object):
         size_f -- saves the VOI if the VOI's size (in actual units) is within a specific range (default [-1,0])\n
         voxels_f -- saves the VOI if the VOI's number of voxels is within a specific range (default [-1,0])\n
         counter_save -- used to determine whether to save the segmentation or not (c.f. VOI_filled_f) (default 0)\n
+        fAxisX -- values of f for the filling_f algorithm to be saved (default [0])\n
+        fAxisY -- values of the fraction of the volume for each f for the filling_f algorithm to be saved (default [0])\n
         """
         seed = np.array(seed)
         sub_im = np.array(sub_im)
@@ -1304,7 +1315,8 @@ class DicomImage(object):
             self.update_log(f'Stopped the filling at iter {iteration}, while the max_iter was {max_iter}')
         if save or save_between:
             counter_save += 1
-            self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
+            self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments,
+                          fFactorsFillingAxisX= fAxisX,fFactorsFillingAxisY= fAxisY)
         return VOI, counter_save
     def VOI_filled(self,seed: np.ndarray = [[-1,-1,-1]],factor:float = 1,
         acq:int=0,sub_im: np.ndarray = [[-1,-1],[-1,-1],[-1,1]],
@@ -1312,7 +1324,8 @@ class DicomImage(object):
         save:bool=True,do_stats:bool=False,
         verbose:bool=True,save_between:bool=False,fraction_f:np.ndarray=[-1,0],
         size_f:np.ndarray=[-1,0],voxels_f:np.ndarray=[-1,0],counter_save: int = 0,
-        loop = 0): #Done in 1.3.2
+        loop = 0,
+        fAxisX: np.ndarray=np.zeros(1),fAxisY: np.ndarray=np.zeros(1)): #Done in 1.3.2
         """
         This function determines a VOI using a filling algorithm, as discussed in TG211.\n
         Keyword arguments:\n
@@ -1332,6 +1345,8 @@ class DicomImage(object):
         size_f -- saves the VOI if the VOI's size (in actual units) is within a specific range (default [-1,0])\n
         voxels_f -- saves the VOI if the VOI's number of voxels is within a specific range (default [-1,0])\n
         counter_save -- used to determine whether to save the segmentation or not (c.f. VOI_filled_f) (default 0)\n
+        fAxisX -- values of f for the filling_f algorithm to be saved (default [0])\n
+        fAxisY -- values of the fraction of the volume for each f for the filling_f algorithm to be saved (default [0])\n
         """
         seed = np.array(seed)
         sub_im = np.array(sub_im)
@@ -1403,7 +1418,8 @@ class DicomImage(object):
             self.update_log(f'Stopped the filling at iter {iteration}, while the max_iter was {max_iter}')
         if save or save_between:
             counter_save += 1
-            self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments)
+            self.save_VOI(VOI,name=name,do_stats=do_stats,do_moments=do_moments,
+                          fFactorsFillingAxisX= fAxisX,fFactorsFillingAxisY= fAxisY)
         return VOI, counter_save
     def VOI_filled_f(self,seed:np.ndarray=[-1,-1,-1],factor:np.ndarray = [0,1],
         steps:int=5,acq:int=0,sub_im:np.ndarray = [[-1,-1],[-1,-1],[-1,-1]],
@@ -1500,7 +1516,8 @@ class DicomImage(object):
                         and (ratio_range[f] > fraction_f[1] and voxels[f]*self.voxel_volume/1000 > size_f[1])) \
                         and (counter_save == 0 and max_number_save > 0):
                     self.update_log(f"Saving the least worst segmentation")
-                    self.save_VOI(VOI_filled[0],name=name,do_stats=do_stats,do_moments=do_moments)
+                    self.save_VOI(VOI_filled[0],name=name,do_stats=do_stats,do_moments=do_moments,
+                                  fFactorsFillingAxisX= f_range[:f+1], fFactorsFillingAxisY=ratio_range[:f+1])
                     break
             if size_sub_im>0 and voxels[f]/size_sub_im > threshold:
                 self.update_log(f"Stopping at iter {f+1}, because threshold of {threshold} has been reached with {voxels[f]/size_sub_im:.3f}.")
@@ -1510,11 +1527,13 @@ class DicomImage(object):
                         self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),
                                         max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
-                            do_moments=do_moments,do_stats=do_stats,loop=loop)
+                            do_moments=do_moments,do_stats=do_stats,loop=loop,
+                            fAxisX= f_range[:f+1], fAxisY=ratio_range[:f+1])
                     else:
                         self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
-                            do_moments=do_moments,do_stats=do_stats)
+                            do_moments=do_moments,do_stats=do_stats,
+                            fAxisX= f_range[:f+1], fAxisY=ratio_range[:f+1])
                 break
             if f > min_f_growth and growth>=0:
                 if voxels[f]/voxels[f-1] > growth:
@@ -1523,11 +1542,13 @@ class DicomImage(object):
                     if numba:
                         self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} growth {(voxels[f]/voxels[f-1]):.2f}>{growth}",
-                            do_moments=do_moments,do_stats=do_stats,loop=loop)   
+                            do_moments=do_moments,do_stats=do_stats,loop=loop,
+                            fAxisX= f_range[:f+1], fAxisY=ratio_range[:f+1])   
                     else: 
                         self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} growth {(voxels[f]/voxels[f-1]):.2f}>{growth}",
-                            do_moments=do_moments,do_stats=do_stats)   
+                            do_moments=do_moments,do_stats=do_stats,
+                            fAxisX= f_range[:f+1], fAxisY=ratio_range[:f+1]) 
                     break               
             if voxels[f]/image_size >= threshold:
                 self.update_log(f"Stopping at iter {f+1}, because threshold of {threshold} has been reached with {voxels[f]/image_size:.3f}.")
@@ -1536,11 +1557,13 @@ class DicomImage(object):
                     if numba:
                         self.VOI_filled(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
-                            do_moments=do_moments,do_stats=do_stats,loop=loop)
+                            do_moments=do_moments,do_stats=do_stats,loop=loop,
+                            fAxisX= f_range[:f+1], fAxisY=ratio_range[:f+1])
                     else:
                         self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[f]:.3f} backup",
-                            do_moments=do_moments,do_stats=do_stats)
+                            do_moments=do_moments,do_stats=do_stats,
+                            fAxisX= f_range[:f+1], fAxisY=ratio_range[:f+1])
                 break
             if f == (steps - 1):
                 self.update_log(f"Stopping because max factor f = {f_range[-1]:.2f} was reached")
@@ -1549,11 +1572,13 @@ class DicomImage(object):
                     if numba:
                         self.VOI_filled(seed=seed,factor=f_range[-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[-1]:.3f} backup",
-                            do_moments=do_moments,do_stats=do_stats,loop=loop)
+                            do_moments=do_moments,do_stats=do_stats,loop=loop,
+                            fAxisX= f_range[:f+1], fAxisY=ratio_range[:f+1])
                     else:
                         self.VOI_filled_noNumba(seed=seed,factor=f_range[f-1],acq=acq,sub_im=np.array(sub_im),max_iter=max_iter,save=True,
                             verbose=verbose_precise,save_between=save_between,name=f"{name} VOI filled acq {acq} f {f_range[-1]:.3f} backup",
-                            do_moments=do_moments,do_stats=do_stats)
+                            do_moments=do_moments,do_stats=do_stats,
+                            fAxisX= f_range[:f+1], fAxisY=ratio_range[:f+1])
                 break
         ###Save last if steps is exceeded
         if verbose_graphs:

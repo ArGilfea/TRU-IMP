@@ -156,6 +156,9 @@ The energies are for the ICM and FCM segmentations.
 This will show the centers of mass of the statistical distributions for all iterations. 
 If segmentation slider is -1, will show all segmentations, otherwise will show a specific one.
 The centers are for the ICM and FCM segmentations.
+* Factor f:
+This will show the factor f and the associated segmented volume. Used to confirm the convergence of the algorithm.
+This is only for the filling f segmentation
 * Bayesian:
 This will show the parameters extracted with Bayesian analyses.
 The parameter shown will be the one given by the "Bay. Values" slider.
