@@ -18,7 +18,7 @@ For any question, please contact philippe.laporte.3@umontreal.ca
 
 The source code is available at: [GitHub](https://github.com/ArGilfea/TRU-IMP)
 
-A .dmg file for use without installation is available at: [Google Drive](https://drive.google.com/drive/folders/1JcUJs54d8RtoR1eFdFIFpP1lycYELKjY?usp=sharing)
+A .dmg file for use without installation is available at: [DropBox](https://www.dropbox.com/scl/fo/567k83rjf3hucael7bgii/h?rlkey=9r7f8sb5cn9smerflco0lhzl3&dl=0)
 
 Temporary host website with infos and links: [PhilippeTheMedicalPhysicist.com](https://argilfea.github.io/philippethemedicalphysicist.github.io/science/TRU-IMP/)
 

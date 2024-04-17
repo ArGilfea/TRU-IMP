@@ -10,6 +10,22 @@ from dynesty import NestedSampler
 from dynesty import plotting as dyplot
 import pickle
 import MyFunctions.Statistic_Functions as SF
+import os
+from scipy import ndimage
+
+try:
+    import Data.util as util
+except:
+    import sys
+    import os
+
+    current = os.path.dirname(os.path.realpath(__file__))
+    
+    parent = os.path.dirname(current)
+
+    sys.path.append(parent)
+    
+    import Data.util as util
 
 class DicomImage(object):
     """
@@ -41,6 +57,7 @@ class DicomImage(object):
         self.voxel_thickness = voxel_thickness
         self.voxel_width = voxel_width
         self.voxel_length = voxel_length
+        self.voxelSize = np.array([self.voxel_thickness, self.voxel_width, self.voxel_length])
         self.voxel_volume = voxel_thickness*voxel_width*voxel_length
         self.Instances = self.nb_acq*self.nb_slice*self.width*self.length
         self.mass = mass
@@ -51,7 +68,8 @@ class DicomImage(object):
             self.time = time
         self.time_scale = time_scale
         self.units = units
-        self.radionuclide = radionuclide
+        self.radioNuclideInit = radionuclide
+        self.radioNuclide = self.FindRadioNuclide()
         self.radiopharmaceutical = radiopharmaceutical
         self.voi_counter = 0
         self.voi = {}
@@ -878,6 +896,311 @@ class DicomImage(object):
         self.voi_statistics_counter += 1
         self.voi_statistics_avg.append(np.mean(stats_curves,0))
         self.voi_statistics_std.append(np.std(stats_curves,0))
+    
+    def RadioNuclide_Errors(self, key:int, verbose: bool = False,
+                            showErrorsGraphs: bool = False, ErrorGraphsFocus: list = [-1,-1,-1],
+                            showErrorsDegree: bool = False, debugMode: bool = False) -> None:
+        """
+        Computes the error of the TAC using the nature of the displacement of the positron.\n
+        The errors is dynamic in time and depends on the timeframe, if more than 1 is present.\n
+        +++For now, only a cubic neighbourhood of 2 voxels is correctly taken into account. 
+        I need to check for higher than that.+++\n
+        Keyword arguments:\n
+        key -- segmentation key to use\n
+        verbose -- outputs the progress (default False)\n
+        showErrorsGraphs -- shows images of the contours, around ErrorGraphsFocus (default False)\n
+        ErrorGraphsFocus -- point around which to show the images of the contours (default [-1, -1, -1])\n
+        showErrorsDegree -- shows the flow in and out as a function of the degree (default False)\n
+        debugMode -- shows the Filters, useful for debug mode (default False)\n
+        """
+        initial = time.time()
+        if key < 0 :#or key >= self.voi_counter:
+            raise Exception(f"Counter must be between 0 and {self.voi_counter}, whereas here it was {key}.")
+        stats_curves = np.zeros((3,self.nb_acq))
+
+        basedir = os.path.dirname(__file__)
+        RadioNuclideData = np.loadtxt(basedir + "/../Data/G_graph_1D_error_RadionuclideData.txt")
+        RadioNuclideHeader = open(basedir + "/../Data/G_graph_1D_error_RadionuclideHeader.txt",'r')
+        
+        value = -5
+        count = 0
+        for line in RadioNuclideHeader:
+            if line == f"squared exponential {self.radioNuclide}\n":
+                value = count
+            count += 1
+        if value == -5:
+            raise Exception("Problem in finding the radionuclide in the list.")
+        
+        sizeOrder = int(2*util.maxRangePositron[f"{self.radioNuclide}"]/np.min(self.voxelSize))
+        fractionGoodSize = np.ones((sizeOrder + 1,self.voxelSize.shape[0]))
+
+        for i in range(fractionGoodSize.shape[1]):
+            for j in range(sizeOrder):
+                if (j+1)*self.voxelSize[i]/2 < util.maxRangePositron[f"{self.radioNuclide}"]:
+                    f = np.interp((j+1)*self.voxelSize[i]/2,RadioNuclideData[:,0],RadioNuclideData[:,value])
+                else:
+                    f = 1
+                fractionGoodSize[j,i] = f
+
+        #Create Filters
+        firstOrderFilters = []
+        for i in range(sizeOrder):
+            newFilter = np.zeros(2*(i+1) + 1)
+            newFilter[0] = 1
+            newFilter[-1] = 1
+            firstOrderFilters.append(newFilter/np.sum(newFilter)) # /2
+
+        secondOrderFilters = []
+        for i in range(sizeOrder):
+            newFilter = np.zeros((2*(i+1) + 1, 2*(i+1) + 1))
+            for j in range(newFilter.shape[0]):
+                if j != i + 1:
+                    newFilter[j,:] += firstOrderFilters[i]/4
+                    newFilter[:,j] += firstOrderFilters[i]/4
+            
+            secondOrderFilters.append(newFilter)
+
+        thirdOrderFilters = []
+        for i in range(sizeOrder):
+            newFilter = np.zeros((2*(i+1) + 1, 2*(i+1) + 1, 2*(i+1) + 1))
+            for j in range(newFilter.shape[0]):
+                if j != i + 1 :
+                    newFilter[j,:,:] += secondOrderFilters[i]/6
+                    newFilter[:,j,:] += secondOrderFilters[i]/6
+                    newFilter[:,:,j] += secondOrderFilters[i]/6
+            
+            thirdOrderFilters.append(newFilter)
+
+        """for i in range(sizeOrder):
+            secondOrderFilters[i] = np.where(secondOrderFilters[i] > 0, 1, 0)
+            thirdOrderFilters[i] = np.where(thirdOrderFilters[i] > 0, 1, 0)
+            secondOrderFilters[i] = secondOrderFilters[i]/np.sum(secondOrderFilters[i])
+            thirdOrderFilters[i] = thirdOrderFilters[i]/np.sum(thirdOrderFilters[i])
+        """
+        if debugMode:
+            print(f"Size Order {sizeOrder}")
+            print(f"First Order Filters \n{firstOrderFilters}")
+            print(f"Second Order Filters \n{secondOrderFilters}")
+            print(f"Third Order Filters \n{thirdOrderFilters}")
+            #exit()
+        VOI = np.copy(self.voi[f"{key}"])
+
+        FirstOrderSegm = np.zeros((3,sizeOrder,self.nb_slice,self.width,self.length))
+        SecondOrderSegm = np.zeros((3,sizeOrder,self.nb_slice,self.width,self.length))
+        ThirdOrderSegm = np.zeros((sizeOrder,self.nb_slice,self.width,self.length))
+        #Apply Filters
+
+        for i in range(3):
+            for j in range(sizeOrder):
+                if i == 0:
+                    for k in range(self.width):
+                        for l in range(self.length):
+                            FirstOrderSegm[i,j,:,k,l] = np.convolve(VOI[:,k,l], firstOrderFilters[j], mode = 'same') - VOI[:,k,l]
+                            FirstOrderSegm[i,j,:,k,l] *= (fractionGoodSize[j+1,0] - fractionGoodSize[j,0])
+                elif i == 1:
+                    for k in range(self.nb_slice):
+                        for l in range(self.length):
+                            FirstOrderSegm[i,j,k,:,l] = np.convolve(VOI[k,:,l], firstOrderFilters[j], mode = 'same') - VOI[k,:,l]
+                            FirstOrderSegm[i,j,k,:,l] *= (fractionGoodSize[j+1,2] - fractionGoodSize[j,2])
+                elif i == 2:
+                    for k in range(self.nb_slice):
+                        for l in range(self.width):
+                            FirstOrderSegm[i,j,k,l,:] = np.convolve(VOI[k,l,:], firstOrderFilters[j], mode = 'same') - VOI[k,l,:]
+                            FirstOrderSegm[i,j,k,l,:] *= (fractionGoodSize[j+1,2] - fractionGoodSize[j,2])
+                if verbose:
+                    self.update_log(f"% of 1st order convolution done for key {key}: {(100*((j+1)+3*i)/(3*fractionGoodSize.shape[0])):.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+
+        for i in range(3):
+            for j in range(sizeOrder):
+                if i == 0:
+                    for k in range(self.nb_slice):
+                        filterTmp = np.copy(secondOrderFilters[j])
+                        for l in range(1,j+2): #Or j + 2
+                            #print(f"{l} : {(fractionGoodSize[j+1,1] - fractionGoodSize[j,1]) ** (l+1):.2f} ,{(fractionGoodSize[j+1,2] - fractionGoodSize[j,2]) ** (l+1):.2f}")
+                            filterTmp[j + 1 + l,:] *= (fractionGoodSize[l,1] - fractionGoodSize[l-1,1])
+                            filterTmp[j + 1 - l,:] *= (fractionGoodSize[l,1] - fractionGoodSize[l-1,1])
+                            filterTmp[:,j + 1 + l] *= (fractionGoodSize[l,2] - fractionGoodSize[l-1,2])
+                            filterTmp[:,j + 1 - l] *= (fractionGoodSize[l,2] - fractionGoodSize[l-1,2])
+                        #print(f"Filter Temps: {j}, {l}", filterTmp)
+                        convolvedFilter = ndimage.convolve(VOI[k,:,:], secondOrderFilters[j], mode = 'nearest') - VOI[k,:,:]
+                        convolvedValues = ndimage.convolve(VOI[k,:,:], filterTmp, mode = 'nearest')
+                        SecondOrderSegm[i,j,k,:,:] = convolvedFilter * convolvedValues/np.sum(secondOrderFilters[j])
+                elif i == 1:
+                    for k in range(self.width):
+                        filterTmp = np.copy(secondOrderFilters[j])
+                        for l in range(1,j+2): #Or j + 2
+                            filterTmp[j + 1 + l,:] *= (fractionGoodSize[l,0] - fractionGoodSize[l-1,0])
+                            filterTmp[j + 1 - l,:] *= (fractionGoodSize[l,0] - fractionGoodSize[l-1,0])
+                            filterTmp[:,j + 1 + l] *= (fractionGoodSize[l,2] - fractionGoodSize[l-1,2])
+                            filterTmp[:,j + 1 - l] *= (fractionGoodSize[l,2] - fractionGoodSize[l-1,2])
+
+                        convolvedFilter = ndimage.convolve(VOI[:,k,:], secondOrderFilters[j], mode = 'nearest') - VOI[:,k,:]
+                        convolvedValues = ndimage.convolve(VOI[:,k,:], filterTmp, mode = 'nearest')
+                        SecondOrderSegm[i,j,:,k,:] = convolvedFilter * convolvedValues/np.sum(secondOrderFilters[j])
+
+                elif i == 2:
+                    for k in range(self.length):
+                        filterTmp = np.copy(secondOrderFilters[j])
+                        for l in range(1,j+2): #Or j + 2
+                            filterTmp[j + 1 + l,:] *= (fractionGoodSize[l,0] - fractionGoodSize[l-1,0])
+                            filterTmp[j + 1 - l,:] *= (fractionGoodSize[l,0] - fractionGoodSize[l-1,0])
+                            filterTmp[:,j + 1 + l] *= (fractionGoodSize[l,1] - fractionGoodSize[l-1,1])
+                            filterTmp[:,j + 1 - l] *= (fractionGoodSize[l,1] - fractionGoodSize[l-1,1])
+
+                        convolvedFilter = ndimage.convolve(VOI[:,:,k], secondOrderFilters[j], mode = 'nearest') - VOI[:,:,k]
+                        convolvedValues = ndimage.convolve(VOI[:,:,k], filterTmp, mode = 'nearest')
+                        SecondOrderSegm[i,j,:,:,k] = convolvedFilter * convolvedValues/np.sum(secondOrderFilters[j])
+                if verbose:
+                    self.update_log(f"% of 2nd order convolution done for key {key}: {(100*((j+1)+3*i)/(3*fractionGoodSize.shape[0])):.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+                        
+        for j in range(sizeOrder):
+            filterTmp = np.copy(thirdOrderFilters[j])
+
+            for k in range(1,j + 2):
+                filterTmp[j + 1 + k,:,:] *= (fractionGoodSize[k,0] - fractionGoodSize[k-1,0])
+                filterTmp[j + 1 - k,:,:] *= (fractionGoodSize[k,0] - fractionGoodSize[k-1,0])
+                filterTmp[:,j + 1 + k,:] *= (fractionGoodSize[k,1] - fractionGoodSize[k-1,1])
+                filterTmp[:,j + 1 - k,:] *= (fractionGoodSize[k,1] - fractionGoodSize[k-1,1])
+                filterTmp[:,:,j + 1 + k] *= (fractionGoodSize[k,2] - fractionGoodSize[k-1,2])
+                filterTmp[:,:,j + 1 - k] *= (fractionGoodSize[k,2] - fractionGoodSize[k-1,2])
+
+
+
+            convolvedValues = ndimage.convolve(VOI[:,:,:], filterTmp, mode = 'nearest')
+            convolvedFilter = ndimage.convolve(VOI[:,:,:], thirdOrderFilters[j], mode = 'nearest') - VOI
+
+            ThirdOrderSegm[j,:,:,:] = convolvedFilter * convolvedValues/np.sum(secondOrderFilters[j])
+            if verbose:
+                self.update_log(f"% of 3rd order convolution done for key {key}: {(100*(j+1)/(fractionGoodSize.shape[0])):.2f}% in {(time.time()-initial):.1f} s at {time.strftime('%H:%M:%S')}")
+            #ThirdOrderSegm *= 0
+
+        if showErrorsGraphs and ErrorGraphsFocus[0] >= 0 and ErrorGraphsFocus[1] >= 0 and ErrorGraphsFocus[2] >= 0:
+            ylabels = ["1st order \n1st axis", "1st order \n2nd axis", "1st order \n3rd axis",
+                    "2nd order \n1st axis", "2nd order \n2nd axis", "2nd order \n3rd axis",
+                    "3rd order", "Segmentation"]
+            figs, axes = plt.subplots(8,sizeOrder)
+            pcm = []
+            slice = ErrorGraphsFocus[0]
+            for i in range(sizeOrder):
+                pcm.append(axes[0,i].pcolormesh(FirstOrderSegm[0,i,slice,:,:]))
+                pcm.append(axes[1,i].pcolormesh(FirstOrderSegm[1,i,slice,:,:]))
+                pcm.append(axes[2,i].pcolormesh(FirstOrderSegm[2,i,slice,:,:]))
+                pcm.append(axes[3,i].pcolormesh(SecondOrderSegm[0,i,slice,:,:]))
+                pcm.append(axes[4,i].pcolormesh(SecondOrderSegm[1,i,slice,:,:]))
+                pcm.append(axes[5,i].pcolormesh(SecondOrderSegm[2,i,slice,:,:]))
+                pcm.append(axes[6,i].pcolormesh(ThirdOrderSegm[i,slice,:,:]))
+                pcm.append(axes[7,i].pcolormesh(VOI[slice-1+i,:,:]))
+                axes[7,i].set_xlabel(f"Degree {i}")
+            for j in range(8):
+                axes[j,0].set_ylabel(ylabels[j])
+            for i in range(8):
+                for j in range(sizeOrder):
+                    figs.colorbar(pcm[sizeOrder*i + j], ax = axes[i,j])
+            plt.suptitle("Axial Contours for the Radionuclide Error")
+
+            figs, axes = plt.subplots(8,sizeOrder)
+            pcm = []
+            slice = ErrorGraphsFocus[1]
+            for i in range(sizeOrder):
+                pcm.append(axes[0,i].pcolormesh(FirstOrderSegm[0,i,:,slice,:]))
+                pcm.append(axes[1,i].pcolormesh(FirstOrderSegm[1,i,:,slice,:]))
+                pcm.append(axes[2,i].pcolormesh(FirstOrderSegm[2,i,:,slice,:]))
+                pcm.append(axes[3,i].pcolormesh(SecondOrderSegm[0,i,:,slice,:]))
+                pcm.append(axes[4,i].pcolormesh(SecondOrderSegm[1,i,:,slice,:]))
+                pcm.append(axes[5,i].pcolormesh(SecondOrderSegm[2,i,:,slice,:]))
+                pcm.append(axes[6,i].pcolormesh(ThirdOrderSegm[i,:,slice,:]))
+                pcm.append(axes[7,i].pcolormesh(VOI[:,slice-1+i,:]))
+                axes[7,i].set_xlabel(f"Degree {i}")
+            for j in range(8):
+                axes[j,0].set_ylabel(ylabels[j])
+            for i in range(8):
+                for j in range(sizeOrder):
+                    figs.colorbar(pcm[sizeOrder*i + j], ax = axes[i,j])
+            plt.suptitle("Coronal Contours for the Radionuclide Error")
+
+            figs, axes = plt.subplots(8,sizeOrder)
+            pcm = []
+            slice = ErrorGraphsFocus[2]
+            for i in range(sizeOrder):
+                pcm.append(axes[0,i].pcolormesh(FirstOrderSegm[0,i,:,:,slice]))
+                pcm.append(axes[1,i].pcolormesh(FirstOrderSegm[1,i,:,:,slice]))
+                pcm.append(axes[2,i].pcolormesh(FirstOrderSegm[2,i,:,:,slice]))
+                pcm.append(axes[3,i].pcolormesh(SecondOrderSegm[0,i,:,:,slice]))
+                pcm.append(axes[4,i].pcolormesh(SecondOrderSegm[1,i,:,:,slice]))
+                pcm.append(axes[5,i].pcolormesh(SecondOrderSegm[2,i,:,:,slice]))
+                pcm.append(axes[6,i].pcolormesh(ThirdOrderSegm[i,:,:,slice]))
+                pcm.append(axes[7,i].pcolormesh(VOI[:,:,slice-1+i]))
+                axes[7,i].set_xlabel(f"Degree {i}")
+            for j in range(8):
+                axes[j,0].set_ylabel(ylabels[j])
+            for i in range(8):
+                for j in range(sizeOrder):
+                    figs.colorbar(pcm[sizeOrder*i + j], ax = axes[i,j])
+            plt.suptitle("Sagital Contours for the Radionuclide Error")
+
+        #Compute error In & Out
+        #Add all axes
+        FirstOrderFlowOut = np.zeros((self.nb_acq,3, sizeOrder))
+        FirstOrderFlowIn = np.zeros((self.nb_acq,3, sizeOrder))
+        SecondOrderFlowOut = np.zeros((self.nb_acq,3, sizeOrder))
+        SecondOrderFlowIn = np.zeros((self.nb_acq,3, sizeOrder))
+        ThirdOrderFlowOut = np.zeros((self.nb_acq,sizeOrder))
+        ThirdOrderFlowIn = np.zeros((self.nb_acq,sizeOrder))
+
+        for k in range(self.nb_acq):
+            for j in range(sizeOrder):
+                for i in range(3):
+                    FirstOrderFlowOut[k,i,j] = np.sum(FirstOrderSegm[i,j,:,:,:] * VOI * self.Image[k,:,:,:])
+                    FirstOrderFlowIn[k,i,j] = np.sum(FirstOrderSegm[i,j,:,:,:] * ( - VOI + 1) * self.Image[k,:,:,:])
+
+                    SecondOrderFlowOut[k,i,j] = np.sum(SecondOrderSegm[i,j,:,:,:] * VOI * self.Image[k,:,:,:])
+                    SecondOrderFlowIn[k,i,j] = np.sum(SecondOrderSegm[i,j,:,:,:] * ( - VOI + 1) * self.Image[k,:,:,:])
+                    #SecondOrderFlowOut[k,i,j] = np.sum(SecondOrderSegm[i,j,:,:,:] * VOI)
+                    #SecondOrderFlowIn[k,i,j] = np.sum(SecondOrderSegm[i,j,:,:,:] * ( - VOI + 1))
+
+                ThirdOrderFlowOut[k,j] = np.sum(ThirdOrderSegm[j,:,:,:] * VOI * self.Image[k,:,:,:])
+                ThirdOrderFlowIn[k,j] = np.sum(ThirdOrderSegm[j,:,:,:] * ( - VOI + 1) * self.Image[k,:,:,:])
+                #ThirdOrderFlowOut[k,j] = np.sum(ThirdOrderSegm[j,:,:,:] * VOI )
+                #ThirdOrderFlowIn[k,j] = np.sum(ThirdOrderSegm[j,:,:,:] * ( - VOI + 1) )
+
+        if showErrorsDegree:
+            plt.figure()
+            for i in range(sizeOrder):
+                plt.plot(np.sum(FirstOrderFlowOut[:,:,i],axis = 1)/self.voi_voxels[key], label = f"1st order flow out degree {i}")
+                plt.plot(np.sum(FirstOrderFlowIn[:,:,i],axis = 1)/self.voi_voxels[key], label = f"1st order flow in degree {i}")
+
+                plt.plot(np.sum(SecondOrderFlowOut[:,:,i],axis = 1)/self.voi_voxels[key], label = f"2nd order flow out degree {i}")
+                plt.plot(np.sum(SecondOrderFlowIn[:,:,i],axis = 1)/self.voi_voxels[key], label = f"2nd order flow in degree {i}")
+
+                plt.plot(ThirdOrderFlowOut[:,i]/self.voi_voxels[key], label = f"3rd order flow out degree {i}")
+                plt.plot(ThirdOrderFlowIn[:,i]/self.voi_voxels[key], label = f"3rd order flow in degree {i}")
+
+            plt.xlabel("Degree"); plt.grid(); plt.legend()
+            plt.title("Average voxel error for each timeframe, \nfor each order and degree of correction")
+
+        totalFlowOut = np.sum(FirstOrderFlowOut[:,:,:], axis = (1,2))
+        totalFlowIn = np.sum(FirstOrderFlowIn[:,:,:], axis = (1,2))
+        totalFlowOut += np.sum(SecondOrderFlowOut[:,:,:], axis = (1,2))
+        totalFlowIn += np.sum(SecondOrderFlowIn[:,:,:], axis = (1,2))
+        totalFlowOut += np.sum(ThirdOrderFlowOut[:,:], axis = 1)
+        totalFlowIn += np.sum(ThirdOrderFlowIn[:,:], axis = 1)
+
+        totalFlow = np.abs((totalFlowIn + totalFlowOut)/self.voi_voxels[key])
+        if verbose:
+            print(totalFlowIn)
+            print(totalFlowIn.shape)
+            print(totalFlowOut)
+            print(totalFlowOut.shape)
+            print(totalFlow)
+        if verbose:
+            print(f"RadioNuclide: {self.radioNuclide}")
+            print("Positron attributes ",util.meanRangePositron[f"{self.radioNuclide}"],util.maxRangePositron[f"{self.radioNuclide}"])
+            print(f"Voxel Size: {self.voxelSize}")
+            print(f"Fraction of good detections \n{fractionGoodSize}")
+
+        self.voi_statistics_counter += 1
+        self.voi_statistics_avg.append(self.voi_statistics[key])
+        self.voi_statistics_std.append(totalFlow)
 ############################################################
 #                                                          #
 # This section deals with the adding and removal of VOIs   #
@@ -2807,7 +3130,25 @@ class DicomImage(object):
                 else:
                     axes = np.concatenate((axes,d[i]*all_orders[order[i]]))
             return axes
-        
+############################################################
+#                                                          #
+# This section has utility functions                       #
+#                                                          #
+############################################################      
+
+    def FindRadioNuclide(self) -> str:  
+        """
+        This function finds the good name of the radionuclide from the util list.
+        If not found, returns the default F18
+        """
+
+        name_tmp = self.radioNuclideInit
+        for dict, names in util.radioNuclideNameVariations.items():
+            if name_tmp in names.values():
+                return dict       
+            
+        #If nothing else is found
+        return "F18" 
 
 class CombinedResults(object):
     """Combines the Results from Different DicomImage Files"""
@@ -2880,4 +3221,6 @@ class CombinedResults(object):
                 self.BayesianEDownTotal[f"{name}"][f"{scheme}"] = DI.bayesian_results_e_down                
         except: pass
 
-        
+
+
+    

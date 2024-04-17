@@ -13,9 +13,16 @@ class GUIParameters(object):
         """Initialization of the class.\n
         Only requires the DicomImage, from which it takes the value, without keeping the full image and the segmentations"""
         self._size = np.array([Image.nb_acq,Image.nb_slice,Image.width,Image.length])
+        self._dimensions = np.array([Image.voxel_thickness, Image.voxel_width, Image.voxel_length])
         self._nbSeg = Image.voi_counter
         self._nbError = Image.voi_statistics_counter
         self._nbBayesian = Image.bayesian_dynesty_counter
+        self._radioNuclide = Image.radioNuclide
+        self._radioNuclideInit = Image.radioNuclideInit
+        self._radiopharmaceutical = ""
+
+        self.showInnerParameters = False
+
         self.seed = np.array([0,0,0])
         self.subImage = np.array([[0,Image.nb_acq],[0,Image.nb_slice],[0,Image.width],[0,Image.length]])
         self.SegmAcq = 0

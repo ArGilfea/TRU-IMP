@@ -1,0 +1,14 @@
+Half Length (mm)
+uniform mean 0.6mm
+normal mean 2.6mm
+normal mean 0.6mm
+exponential mean 0.6mm
+exponential mean 0.6mm
+exponential mean 0.6mm
+squared exponential C11
+squared exponential N13
+squared exponential O15
+squared exponential F18
+squared exponential Cu62
+squared exponential Ga68
+squared exponential Rb82

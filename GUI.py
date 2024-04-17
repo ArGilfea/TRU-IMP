@@ -610,6 +610,7 @@ class MainWindow(QMainWindow):
         """Create an empty image for where the TAC and the results will be"""
         self.TACImage = MplCanvas(self)
         self.TAC_cid = self.TACImage.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.TACImage))
+        self.TAC_cod = self.TACImage.fig.canvas.mpl_connect('scroll_event', partial(self.onRoll, which = self.TACImage))
         self.TACImage.setMinimumSize(size_Image,size_Image)
         self.base_TAC_axes()
         self.generalLayout.addWidget(self.TACImage,self.current_line,2)
@@ -623,6 +624,9 @@ class MainWindow(QMainWindow):
         self.axial1D_cid = self.AxialImage1D.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.AxialImage1D))
         self.sagittal1D_cid = self.SagittalImage1D.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.SagittalImage1D))
         self.coronal1D_cid = self.CoronalImage1D.fig.canvas.mpl_connect('button_press_event', partial(self.onClick, which = self.CoronalImage1D))
+        self.axial1D_cod = self.AxialImage1D.fig.canvas.mpl_connect('scroll_event', partial(self.onRoll, which = self.AxialImage1D))
+        self.sagittal1D_cod = self.SagittalImage1D.fig.canvas.mpl_connect('scroll_event', partial(self.onRoll, which = self.SagittalImage1D))
+        self.coronal1D_cod = self.CoronalImage1D.fig.canvas.mpl_connect('scroll_event', partial(self.onRoll, which = self.CoronalImage1D))
         self.AxialImage1D.setMinimumSize(size_Image,size_Image)
         self.SagittalImage1D.setMinimumSize(size_Image,size_Image)
         self.CoronalImage1D.setMinimumSize(size_Image,size_Image)
@@ -720,10 +724,14 @@ class MainWindow(QMainWindow):
         try:
             window = ParamWindow(self.parameters,self)
             window.setWindowModality(Qt.ApplicationModal)
+            window.signalClosed.connect(self.updateRadioNuclide)
             window.signalClosed.connect(self.update_all)
             window.show()
         except:
             self._createErrorMessage("No acquisition loaded yet")
+    def updateRadioNuclide(self):
+        self.Image.radioNuclide = self.parameters._radioNuclide
+
 
     def open_export(self):
         """
@@ -1028,9 +1036,10 @@ class MainWindow(QMainWindow):
             if self.sliderSegm.value() >= 0:
                 self.TACImage.axes.plot(self.Image.fFactorsFillingAxisX[f"{self.sliderSegm.value()}"],
                                         self.Image.fFactorsFillingAxisY[f"{self.sliderSegm.value()}"])
-
-            self.TACImage.axes.set_title("Segmented volume as a function of the f factor");self.TACImage.axes.grid()
+            tmp = f"{self.sliderSegm.value()}"
+            self.TACImage.axes.set_title(f"Segmented volume as a function of the f factor\nwith f* = {(self.Image.fFactorsFillingAxisX[tmp][-2]):.2f}");self.TACImage.axes.grid()
             self.TACImage.axes.set_xlabel("f");self.TACImage.axes.set_ylabel("Segmented ratio")
+            self.TACImage.axes.set_yscale("log")
             self.TACImage.draw() 
             self.switch_bottom_view()
         except:
@@ -2054,15 +2063,15 @@ class MainWindow(QMainWindow):
             ix = self.Image.time[idx]
             self.sliderAcq.setValue(int(idx))
             self.sliderAcqValue.setText(f"{int(idx)}")
-        elif which == self.AxialImage1D:
+        elif which == self.AxialImage1D and self.resultView not in ["Bayesian"]:
             ix = int((np.abs(sliceAxis - ix)).argmin())
             self.sliderAxialValue.setText(f"{int(ix)}")
             self.sliderAxial.setValue(int(ix))
-        elif which == self.SagittalImage1D:
+        elif which == self.SagittalImage1D and self.resultView not in ["Bayesian"]:
             ix = int((np.abs(lengthAxis - ix)).argmin())
             self.sliderSagittalValue.setText(f"{int(ix)}")
             self.sliderSagittal.setValue(int(ix))
-        elif which == self.CoronalImage1D:
+        elif which == self.CoronalImage1D and self.resultView not in ["Bayesian"]:
             ix = int((np.abs(widthAxis - ix)).argmin())
             self.sliderCoronalValue.setText(f"{int(ix)}")
             self.sliderCoronal.setValue(int(ix))
@@ -2087,6 +2096,22 @@ class MainWindow(QMainWindow):
             actual = int(self.sliderCoronalValue.text())
             self.sliderCoronalValue.setText(f"{int(actual+scale_factor)}")
             self.sliderCoronal.setValue(int(actual+scale_factor))
+        elif which == self.TACImage and self.resultView not in ["Dice","Jaccard","Energy","Mus","Factor f","Bayesian","Center of Mass","Moments"]:
+            actual = int(self.sliderAcqValue.text())
+            self.sliderAcqValue.setText(f"{int(actual+scale_factor)}")
+            self.sliderAcq.setValue(int(actual+scale_factor))
+        elif which == self.AxialImage1D and self.resultView not in ["Bayesian"]:
+            actual = int(self.sliderAxialValue.text())
+            self.sliderAxialValue.setText(f"{int(actual + scale_factor)}")
+            self.sliderAxial.setValue(int(actual + scale_factor))
+        elif which == self.SagittalImage1D and self.resultView not in ["Bayesian"]:
+            actual = int(self.sliderSagittalValue.text())
+            self.sliderSagittalValue.setText(f"{int(actual + scale_factor)}")
+            self.sliderSagittal.setValue(int(actual + scale_factor))
+        elif which == self.CoronalImage1D and self.resultView not in ["Bayesian"]:
+            actual = int(self.sliderCoronalValue.text())
+            self.sliderCoronalValue.setText(f"{int(actual + scale_factor)}")
+            self.sliderCoronal.setValue(int(actual + scale_factor))
 
 class MplCanvas(FigureCanvasQTAgg):
     """Class for the images and the graphs as a widget"""

@@ -61,7 +61,8 @@ def Batch_Errors(Image:DicomImage = None,error_type:str = "None", k =-1,
         Reflection_Error_Batch(Image,k=k, verbose = verboseNotGUI)
     if error_type == "FCM":
         FCM_Error_Batch(Image,k=k,iteration = iterations,verbose = verboseNotGUI)
-
+    if error_type == "RadioNuclide":
+        RadioNuclide_Error_Batch(Image, k = k, verbose = verboseNotGUI)
     if saveResult:
         PF.pickle_save(Image,path_out+name_in+name_out+'.pkl')
     if verboseNotGUI: print(f"All the errors were computed in {(time.time() - initial):.2f} s.")
@@ -128,3 +129,17 @@ def FCM_Error_Batch(Image:DicomImage,k:np.ndarray,iteration:int = 50, verbose:bo
     for i in range(k.shape[0]):
         Image.FCM_errors(key = k[i], iterations = iteration, verbose = verbose)
         if verboseNotGUIGlobal: print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
+
+def RadioNuclide_Error_Batch(Image:DicomImage,k:np.ndarray, verbose:bool = True):
+    """
+    Compute the RadioNuclide errors of the curves using the physical parameters of the acquisition.\n
+    Keyword arguments:\n
+    Image -- DicomImage class used\n
+    k -- segmentation for which to compute the errors. -1 for all (default -1)\n
+    verbose -- outputs the progress (default False)\n
+    """
+    initial = time.time()
+    for i in range(k.shape[0]):
+        Image.RadioNuclide_Errors(key = k[i], verbose = verbose)
+        if verboseNotGUIGlobal: print(f"Part done: {(i+1)/k.shape[0]*100:.2f} % in {(time.time() - initial):.1f} s at {time.strftime('%H:%M:%S')}")
+

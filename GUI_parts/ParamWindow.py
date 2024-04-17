@@ -18,7 +18,21 @@ from matplotlib.figure import Figure
 from scipy.stats import norm
 from scipy.fft import fft
 ###
+try:
+    import Data.util as util
+except:
+    import sys
+    import os
 
+    current = os.path.dirname(os.path.realpath(__file__))
+    
+    parent = os.path.dirname(current)
+
+    sys.path.append(parent)
+    
+    import Data.util as util
+
+###
 size_Image = 200
 class ParamWindow(QMainWindow):
     """
@@ -34,6 +48,7 @@ class ParamWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.parameters = parameters
         self.setWindowTitle("Parameters")
+        self.generalLayoutInternalParameters = QGridLayout()
         self.generalLayoutSegm = QGridLayout()
         self.generalLayoutDefor = QGridLayout()
         self.generalLayoutError = QGridLayout()
@@ -41,6 +56,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutNoise = QGridLayout()
         self.generalLayoutErase = QGridLayout()
         self.generalLayoutOptions = QGridLayout()
+        centralWidgetInternalParameters = QWidget(self)
         centralWidgetSegm = QWidget(self)
         centralWidgetDefor = QWidget(self)
         centralWidgetErrors = QWidget(self)
@@ -48,6 +64,7 @@ class ParamWindow(QMainWindow):
         centralWidgetNoise = QWidget(self)
         centralWidgetErase = QWidget(self)
         centralWidgetOptions = QWidget(self)
+        centralWidgetInternalParameters.setLayout(self.generalLayoutInternalParameters)
         centralWidgetSegm.setLayout(self.generalLayoutSegm)
         centralWidgetDefor.setLayout(self.generalLayoutDefor)
         centralWidgetErrors.setLayout(self.generalLayoutError)
@@ -56,6 +73,7 @@ class ParamWindow(QMainWindow):
         centralWidgetErase.setLayout(self.generalLayoutErase)
         centralWidgetOptions.setLayout(self.generalLayoutOptions)
 
+        self.tabs.addTab(centralWidgetInternalParameters,"Internal Parameters")
         self.tabs.addTab(centralWidgetSegm,"Segm.")
         self.tabs.addTab(centralWidgetDefor,"Defor.")
         self.tabs.addTab(centralWidgetErrors,"Errors.")
@@ -68,6 +86,7 @@ class ParamWindow(QMainWindow):
 
     def initialize_param_window(self):
         """Start the creation of the param window for the widgets"""
+        self.current_line_InternalParameters = 2
         self.current_line_Segm = 2
         self.current_line_Defor = 2
         self.current_line_Error = 2
@@ -76,6 +95,36 @@ class ParamWindow(QMainWindow):
         self.current_line_Erase = 2
         self.current_line_Options = 2
         self._createParamList()
+
+    def _createHeaderShowInnerParameters(self):
+        """"Creates the toggle option for the parameters, whether
+        to allow them to be modified or not"""
+        btnNew = self._createBoolBox()
+        btnNew.setChecked(self.parameters.showInnerParameters)
+        btnNew.stateChanged.connect(partial(self.set_value_checked_showInnerParameters,btnNew))
+
+        self.generalLayoutInternalParameters.addWidget(QLabel("Allow Modification"),self.current_line_InternalParameters,0)
+        self.generalLayoutInternalParameters.addWidget(btnNew,self.current_line_InternalParameters,2)
+        self.current_line_InternalParameters +=1
+
+    def _createRadioNuclideChoice(self):
+        """Creates the Choice for the radionuclide. 
+        Only allows a choice if the parameters is checked"""
+        if self.parameters.showInnerParameters:
+            self.RadioNuclideCombo = QComboBox()
+            for dict, names in util.radioNuclideNameVariations.items(): #Checks the values in util to give a range of possibility
+                self.RadioNuclideCombo.addItem(dict)
+            self.RadioNuclideCombo.setCurrentText(self.parameters._radioNuclide)
+            self.RadioNuclideCombo.activated[str].connect(self.MethRadioNuclide_Changed)
+
+
+        self.generalLayoutInternalParameters.addWidget(QLabel("RadioNuclide"),self.current_line_InternalParameters,0)
+        self.generalLayoutInternalParameters.addWidget(QLabel(self.parameters._radioNuclideInit),self.current_line_InternalParameters,1)
+        self.current_line_InternalParameters +=1
+        self.generalLayoutInternalParameters.addWidget(QLabel(self.parameters._radioNuclide),self.current_line_InternalParameters,1)
+        if self.parameters.showInnerParameters:
+            self.generalLayoutInternalParameters.addWidget(self.RadioNuclideCombo,self.current_line_InternalParameters,2)
+        self.current_line_InternalParameters +=1
 
     def _createSeedSliders(self):
         """Create the sliders and the line edits for the seed"""
@@ -571,6 +620,7 @@ class ParamWindow(QMainWindow):
         self.ErrorCombo.addItem("Expansion")
         self.ErrorCombo.addItem("Reflection")
         self.ErrorCombo.addItem("FCM")
+        self.ErrorCombo.addItem("RadioNuclide")
 
         self.ErrorCombo.setCurrentText(self.parameters.ErrorType)
         self.ErrorCombo.activated[str].connect(self.ErrorMethodCombo_Changed)
@@ -968,6 +1018,7 @@ class ParamWindow(QMainWindow):
         self.ColourImageCombo.addItem("twilight")
         self.ColourImageCombo.addItem("twilight_shifted")
         self.ColourImageCombo.addItem("hsv")
+        self.ColourImageCombo.addItem("Greys")
         self.ColourImageCombo.addItem("cividis")
 
         self.ColourImageCombo.setCurrentText(self.parameters.ColourBaseImage)
@@ -1040,6 +1091,8 @@ class ParamWindow(QMainWindow):
         self.current_line_Options +=1
     def _createExitButtons(self):
         """Creates exit buttons for the param window"""
+        self.exitInternalParameters = QPushButton("Close")
+        self.exitInternalParameters.setShortcut("Ctrl+E")
         self.exitSegm = QPushButton("Close")
         self.exitSegm.setShortcut("Ctrl+E")
         self.exitNoise = QPushButton("Close")
@@ -1055,6 +1108,7 @@ class ParamWindow(QMainWindow):
         self.exitOptions = QPushButton("Close")
         self.exitOptions.setShortcut("Ctrl+E")
 
+        self.exitInternalParameters.clicked.connect(self.close)
         self.exitSegm.clicked.connect(self.close)
         self.exitNoise.clicked.connect(self.close)
         self.exitError.clicked.connect(self.close)
@@ -1062,6 +1116,7 @@ class ParamWindow(QMainWindow):
         self.exitDeform.clicked.connect(self.close)
         self.exitErase.clicked.connect(self.close)
         self.exitOptions.clicked.connect(self.close)
+        self.generalLayoutInternalParameters.addWidget(self.exitInternalParameters,self.current_line_InternalParameters,3)  
         self.generalLayoutSegm.addWidget(self.exitSegm,self.current_line_Segm,3)  
         self.generalLayoutNoise.addWidget(self.exitNoise,self.current_line_Noise,3)  
         self.generalLayoutError.addWidget(self.exitError,self.current_line_Error,3)  
@@ -1069,6 +1124,7 @@ class ParamWindow(QMainWindow):
         self.generalLayoutDefor.addWidget(self.exitDeform,self.current_line_Defor,3)  
         self.generalLayoutErase.addWidget(self.exitErase,self.current_line_Erase,3)  
         self.generalLayoutOptions.addWidget(self.exitOptions,self.current_line_Options,3)  
+        self.current_line_InternalParameters += 1
         self.current_line_Segm += 1
         self.current_line_Noise += 1
         self.current_line_Error += 1
@@ -1285,6 +1341,39 @@ class ParamWindow(QMainWindow):
         self.generalLayoutError.addWidget(QLabel(f"{self.parameters.iterationError}"),self.current_line_Error,1)
         self.generalLayoutError.addWidget(btnNew,self.current_line_Error,2)
         self.current_line_Error +=1
+    def _createRadioNuclideError(self):
+        """Creates a label for the name of the radionuclide. Cannot be edited by the used."""
+        RadioNuclideName = QLineEdit()
+        RadioNuclideName.setText(str(self.parameters._radioNuclide))
+        RadioNuclideName.setFixedWidth(100)
+        RadioNuclideName.setReadOnly(True)
+
+        self.generalLayoutError.addWidget(QLabel("RadioNuclide"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(RadioNuclideName,self.current_line_Error,2)
+        self.current_line_Error +=1
+    def _createVoxelSizeError(self):
+        """Creates labels for the dimensions of the voxels. Cannot be edited by the used."""
+        VoxelSizeThickness = QLineEdit()
+        VoxelSizeWidth = QLineEdit()
+        VoxelSizeLength = QLineEdit()
+        VoxelSizeThickness.setText(str(self.parameters._dimensions[0]))
+        VoxelSizeWidth.setText(str(self.parameters._dimensions[1]))
+        VoxelSizeLength.setText(str(self.parameters._dimensions[2]))
+        VoxelSizeThickness.setFixedWidth(100)
+        VoxelSizeWidth.setFixedWidth(100)
+        VoxelSizeLength.setFixedWidth(100)
+        VoxelSizeThickness.setReadOnly(True)
+        VoxelSizeWidth.setReadOnly(True)
+        VoxelSizeLength.setReadOnly(True)
+
+        self.generalLayoutError.addWidget(QLabel("Voxel Size"),self.current_line_Error,0)
+        self.generalLayoutError.addWidget(QLabel("Thickness"),self.current_line_Error,1)
+        self.generalLayoutError.addWidget(QLabel("Thickness"),self.current_line_Error+1,1)
+        self.generalLayoutError.addWidget(QLabel("Thickness"),self.current_line_Error+2,1)
+        self.generalLayoutError.addWidget(VoxelSizeThickness,self.current_line_Error,2)
+        self.generalLayoutError.addWidget(VoxelSizeWidth,self.current_line_Error+1,2)
+        self.generalLayoutError.addWidget(VoxelSizeLength,self.current_line_Error+2,2)
+        self.current_line_Error +=3
     def _createSigmaCanny(self):
         """Creates the slider and the line edit for the sigma (Canny)."""
         btnNew,slider = self._createIntInput(self.parameters.sigmaCanny)
@@ -1638,6 +1727,9 @@ class ParamWindow(QMainWindow):
         self.generalLayoutOptions.addWidget(QLabel("Values"),1,1)
         self.generalLayoutOptions.addWidget(QLabel("New Values"),1,2)
 
+        #Inner Parameters Specific
+        self._createHeaderShowInnerParameters()
+        self._createRadioNuclideChoice()
         #Segmentation Specific
         self._createSegmType()
         self._createSubImageSliders()
@@ -1695,7 +1787,7 @@ class ParamWindow(QMainWindow):
         self._createDeleteAfterDeformation()
         #Error Specific
         self._createErrorType()
-        if self.parameters.ErrorType != "None":
+        if self.parameters.ErrorType not in ["None"]:
             self._createErrorValue()
         if self.parameters.ErrorType == "Linear Shift":
             self._createOrderShiftError()
@@ -1708,6 +1800,10 @@ class ParamWindow(QMainWindow):
             self._createExpansionError()
         if self.parameters.ErrorType == "FCM":
             self._createIterationsFCMError()
+        if self.parameters.ErrorType == "RadioNuclide":
+            self._createRadioNuclideError()
+            self._createVoxelSizeError()
+
         #Bayesian Specific
         self._createBayesianType()
         if self.parameters.CurveTypeBayesian == "Errors":
@@ -1797,6 +1893,14 @@ class ParamWindow(QMainWindow):
         """Links the colour of the map for the segmentation and the combo box in the parameters"""
         self.parameters.ImagesCombinedMethod = self.CombinationImagesTypeCombo.currentText()
         self.refresh_app()      
+    def set_value_checked_showInnerParameters(self,box:QCheckBox):
+        """Links the show Inner Parameters bool and the combo box in the parameters"""
+        self.parameters.showInnerParameters = box.isChecked()
+        self.refresh_app()
+    def MethRadioNuclide_Changed(self):
+        """Links the choice of radionuclide and the combo box in the parameters (Canny)"""
+        self.parameters._radioNuclide = self.RadioNuclideCombo.currentText()
+        self.refresh_app()
     def set_value_checked_doCoefficients(self,box:QCheckBox):
         """Links the compute coefficient bool and the combo box in the parameters"""
         self.parameters.doCoefficients = box.isChecked()
@@ -2131,6 +2235,12 @@ class ParamWindow(QMainWindow):
         """
         When a different segmentation, error or Dynesty scheme is chosen, update the whole window and only display the parameters of interest
         """
+        if self.generalLayoutInternalParameters is not None:
+            while self.generalLayoutInternalParameters.count():
+                item = self.generalLayoutInternalParameters.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
         if self.generalLayoutSegm is not None:
             while self.generalLayoutSegm.count():
                 item = self.generalLayoutSegm.takeAt(0)

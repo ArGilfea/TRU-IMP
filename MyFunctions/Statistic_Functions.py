@@ -1,6 +1,9 @@
 import numpy as np
 import math
-from scipy.integrate import trapezoid
+try:
+    from scipy.integrate import trapezoid
+except:
+    from scipy.integrate import trapz as trapezoid
 from functools import partial
 
 def rayleigh_noise_pdf(value:float = 0,a:float = 0.0,b:float = 1.0,type:str = "icdf") -> float:
