@@ -140,7 +140,7 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
     RescaleSlope = [rescaleS[0]]
     RescaleIntercept = [rescaleI[0]]
     for i in range(1,number_of_files):
-        if temps[i] != temps[i-1]:
+        if temps[i] not in times:
             nb_acq += 1
             times.append(temps[i])
             RescaleSlope.append(rescaleS[i])
