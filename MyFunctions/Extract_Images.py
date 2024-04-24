@@ -26,11 +26,12 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         if((dicom_file[0:4]=='PET_' or dicom_file.endswith('.dcm')) and dicom_file[0] != "."):
             try:
                 ds = pydicom.dcmread(path_in+dicom_file)
+                a = ds.RescaleSlope
                 all_files_Im[i-counter] = ds.pixel_array
                 all_files_Header.append(ds)
                 IntNum[i-counter] = all_files_Header[i-counter].InstanceNumber
             except:
-                print(f"Invalid Dicom File, no pixel array present in {dicom_file}")
+                print(f"Invalid Dicom File, no pixel array present in {dicom_file} or not an image array (could be segmentation or dose info)")
                 counter += 1
         else: #Decreases for each non-dicom file in the folder
             counter += 1
@@ -40,22 +41,53 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
     number_of_files -= counter
     if verbose_precise:
         print('Number of Files',number_of_files)
-    all_files_Im_ordered = np.zeros((number_of_files),dtype=object)
-    if verbose:
-        print('Ordering Files')
-    initial2 = time.time()
-    all_files_Header_ordered = all_files_Header.copy()
+
 
     if np.isnan(max(IntNum)) and np.isnan(min(IntNum)):
         lowIntNum = 1
     else:
         lowIntNum = min(IntNum)
+    if np.isnan(max(IntNum)) and np.isnan(min(IntNum)):
+        highIntNum = 1
+    else:
+        highIntNum = max(IntNum)
     if number_of_files != 1:
+        SeriesInstances = np.zeros(number_of_files,dtype=object)
+        for i in range(int(number_of_files)):
+            SeriesInstances[i] = all_files_Header[i].SeriesInstanceUID
+
+    nbrSeries = np.unique(SeriesInstances).shape[0]
+    print(f"Number of different series: {nbrSeries}")
+
+    all_files_Im_ordered = np.zeros((number_of_files),dtype=object)
+    if verbose:
+        print('Ordering Files')
+    initial2 = time.time()
+    all_files_Header_ordered = all_files_Header.copy()
+    #all_files_Header_ordered = np.zeros((number_of_files),dtype=object)
+
+    if number_of_files != 1:
+        counter = 0
+        #print(IntNum[8], IntNum[11])
+        #print(all_files_Header[8],all_files_Header[11])
+        for i in range(int(highIntNum)):
+            #print(all_files_Header[i].SeriesNumber, all_files_Header[i].AcquisitionNumber, all_files_Header[i].InstanceNumber, all_files_Header[i].SeriesInstanceUID)
+            try:
+                #print(i,np.where(IntNum == i),np.where(IntNum == i)[0][0])
+                all_files_Im_ordered[i-counter] = all_files_Im[np.where(IntNum == i)[0][0]]
+                all_files_Header_ordered[i-counter] = all_files_Header[np.where(IntNum == i)[0][0]]
+                if((i%1000 == 0 or i == number_of_files - 1)and verbose_precise):
+                    print("Time Elapsed: ", "{:.2f}".format(time.time()-initial2),'s; % done: ',"{:.1f}".format(i/number_of_files*100),' %')
+            except:
+                counter += 1
+        """        
         for i in range(number_of_files):
+            print(i, int(IntNum[i] - lowIntNum), lowIntNum, IntNum[i])
             all_files_Im_ordered[int(IntNum[i] - lowIntNum)] = all_files_Im[i]
             all_files_Header_ordered[int(IntNum[i] - lowIntNum)] = all_files_Header[i]
             if((i%1000 == 0 or i == number_of_files - 1)and verbose_precise):
                 print("Time Elapsed: ", "{:.2f}".format(time.time()-initial2),'s; % done: ',"{:.1f}".format(i/number_of_files*100),' %')
+        """
     else:
         all_files_Im_ordered[0] = all_files_Im[i]
         all_files_Header_ordered[0] = all_files_Header[i]
@@ -84,6 +116,7 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
         Instance[i] = all_files_Header_ordered[i].InstanceNumber
         try:
             position[i,:] = all_files_Header_ordered[i].ImagePositionPatient
+            #(0020, 0032)
         except:
             position[i,:] = all_files_Header_ordered[i].DetectorInformationSequence[0].ImagePositionPatient
         width[i] = all_files_Header_ordered[i].Rows
@@ -137,7 +170,7 @@ def Extract_Images(path_in:str,name:str='',path_out:str='',verbose:bool = False,
             if(temps[i] == temps[0]):
                 nb_slice += 1
     else:
-        nb_slice = number_of_files
+        nb_slice = highIntNum - counter
         nb_acq = 1
 
 
